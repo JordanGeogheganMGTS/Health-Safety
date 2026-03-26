@@ -67,8 +67,6 @@ export default function AlarmTestForm({ systems }: Props) {
 
   const testTypeWatched = useWatch({ control, name: 'test_type' })
   const outcomeWatched = useWatch({ control, name: 'outcome' })
-  const systemIdWatched = useWatch({ control, name: 'system_id' })
-
   const showCallPoint = testTypeWatched === 'Weekly'
   const showFaults = outcomeWatched === 'Fail'
 
