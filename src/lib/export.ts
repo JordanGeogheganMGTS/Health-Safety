@@ -6,6 +6,22 @@ export interface ExportColumn {
   width?: number
 }
 
+/**
+ * Build a multi-sheet Excel workbook and return it as a Buffer.
+ * For use in Route Handlers (server-side).
+ */
+export function buildWorkbook(sheets: Array<{ name: string; data: Record<string, unknown>[] }>): Buffer {
+  const workbook = XLSX.utils.book_new()
+
+  for (const sheet of sheets) {
+    const worksheet = XLSX.utils.json_to_sheet(sheet.data)
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name)
+  }
+
+  const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+  return buffer
+}
+
 export function exportToExcel<T extends Record<string, unknown>>(
   data: T[],
   columns: ExportColumn[],
