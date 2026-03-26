@@ -30,7 +30,7 @@ interface UserProfile {
 
 export default async function PpePage() {
   const [supabase, authUser] = await Promise.all([
-    (async () => { const { createClient: c } = await import('@/lib/supabase/server'); return c() })(),
+    createClient(),
     getAuthUser(),
   ])
 
