@@ -1,8 +1,197 @@
-export default function CoshhPage() {
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
+import { formatDate, isOverdue } from '@/lib/dates'
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    Draft: 'bg-slate-100 text-slate-700',
+    Active: 'bg-green-100 text-green-700',
+    'Under Review': 'bg-amber-100 text-amber-700',
+    Superseded: 'bg-slate-200 text-slate-500',
+  }
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] ?? 'bg-slate-100 text-slate-600'}`}>
+      {status}
+    </span>
+  )
+}
+
+function RiskBadge({ rating }: { rating: string | null }) {
+  if (!rating) return <span className="text-slate-400 text-sm">—</span>
+  const styles: Record<string, string> = {
+    Low: 'bg-green-100 text-green-700',
+    Medium: 'bg-amber-100 text-amber-700',
+    High: 'bg-orange-100 text-orange-700',
+    'Very High': 'bg-red-100 text-red-700',
+  }
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[rating] ?? 'bg-slate-100 text-slate-600'}`}>
+      {rating}
+    </span>
+  )
+}
+
+interface SearchParams {
+  status?: string
+  risk_rating?: string
+}
+
+export default async function CoshhPage({ searchParams }: { searchParams: SearchParams }) {
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('coshh_assessments')
+    .select(`
+      id,
+      substance_name,
+      risk_rating,
+      status,
+      assessment_date,
+      review_date,
+      sites(name),
+      assessor:users!coshh_assessments_assessor_id_fkey(first_name, last_name)
+    `)
+    .order('created_at', { ascending: false })
+
+  if (searchParams.status) {
+    query = query.eq('status', searchParams.status)
+  }
+  if (searchParams.risk_rating) {
+    query = query.eq('risk_rating', searchParams.risk_rating)
+  }
+
+  const { data: assessments } = await query
+
+  const statusOptions = ['Draft', 'Active', 'Under Review', 'Superseded']
+  const riskOptions = ['Low', 'Medium', 'High', 'Very High']
+
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900 mb-2">COSHH Assessments</h1>
-      <p className="text-slate-500">This module is being built.</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">COSHH Assessments</h1>
+          <p className="text-sm text-slate-500 mt-1">Control of Substances Hazardous to Health</p>
+        </div>
+        <Link
+          href="/coshh/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          New COSHH Assessment
+        </Link>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-500">Status:</span>
+          <div className="flex gap-1">
+            <Link
+              href="/coshh"
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.status ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All
+            </Link>
+            {statusOptions.map((s) => (
+              <Link
+                key={s}
+                href={`/coshh?status=${encodeURIComponent(s)}${searchParams.risk_rating ? `&risk_rating=${encodeURIComponent(searchParams.risk_rating)}` : ''}`}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.status === s ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {s}
+              </Link>
+            ))}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-500">Risk:</span>
+          <div className="flex gap-1">
+            <Link
+              href={`/coshh${searchParams.status ? `?status=${encodeURIComponent(searchParams.status)}` : ''}`}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.risk_rating ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+            >
+              All
+            </Link>
+            {riskOptions.map((r) => (
+              <Link
+                key={r}
+                href={`/coshh?risk_rating=${encodeURIComponent(r)}${searchParams.status ? `&status=${encodeURIComponent(searchParams.status)}` : ''}`}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.risk_rating === r ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {r}
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
+        {!assessments || assessments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <svg className="h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            <p className="text-base font-medium">No COSHH assessments found</p>
+            <p className="text-sm mt-1">Create your first assessment to get started</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Substance</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Site</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Risk Rating</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessment Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Review Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessor</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {assessments.map((ca) => {
+                  const site = ca.sites as { name: string } | null
+                  const assessor = ca.assessor as { first_name: string; last_name: string } | null
+                  const overdue = isOverdue(ca.review_date)
+
+                  return (
+                    <tr key={ca.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3">
+                        <Link href={`/coshh/${ca.id}`} className="font-medium text-slate-900 hover:text-blue-600 transition-colors">
+                          {ca.substance_name}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{site?.name ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <RiskBadge rating={ca.risk_rating} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={ca.status} />
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{formatDate(ca.assessment_date)}</td>
+                      <td className={`px-4 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
+                        {formatDate(ca.review_date)}
+                        {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {assessor ? `${assessor.first_name} ${assessor.last_name}` : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <Link href={`/coshh/${ca.id}`} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                          View
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -17,10 +17,10 @@ export default async function SettingsPage() {
   const roleName = (profile?.roles as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
-  const sections = [
+  const cards = [
     {
       title: 'General Settings',
-      description: 'Manage application-wide settings such as review intervals and organisation name.',
+      description: 'Configure thresholds and system-wide settings',
       href: '/settings/general',
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -31,7 +31,7 @@ export default async function SettingsPage() {
     },
     {
       title: 'Site Management',
-      description: 'Add, edit and deactivate organisational sites.',
+      description: 'Add and manage MGTS sites',
       href: '/settings/sites',
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -41,7 +41,7 @@ export default async function SettingsPage() {
     },
     {
       title: 'User Management',
-      description: 'Create and manage user accounts, roles, and site assignments.',
+      description: 'Manage user accounts, roles and permissions',
       href: '/settings/users',
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -51,7 +51,7 @@ export default async function SettingsPage() {
     },
     {
       title: 'Lookup Management',
-      description: 'Manage dropdown values used throughout the system (PPE types, inspection types, etc.).',
+      description: 'Configure dropdown lists used across the system',
       href: '/settings/lookups',
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
     },
     {
       title: 'Inspection Templates',
-      description: 'Create and manage inspection checklists and template items.',
+      description: 'Build and manage inspection checklists',
       href: '/settings/templates',
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -79,20 +79,20 @@ export default async function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => (
+        {cards.map((card) => (
           <Link
-            key={section.href}
-            href={section.href}
+            key={card.href}
+            href={card.href}
             className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
-              {section.icon}
+              {card.icon}
             </div>
             <div>
               <h2 className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
-                {section.title}
+                {card.title}
               </h2>
-              <p className="mt-1 text-xs text-slate-500 leading-relaxed">{section.description}</p>
+              <p className="mt-1 text-xs text-slate-500 leading-relaxed">{card.description}</p>
             </div>
             <div className="mt-auto flex items-center text-xs font-medium text-blue-600 group-hover:text-blue-700">
               Manage
