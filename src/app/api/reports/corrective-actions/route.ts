@@ -19,10 +19,6 @@ export async function GET() {
   const buffer = buildWorkbook([{
     name: 'Corrective Actions',
     data: (rows ?? []).map(r => {
-      const assigned = r.users as unknown as { first_name: string; last_name: string }[] | null
-      const createdBy = Array.isArray(assigned) && assigned.length > 1 ? assigned[1] : null
-      const assignedTo = Array.isArray(assigned) && assigned.length > 0 ? assigned[0] : null
-
       // Handle both array and object shapes Supabase may return for FK joins
       const assignedUser = (r as any)['users!corrective_actions_assigned_to_id_fkey'] ?? null
       const createdByUser = (r as any)['users!corrective_actions_created_by_id_fkey'] ?? null
