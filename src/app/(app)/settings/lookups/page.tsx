@@ -14,7 +14,7 @@ export default async function LookupsPage() {
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   const { data: categories } = await supabase

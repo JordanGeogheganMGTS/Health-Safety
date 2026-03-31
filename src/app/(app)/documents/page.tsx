@@ -114,9 +114,9 @@ export default async function DocumentsPage({
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {documents.map((doc) => {
-                  const owner = doc.owner as { first_name: string; last_name: string } | null
-                  const site = doc.sites as { name: string } | null
-                  const category = doc.category as { label: string } | null
+                  const owner = doc.owner as unknown as { first_name: string; last_name: string } | null
+                  const site = doc.sites as unknown as { name: string } | null
+                  const category = doc.category as unknown as { label: string } | null
                   const overdue = isOverdue(doc.review_date)
 
                   return (

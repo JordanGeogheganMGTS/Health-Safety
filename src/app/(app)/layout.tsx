@@ -21,9 +21,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     email: profile.email,
     firstName: profile.first_name,
     lastName: profile.last_name,
-    role: (profile.roles as { name: string }).name,
+    role: (profile.roles as unknown as { name: string }).name,
     siteId: profile.site_id,
-    siteName: profile.sites ? (profile.sites as { name: string }).name : null,
+    siteName: profile.sites ? (profile.sites as unknown as { name: string }).name : null,
   }
 
   return <AppShell user={userProfile}>{children}</AppShell>

@@ -35,7 +35,7 @@ export default async function UserProfilePage({
     .eq('id', currentAuthUser.id)
     .single()
 
-  const roleName = (currentProfile?.roles as { name: string } | null)?.name
+  const roleName = (currentProfile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   // Handle deactivation confirmation
@@ -67,8 +67,8 @@ export default async function UserProfilePage({
 
   if (!profile) redirect('/settings/users')
 
-  const role = (profile.roles as { name: string } | null)?.name
-  const site = (profile.sites as { name: string } | null)?.name
+  const role = (profile.roles as unknown as { name: string } | null)?.name
+  const site = (profile.sites as unknown as { name: string } | null)?.name
   const lastAssessment = profile.dse_assessments as {
     id: string
     assessment_date: string

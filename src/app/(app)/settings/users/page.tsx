@@ -15,7 +15,7 @@ export default async function UsersPage() {
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   const { data: users } = await supabase
@@ -70,8 +70,8 @@ export default async function UsersPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {users.map((u) => {
-                const role = (u.roles as { name: string } | null)?.name
-                const site = (u.sites as { name: string } | null)?.name
+                const role = (u.roles as unknown as { name: string } | null)?.name
+                const site = (u.sites as unknown as { name: string } | null)?.name
                 return (
                   <tr key={u.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">

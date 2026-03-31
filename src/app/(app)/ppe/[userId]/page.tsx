@@ -181,7 +181,7 @@ export default async function UserPpePage({ params }: { params: { userId: string
                 {records.map((r) => {
                   const overdue = r.next_review_date ? isOverdue(r.next_review_date) : false
                   const dueSoon = r.next_review_date ? isDueWithin(r.next_review_date, 30) : false
-                  const issuedBy = r.issued_by as { first_name: string; last_name: string } | null
+                  const issuedBy = r.issued_by as unknown as { first_name: string; last_name: string } | null
                   const item = r.ppe_item
 
                   return (

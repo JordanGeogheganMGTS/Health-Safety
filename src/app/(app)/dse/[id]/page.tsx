@@ -46,8 +46,8 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
   }
   const sortedSections = Array.from(sections.entries()).sort(([a], [b]) => a - b)
 
-  const subjectUser = assessment.users as { first_name: string; last_name: string } | null
-  const assessedBy = assessment.assessed_by as { first_name: string; last_name: string } | null
+  const subjectUser = assessment.users as unknown as { first_name: string; last_name: string } | null
+  const assessedBy = assessment.assessed_by as unknown as { first_name: string; last_name: string } | null
   const overdue = isOverdue(assessment.review_date)
 
   return (
@@ -139,7 +139,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
           </div>
           <div className="divide-y divide-slate-100">
             {(section.responses ?? []).map((r) => {
-              const ca = r.corrective_actions as { id: string; title: string; status: string } | null
+              const ca = r.corrective_actions as unknown as { id: string; title: string; status: string } | null
               return (
                 <div key={r.id} className="px-6 py-4">
                   <div className="flex items-start justify-between gap-4">

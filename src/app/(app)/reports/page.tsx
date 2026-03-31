@@ -84,7 +84,7 @@ export default async function ReportsPage() {
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName && RESTRICTED_ROLES.includes(roleName)) redirect('/dashboard')
 
   return (

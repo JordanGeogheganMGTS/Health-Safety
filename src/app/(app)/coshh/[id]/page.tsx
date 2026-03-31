@@ -76,9 +76,9 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
 
   if (!ca) notFound()
 
-  const site = ca.sites as { name: string } | null
-  const assessor = ca.assessor as { first_name: string; last_name: string } | null
-  const approver = ca.approver as { first_name: string; last_name: string } | null
+  const site = ca.sites as unknown as { name: string } | null
+  const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
+  const approver = ca.approver as unknown as { first_name: string; last_name: string } | null
   const overdue = isOverdue(ca.review_date)
 
   let sdsUrl: string | null = null

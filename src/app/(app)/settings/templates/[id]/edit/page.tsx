@@ -16,7 +16,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   const [{ data: template }, { data: items }, { data: sites }] = await Promise.all([

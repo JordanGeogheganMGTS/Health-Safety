@@ -52,10 +52,10 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
 
   if (!doc) notFound()
 
-  const owner = doc.owner as { first_name: string; last_name: string } | null
-  const approver = doc.approver as { first_name: string; last_name: string } | null
-  const site = doc.sites as { name: string } | null
-  const category = doc.category as { label: string } | null
+  const owner = doc.owner as unknown as { first_name: string; last_name: string } | null
+  const approver = doc.approver as unknown as { first_name: string; last_name: string } | null
+  const site = doc.sites as unknown as { name: string } | null
+  const category = doc.category as unknown as { label: string } | null
 
   let downloadUrl: string | null = null
   if (doc.storage_key) {

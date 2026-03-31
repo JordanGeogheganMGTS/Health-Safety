@@ -91,8 +91,8 @@ export default async function DsePage() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {users.map((u) => {
-                const role = (u.roles as { name: string } | null)?.name
-                const site = (u.sites as { name: string } | null)?.name
+                const role = (u.roles as unknown as { name: string } | null)?.name
+                const site = (u.sites as unknown as { name: string } | null)?.name
                 const assessment = u.dse_assessments as {
                   id: string
                   assessment_date: string

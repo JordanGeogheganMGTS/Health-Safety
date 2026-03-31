@@ -26,7 +26,7 @@ export default async function SitesPage() {
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   const { data: sites } = await supabase

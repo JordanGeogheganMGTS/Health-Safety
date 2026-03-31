@@ -206,7 +206,7 @@ export default async function PpePage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
-                        {user.sites ? (user.sites as { name: string }).name : '—'}
+                        {user.sites ? (user.sites as unknown as { name: string }).name : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700 font-medium">{totalIssued}</td>
                       <td className="px-4 py-3">

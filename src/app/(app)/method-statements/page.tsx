@@ -72,8 +72,8 @@ export default async function MethodStatementsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {statements.map((ms) => {
-                  const site = ms.sites as { name: string } | null
-                  const author = ms.author as { first_name: string; last_name: string } | null
+                  const site = ms.sites as unknown as { name: string } | null
+                  const author = ms.author as unknown as { first_name: string; last_name: string } | null
                   const overdue = isOverdue(ms.review_date)
 
                   return (

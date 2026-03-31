@@ -192,8 +192,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
                   {records.map((r) => {
-                    const user = r.user as { id: string; first_name: string; last_name: string } | null
-                    const trainingType = r.training_type as { id: string; name: string; is_mandatory: boolean } | null
+                    const user = r.user as unknown as { id: string; first_name: string; last_name: string } | null
+                    const trainingType = r.training_type as unknown as { id: string; name: string; is_mandatory: boolean } | null
 
                     return (
                       <tr key={r.id} className="hover:bg-slate-50 transition-colors">

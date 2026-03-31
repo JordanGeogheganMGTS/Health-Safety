@@ -153,8 +153,8 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {assessments.map((ca) => {
-                  const site = ca.sites as { name: string } | null
-                  const assessor = ca.assessor as { first_name: string; last_name: string } | null
+                  const site = ca.sites as unknown as { name: string } | null
+                  const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
                   const overdue = isOverdue(ca.review_date)
 
                   return (

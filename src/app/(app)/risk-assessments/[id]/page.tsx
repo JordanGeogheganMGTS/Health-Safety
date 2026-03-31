@@ -61,10 +61,10 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
 
   if (!ra) notFound()
 
-  const site = ra.sites as { name: string } | null
-  const assessor = ra.assessor as { first_name: string; last_name: string } | null
-  const approver = ra.approver as { first_name: string; last_name: string } | null
-  const category = ra.category as { label: string } | null
+  const site = ra.sites as unknown as { name: string } | null
+  const assessor = ra.assessor as unknown as { first_name: string; last_name: string } | null
+  const approver = ra.approver as unknown as { first_name: string; last_name: string } | null
+  const category = ra.category as unknown as { label: string } | null
   const overdue = isOverdue(ra.review_date)
 
   return (
@@ -150,7 +150,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {hazards.map((h, idx) => {
-                  const actionOwner = h.action_owner as { first_name: string; last_name: string } | null
+                  const actionOwner = h.action_owner as unknown as { first_name: string; last_name: string } | null
                   return (
                     <tr key={h.id} className="hover:bg-slate-50 align-top">
                       <td className="px-3 py-3 text-slate-500 font-mono text-xs">{idx + 1}</td>

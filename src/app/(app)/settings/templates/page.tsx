@@ -15,7 +15,7 @@ export default async function TemplatesPage() {
     .eq('id', user.id)
     .single()
 
-  const roleName = (profile?.roles as { name: string } | null)?.name
+  const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
   const { data: templates } = await supabase
@@ -81,7 +81,7 @@ export default async function TemplatesPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {templates.map((t) => {
-                const site = (t.sites as { name: string } | null)?.name
+                const site = (t.sites as unknown as { name: string } | null)?.name
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 text-sm font-medium text-slate-900">{t.name}</td>

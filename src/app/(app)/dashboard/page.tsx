@@ -120,17 +120,17 @@ export default async function DashboardPage() {
 
   // Documents where review_date is past
   const overdueDocuments = (documents ?? []).filter(
-    (d) => isPast((d as { review_date: string | null }).review_date)
+    (d) => isPast((d as unknown as { review_date: string | null }).review_date)
   ).length
 
   // Equipment where next_service_due is past
   const overdueEquipment = (equipment ?? []).filter(
-    (e) => isPast((e as { next_service_due: string | null }).next_service_due)
+    (e) => isPast((e as unknown as { next_service_due: string | null }).next_service_due)
   ).length
 
   // Fire extinguishers where next_inspection_due is past
   const overdueFireExt = (fireExtinguishers ?? []).filter(
-    (f) => isPast((f as { next_inspection_due: string | null }).next_inspection_due)
+    (f) => isPast((f as unknown as { next_inspection_due: string | null }).next_inspection_due)
   ).length
 
   const totalOverdue = overdueCA + overdueDocuments + overdueEquipment + overdueFireExt
@@ -143,15 +143,15 @@ export default async function DashboardPage() {
   ).length
 
   const dueDocuments = (documents ?? []).filter(
-    (d) => isDueWithin30((d as { review_date: string | null }).review_date)
+    (d) => isDueWithin30((d as unknown as { review_date: string | null }).review_date)
   ).length
 
   const dueEquipment = (equipment ?? []).filter(
-    (e) => isDueWithin30((e as { next_service_due: string | null }).next_service_due)
+    (e) => isDueWithin30((e as unknown as { next_service_due: string | null }).next_service_due)
   ).length
 
   const dueFireExt = (fireExtinguishers ?? []).filter(
-    (f) => isDueWithin30((f as { next_inspection_due: string | null }).next_inspection_due)
+    (f) => isDueWithin30((f as unknown as { next_inspection_due: string | null }).next_inspection_due)
   ).length
 
   const totalDue30 = dueCA + dueDocuments + dueEquipment + dueFireExt
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
 
   // ── Tile 4: Documents Due for Review (within 60 days) ──────────────────────
   const docsDue60 = (documents ?? []).filter(
-    (d) => isDueWithin60((d as { review_date: string | null }).review_date)
+    (d) => isDueWithin60((d as unknown as { review_date: string | null }).review_date)
   ).length
 
   // ── Upcoming Requirements (items due within 30 days) ───────────────────────
@@ -186,9 +186,9 @@ export default async function DashboardPage() {
     })
 
   ;(documents ?? [])
-    .filter((d) => isDueWithin30((d as { review_date: string | null }).review_date))
+    .filter((d) => isDueWithin30((d as unknown as { review_date: string | null }).review_date))
     .forEach((d) => {
-      const doc = d as { id: string; title: string; review_date: string | null }
+      const doc = d as unknown as { id: string; title: string; review_date: string | null }
       upcomingItems.push({
         id: doc.id,
         title: doc.title ?? 'Untitled Document',
@@ -199,9 +199,9 @@ export default async function DashboardPage() {
     })
 
   ;(equipment ?? [])
-    .filter((e) => isDueWithin30((e as { next_service_due: string | null }).next_service_due))
+    .filter((e) => isDueWithin30((e as unknown as { next_service_due: string | null }).next_service_due))
     .forEach((e) => {
-      const eq = e as { id: string; name: string; next_service_due: string | null }
+      const eq = e as unknown as { id: string; name: string; next_service_due: string | null }
       upcomingItems.push({
         id: eq.id,
         title: eq.name ?? 'Equipment',
@@ -212,9 +212,9 @@ export default async function DashboardPage() {
     })
 
   ;(fireExtinguishers ?? [])
-    .filter((f) => isDueWithin30((f as { next_inspection_due: string | null }).next_inspection_due))
+    .filter((f) => isDueWithin30((f as unknown as { next_inspection_due: string | null }).next_inspection_due))
     .forEach((f) => {
-      const fe = f as { id: string; location: string; next_inspection_due: string | null }
+      const fe = f as unknown as { id: string; location: string; next_inspection_due: string | null }
       upcomingItems.push({
         id: fe.id,
         title: fe.location ?? 'Fire Extinguisher',

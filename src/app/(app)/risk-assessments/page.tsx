@@ -95,8 +95,8 @@ export default async function RiskAssessmentsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {assessments.map((ra) => {
-                  const site = ra.sites as { name: string } | null
-                  const category = ra.category as { label: string } | null
+                  const site = ra.sites as unknown as { name: string } | null
+                  const category = ra.category as unknown as { label: string } | null
                   const overdue = isOverdue(ra.review_date)
 
                   return (
