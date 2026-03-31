@@ -39,7 +39,7 @@ export default function NewMethodStatementPage() {
   useEffect(() => {
     async function load() {
       const { data } = await supabase.from('sites').select('id, name').order('name')
-      setSites((data ?? []) as Site[])
+      setSites((data ?? []) as unknown as Site[])
     }
     load()
   }, [])

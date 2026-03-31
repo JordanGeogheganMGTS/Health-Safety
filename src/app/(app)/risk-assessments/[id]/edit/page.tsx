@@ -112,9 +112,9 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
       ])
 
-      setCategories((catRes.data ?? []) as LookupValue[])
-      setSites((siteRes.data ?? []) as Site[])
-      setUsers((userRes.data ?? []) as User[])
+      setCategories((catRes.data ?? []) as unknown as LookupValue[])
+      setSites((siteRes.data ?? []) as unknown as Site[])
+      setUsers((userRes.data ?? []) as unknown as User[])
 
       if (raRes.data) {
         const d = raRes.data
@@ -128,8 +128,8 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
           additional_controls: (h.additional_controls as string) ?? '',
           action_owner_id: (h.action_owner_id as string) ?? '',
           action_due_date: h.action_due_date ? (h.action_due_date as string).split('T')[0] : '',
-          residual_likelihood: h.residual_likelihood ?? ('' as const),
-          residual_severity: h.residual_severity ?? ('' as const),
+          residual_likelihood: (h.residual_likelihood as number | null) ?? ('' as const),
+          residual_severity: (h.residual_severity as number | null) ?? ('' as const),
         }))
         reset({
           title: d.title,

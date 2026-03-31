@@ -70,8 +70,8 @@ export default function NewCoshhPage() {
         supabase.from('sites').select('id, name').order('name'),
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
       ])
-      setSites((siteRes.data ?? []) as Site[])
-      setUsers((userRes.data ?? []) as User[])
+      setSites((siteRes.data ?? []) as unknown as Site[])
+      setUsers((userRes.data ?? []) as unknown as User[])
     }
     load()
   }, [])

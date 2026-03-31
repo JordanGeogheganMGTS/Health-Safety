@@ -72,9 +72,9 @@ export default function EditDocumentPage({ params }: { params: { id: string } })
         })
       }
 
-      setCategories((catRes.data ?? []) as LookupValue[])
-      setSites((siteRes.data ?? []) as Site[])
-      setUsers((userRes.data ?? []) as User[])
+      setCategories((catRes.data ?? []) as unknown as LookupValue[])
+      setSites((siteRes.data ?? []) as unknown as Site[])
+      setUsers((userRes.data ?? []) as unknown as User[])
       setLoading(false)
     }
     load()

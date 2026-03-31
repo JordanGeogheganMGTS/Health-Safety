@@ -54,8 +54,8 @@ export default function NewTrainingRecordPage() {
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
         supabase.from('training_types').select('id, name, validity_years').eq('is_active', true).order('name'),
       ])
-      setUsers((userRes.data ?? []) as User[])
-      setTrainingTypes((typeRes.data ?? []) as TrainingType[])
+      setUsers((userRes.data ?? []) as unknown as User[])
+      setTrainingTypes((typeRes.data ?? []) as unknown as TrainingType[])
     }
     load()
   }, [])

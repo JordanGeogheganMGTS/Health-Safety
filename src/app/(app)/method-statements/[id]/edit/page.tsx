@@ -70,7 +70,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
         supabase.from('sites').select('id, name').order('name'),
       ])
 
-      setSites((sitesRes.data ?? []) as Site[])
+      setSites((sitesRes.data ?? []) as unknown as Site[])
 
       if (msRes.data) {
         const d = msRes.data

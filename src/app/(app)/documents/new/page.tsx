@@ -54,9 +54,9 @@ export default function NewDocumentPage() {
         supabase.from('sites').select('id, name').order('name'),
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
       ])
-      setCategories((catRes.data ?? []) as LookupValue[])
-      setSites((siteRes.data ?? []) as Site[])
-      setUsers((userRes.data ?? []) as User[])
+      setCategories((catRes.data ?? []) as unknown as LookupValue[])
+      setSites((siteRes.data ?? []) as unknown as Site[])
+      setUsers((userRes.data ?? []) as unknown as User[])
     }
     load()
   }, [])

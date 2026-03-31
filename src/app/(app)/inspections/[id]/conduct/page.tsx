@@ -163,7 +163,7 @@ export default function ConductInspectionPage() {
         .eq('category', 'severity')
         .order('label')
 
-      setSeverities((sevRows ?? []) as LookupVal[])
+      setSeverities((sevRows ?? []) as unknown as LookupVal[])
 
       // Initialise field array from template items
       const initial: FindingField[] = items.map((item) => ({

@@ -66,8 +66,8 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
       ])
 
-      setSites((siteRes.data ?? []) as Site[])
-      setUsers((userRes.data ?? []) as User[])
+      setSites((siteRes.data ?? []) as unknown as Site[])
+      setUsers((userRes.data ?? []) as unknown as User[])
 
       if (caRes.data) {
         const d = caRes.data
