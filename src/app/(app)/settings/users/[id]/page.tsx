@@ -69,12 +69,12 @@ export default async function UserProfilePage({
 
   const role = (profile.roles as unknown as { name: string } | null)?.name
   const site = (profile.sites as unknown as { name: string } | null)?.name
-  const lastAssessment = profile.dse_assessments as {
+  const lastAssessment = (profile.dse_assessments as unknown as {
     id: string
     assessment_date: string
     overall_outcome: string
     review_date: string
-  } | null
+  }[] | null)?.[0] ?? null
 
   // Fetch PPE summary
   const { data: ppeRecords } = await supabase

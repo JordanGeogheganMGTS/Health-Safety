@@ -39,13 +39,13 @@ export default async function DsePage() {
 
   function getDseStatus(u: typeof users extends (infer T)[] | null ? T : never) {
     if (!u) return { label: 'Unknown', color: 'bg-slate-100 text-slate-600' }
-    const assessment = u.dse_assessments as {
+    const assessment = (u.dse_assessments as unknown as {
       id: string
       assessment_date: string
       overall_outcome: string
       review_date: string
       eye_test_recommended: boolean
-    } | null
+    }[] | null)?.[0] ?? null
 
     if (u.dse_not_applicable) return { label: 'N/A', color: 'bg-slate-100 text-slate-600' }
     if (!assessment) return { label: 'No Assessment', color: 'bg-yellow-100 text-yellow-800' }
@@ -93,13 +93,13 @@ export default async function DsePage() {
               {users.map((u) => {
                 const role = (u.roles as unknown as { name: string } | null)?.name
                 const site = (u.sites as unknown as { name: string } | null)?.name
-                const assessment = u.dse_assessments as {
+                const assessment = (u.dse_assessments as unknown as {
                   id: string
                   assessment_date: string
                   overall_outcome: string
                   review_date: string
                   eye_test_recommended: boolean
-                } | null
+                }[] | null)?.[0] ?? null
                 const status = getDseStatus(u)
                 const outstandingCAs = assessment ? (caCountMap[assessment.id] ?? 0) : 0
 
