@@ -25,7 +25,7 @@ const schema = z
     completed_date: z.string().optional(),
     closure_notes: z.string().optional(),
   })
-  .superRefine((data: { status: string; completed_date?: string }, ctx: z.RefinementCtx) => {
+  .superRefine((data, ctx) => {
     if (data.status === 'Completed' && !data.completed_date) {
       ctx.addIssue({
         path: ['completed_date'],
