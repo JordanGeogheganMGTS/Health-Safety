@@ -157,10 +157,10 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {insp.sites?.name ?? <span className="text-slate-400">—</span>}
+                      {insp.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {insp.type?.label ?? <span className="text-slate-400">—</span>}
+                      {insp.type?.[0]?.label ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {formatDate(insp.scheduled_date)}

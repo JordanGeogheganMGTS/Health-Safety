@@ -129,7 +129,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
-                <dd className="mt-0.5 text-slate-800">{eq.sites?.name ?? '—'}</dd>
+                <dd className="mt-0.5 text-slate-800">{eq.sites?.[0]?.name ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Location</dt>

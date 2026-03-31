@@ -111,7 +111,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
             </span>
           </div>
           <p className="text-sm text-slate-500">
-            {inspection.sites?.name ?? 'Unknown site'} &bull; {inspection.type?.label ?? 'Unknown type'}
+            {inspection.sites?.[0]?.name ?? 'Unknown site'} &bull; {inspection.type?.[0]?.label ?? 'Unknown type'}
           </p>
         </div>
         {canConduct && (

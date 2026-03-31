@@ -14,7 +14,7 @@ interface CorrectiveAction {
   due_date: string | null
   status: CAStatus
   priority: Priority
-  sites: { name: string } | null
+  sites: { name: string }[] | null
 }
 
 interface UpcomingItem {
@@ -389,7 +389,7 @@ export default async function DashboardPage() {
                         {ca.title}
                       </p>
                       <p className="text-xs text-slate-400">
-                        {ca.sites?.name ?? 'No site'} &middot; Due{' '}
+                        {ca.sites?.[0]?.name ?? 'No site'} &middot; Due{' '}
                         {formatDate(ca.due_date)}
                       </p>
                     </div>

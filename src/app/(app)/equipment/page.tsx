@@ -191,7 +191,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {eq.sites?.name ?? <span className="text-slate-400">—</span>}
+                      {eq.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {eq.asset_tag ?? <span className="text-slate-400">—</span>}

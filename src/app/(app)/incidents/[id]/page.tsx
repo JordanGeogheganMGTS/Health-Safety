@@ -139,7 +139,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
-                <dd className="mt-0.5 text-slate-800">{incident.sites?.name ?? '—'}</dd>
+                <dd className="mt-0.5 text-slate-800">{incident.sites?.[0]?.name ?? '—'}</dd>
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-xs font-medium text-slate-500">Location</dt>

@@ -297,7 +297,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
                       {formatSourceModule(ca.source_module)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {ca.sites?.name ?? <span className="text-slate-400">—</span>}
+                      {ca.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       <span

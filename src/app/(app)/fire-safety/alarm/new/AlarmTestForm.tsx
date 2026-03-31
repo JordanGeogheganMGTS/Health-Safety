@@ -162,7 +162,7 @@ export default function AlarmTestForm({ systems }: Props) {
             <option value="">Select a system…</option>
             {systems.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.sites?.name ?? 'Unknown Site'}{s.system_description ? ` — ${s.system_description}` : ''}
+                {s.sites?.[0]?.name ?? 'Unknown Site'}{s.system_description ? ` — ${s.system_description}` : ''}
               </option>
             ))}
           </select>

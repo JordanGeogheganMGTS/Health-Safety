@@ -272,7 +272,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
             <dl className="space-y-3 text-sm">
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
-                <dd className="mt-0.5 text-slate-800">{ca.sites?.name ?? '—'}</dd>
+                <dd className="mt-0.5 text-slate-800">{ca.sites?.[0]?.name ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Assigned To</dt>

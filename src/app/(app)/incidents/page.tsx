@@ -174,7 +174,7 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3 text-sm text-slate-700">{formatDate(inc.incident_date)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{inc.incident_time ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">{inc.type}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{inc.sites?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{inc.sites?.[0]?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[160px] truncate">
                       {inc.location_description}
                     </td>

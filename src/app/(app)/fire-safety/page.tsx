@@ -152,7 +152,7 @@ export default async function FireSafetyPage() {
                   {extinguishers.map((ext) => (
                     <tr key={ext.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-sm font-medium text-slate-800">{ext.location}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{ext.sites?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{ext.sites?.[0]?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{ext.type}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{ext.capacity_kg_or_l ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">
@@ -221,7 +221,7 @@ export default async function FireSafetyPage() {
                 <tbody className="divide-y divide-slate-50">
                   {alarmTests.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-700">{t.system?.sites?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{t.system?.sites?.[0]?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(t.test_date)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{t.test_type}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{t.call_point_ref ?? '—'}</td>
@@ -284,7 +284,7 @@ export default async function FireSafetyPage() {
                 <tbody className="divide-y divide-slate-50">
                   {drills.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-700">{d.sites?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{d.sites?.[0]?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(d.drill_date)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{d.drill_time ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">
