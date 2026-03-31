@@ -139,7 +139,10 @@ export async function getAuthUser(): Promise<ResolvedUser | null> {
     .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
 
   const role = (profile.roles as unknown as { name: string }).name as RoleName
-  const resolvedOverrides = overrides ?? []
+  const resolvedOverrides = (overrides ?? []).map((o) => ({
+    moduleKey: o.module_key as string,
+    accessLevel: o.access_level as string,
+  }))
 
   return {
     id: user.id,
