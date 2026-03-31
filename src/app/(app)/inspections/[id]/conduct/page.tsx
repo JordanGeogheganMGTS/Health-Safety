@@ -153,7 +153,7 @@ export default function ConductInspectionPage() {
           .eq('template_id', insp.template_id)
           .order('sort_order', { ascending: true })
 
-        items = (itemRows ?? []) as TemplateItem[]
+        items = (itemRows ?? []) as unknown as TemplateItem[]
       }
 
       // Load severity lookups

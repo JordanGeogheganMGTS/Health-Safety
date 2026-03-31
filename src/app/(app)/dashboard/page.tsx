@@ -239,7 +239,7 @@ export default async function DashboardPage() {
       const db = b.due_date ? new Date(b.due_date).getTime() : Infinity
       return da - db
     })
-    .slice(0, 10) as CorrectiveAction[]
+    .slice(0, 10) as unknown as CorrectiveAction[]
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

@@ -91,7 +91,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .eq('equipment_id', id)
     .order('service_date', { ascending: false })
 
-  const records = (serviceRows ?? []) as ServiceRecord[]
+  const records = (serviceRows ?? []) as unknown as ServiceRecord[]
 
   return (
     <div className="space-y-6">

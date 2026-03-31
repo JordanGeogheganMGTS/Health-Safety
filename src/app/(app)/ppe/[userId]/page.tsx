@@ -128,8 +128,8 @@ export default async function UserPpePage({ params }: { params: { userId: string
 
   if (!profile) notFound()
 
-  const records = (ppeRecords ?? []) as UserPpeRecord[]
-  const items = (ppeItems ?? []) as PpeItem[]
+  const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
+  const items = (ppeItems ?? []) as unknown as PpeItem[]
 
   return (
     <div className="max-w-4xl">

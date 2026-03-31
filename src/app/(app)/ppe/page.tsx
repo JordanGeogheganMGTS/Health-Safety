@@ -53,9 +53,9 @@ export default async function PpePage() {
   ])
 
   // Build compliance overview: for each user, find their most recent record per ppe_item
-  const records = (allPpeRecords ?? []) as UserPpeRecord[]
-  const users = (activeUsers ?? []) as UserProfile[]
-  const items = (ppeItems ?? []) as PpeItem[]
+  const records = (allPpeRecords ?? []) as unknown as UserPpeRecord[]
+  const users = (activeUsers ?? []) as unknown as UserProfile[]
+  const items = (ppeItems ?? []) as unknown as PpeItem[]
 
   const today = new Date()
 

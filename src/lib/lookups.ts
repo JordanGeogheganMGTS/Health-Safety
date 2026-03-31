@@ -18,7 +18,7 @@ export async function getLookupValues(categoryKey: string): Promise<LookupValue[
     .eq('is_active', true)
     .order('sort_order')
 
-  return (data ?? []) as LookupValue[]
+  return (data ?? []) as unknown as LookupValue[]
 }
 
 export async function getLookupValueById(id: string): Promise<LookupValue | null> {
