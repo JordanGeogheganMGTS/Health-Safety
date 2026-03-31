@@ -18,7 +18,7 @@ export function buildWorkbook(sheets: Array<{ name: string; data: Record<string,
     XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name)
   }
 
-  const uint8 = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Uint8Array
+  const uint8 = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as unknown as Uint8Array<ArrayBuffer>
   return new Blob([uint8])
 }
 
