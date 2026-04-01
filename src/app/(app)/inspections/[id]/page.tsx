@@ -154,8 +154,8 @@ export default async function InspectionDetailPage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Findings (completed only) */}
-      {inspection.status === 'Completed' && (
+      {/* Findings (submitted or closed only) */}
+      {(inspection.status === 'Submitted' || inspection.status === 'Closed') && (
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-100 px-6 py-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
@@ -185,7 +185,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
                   {findings.map((f, i) => (
                     <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-xs text-slate-400">{i + 1}</td>
-                      <td className="px-4 py-3 text-sm text-slate-800 max-w-xs">{f.item_text}</td>
+                      <td className="px-4 py-3 text-sm text-slate-800 max-w-xs">{f.description}</td>
                       <td className="px-4 py-3">
                         {f.response ? (
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${responseBadgeClass(f.response)}`}>
@@ -196,22 +196,25 @@ export default async function InspectionDetailPage({ params }: PageProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-xs">
-                        {f.finding_detail ?? <span className="text-slate-400">—</span>}
+                        {f.response_text ?? <span className="text-slate-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
-                        {f.severity?.label ?? <span className="text-slate-400">—</span>}
+                        {(f.severity as unknown as { label: string }[] | null)?.[0]?.label ?? <span className="text-slate-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        {f.corrective_action ? (
-                          <Link
-                            href={`/corrective-actions/${f.corrective_action.id}`}
-                            className="text-orange-600 hover:underline"
-                          >
-                            {f.corrective_action.title}
-                          </Link>
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
+                        {(() => {
+                          const ca = (f.corrective_action as unknown as { id: string; title: string }[] | null)?.[0]
+                          return ca ? (
+                            <Link
+                              href={`/corrective-actions/${ca.id}`}
+                              className="text-orange-600 hover:underline"
+                            >
+                              {ca.title}
+                            </Link>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )
+                        })()}
                       </td>
                     </tr>
                   ))}

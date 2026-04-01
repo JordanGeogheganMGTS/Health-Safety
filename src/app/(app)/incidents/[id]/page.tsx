@@ -54,10 +54,10 @@ export default async function IncidentDetailPage({ params }: PageProps) {
       `id, incident_date, incident_time, location, is_riddor_reportable, description,
        persons_involved, immediate_actions, riddor_reference,
        riddor_reported_date, status, investigation_summary, closed_at, created_at,
-       type:type_id(label),
+       type:lookup_values!type_id(label),
        sites(name),
-       reported_by:reported_by(first_name, last_name),
-       investigated_by:investigated_by_id(first_name, last_name)`
+       reported_by:users!reported_by(first_name, last_name),
+       investigated_by:users!investigated_by_id(first_name, last_name)`
     )
     .eq('id', id)
     .single()

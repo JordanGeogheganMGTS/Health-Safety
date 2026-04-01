@@ -42,9 +42,9 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
     .from('incidents')
     .select(
       `id, incident_date, incident_time, location, is_riddor_reportable, status,
-       type:type_id(label),
+       type:lookup_values!type_id(label),
        sites(name),
-       reported_by:reported_by(first_name, last_name)`
+       reported_by:users!reported_by(first_name, last_name)`
     )
     .order('incident_date', { ascending: false })
 

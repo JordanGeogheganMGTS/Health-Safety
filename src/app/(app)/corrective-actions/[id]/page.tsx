@@ -93,9 +93,9 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
     .select(
       `id, title, description, source_table, source_record_id, due_date,
        completed_at, status, completion_notes, created_at, updated_at,
-       priority:priority_id(label),
+       priority:lookup_values!priority_id(label),
        sites(name),
-       assigned:assigned_to(id, first_name, last_name)`
+       assigned:users!assigned_to(id, first_name, last_name)`
     )
     .eq('id', params.id)
     .single()

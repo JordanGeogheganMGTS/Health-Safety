@@ -71,9 +71,9 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
     .select(
       `id, title, description, source_table, site_id, due_date,
        completed_at, status, created_at,
-       priority:priority_id(label),
+       priority:lookup_values!priority_id(label),
        sites(name),
-       assigned:assigned_to(first_name, last_name)`
+       assigned:users!assigned_to(first_name, last_name)`
     )
     .order('due_date', { ascending: true, nullsFirst: false })
 
