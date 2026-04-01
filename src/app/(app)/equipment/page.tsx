@@ -48,9 +48,9 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
     .from('equipment')
     .select(
       `id, name, asset_tag, serial_number, next_inspection_date,
-       status:status_id(value),
+       status:lookup_values!status_id(value),
        sites(name),
-       responsible:responsible_person(first_name, last_name)`
+       responsible:users!responsible_person(first_name, last_name)`
     )
     .order('name')
 

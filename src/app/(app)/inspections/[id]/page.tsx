@@ -5,41 +5,37 @@ import { formatDate } from '@/lib/dates'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue'
+type InspectionStatus = 'Draft' | 'Submitted' | 'Closed'
 
 interface Inspection {
   id: string
   title: string
   inspection_date: string
   status: InspectionStatus
-  notes: string | null
+  summary_notes: string | null
   sites: { name: string } | null
   type: { label: string } | null
   template: { name: string } | null
   conducted_by: { first_name: string; last_name: string } | null
   overall_outcome: { label: string } | null
-  approved_by: { first_name: string; last_name: string } | null
-  // Note: no completed_date column in DB (use inspection_date for scheduling)
 }
 
 interface Finding {
   id: string
-  item_text: string
+  description: string
   response: string | null
-  finding_detail: string | null
-  sort_order: number
-  severity: { label: string } | null
-  corrective_action: { id: string; title: string } | null
+  response_text: string | null
+  severity: { label: string }[] | null
+  corrective_action: { id: string; title: string }[] | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function statusBadgeClass(status: InspectionStatus): string {
   switch (status) {
-    case 'Scheduled':   return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'In Progress': return 'bg-orange-100 text-orange-700 ring-blue-200'
-    case 'Completed':   return 'bg-green-100 text-green-700 ring-green-200'
-    case 'Overdue':     return 'bg-red-100 text-red-700 ring-red-200'
+    case 'Draft':     return 'bg-slate-100 text-slate-700 ring-slate-200'
+    case 'Submitted': return 'bg-orange-100 text-orange-700 ring-orange-200'
+    case 'Closed':    return 'bg-green-100 text-green-700 ring-green-200'
   }
 }
 
@@ -64,13 +60,12 @@ export default async function InspectionDetailPage({ params }: PageProps) {
   const { data: insp, error } = await supabase
     .from('inspections')
     .select(
-      `id, title, inspection_date, status, notes,
+      `id, title, inspection_date, status, summary_notes,
        sites(name),
-       type:type_id(label),
-       template:template_id(name),
-       conducted_by:inspected_by(first_name, last_name),
-       overall_outcome:overall_outcome_id(label),
-       approved_by(first_name, last_name)`
+       type:lookup_values!type_id(label),
+       template:inspection_templates!template_id(name),
+       conducted_by:users!inspected_by(first_name, last_name),
+       overall_outcome:lookup_values!overall_outcome_id(label)`
     )
     .eq('id', id)
     .single()
@@ -79,23 +74,22 @@ export default async function InspectionDetailPage({ params }: PageProps) {
 
   const inspection = insp as unknown as Inspection
 
-  // Load findings if completed
+  // Load findings if submitted or closed
   let findings: Finding[] = []
-  if (inspection.status === 'Completed') {
+  if (inspection.status === 'Submitted' || inspection.status === 'Closed') {
     const { data: findingRows } = await supabase
       .from('inspection_findings')
       .select(
-        `id, item_text, response, finding_detail, sort_order,
-         severity:severity_id(label),
-         corrective_action:ca_id(id, title)`
+        `id, description, response, response_text, created_at,
+         severity:lookup_values!severity_id(label),
+         corrective_action:corrective_actions!ca_id(id, title)`
       )
       .eq('inspection_id', id)
-      .order('sort_order', { ascending: true })
 
     findings = (findingRows ?? []) as unknown as Finding[]
   }
 
-  const canConduct = inspection.status === 'Scheduled' || inspection.status === 'In Progress'
+  const canConduct = inspection.status === 'Draft'
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -151,20 +145,11 @@ export default async function InspectionDetailPage({ params }: PageProps) {
               {(inspection.overall_outcome as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
             </dd>
           </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500">Approved By</dt>
-            <dd className="mt-0.5 text-sm text-slate-800">
-              {(() => {
-                const ab = (inspection.approved_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
-                return ab ? `${ab.first_name} ${ab.last_name}` : '—'
-              })()}
-            </dd>
-          </div>
         </dl>
-        {inspection.notes && (
+        {inspection.summary_notes && (
           <div className="mt-4 border-t border-slate-100 pt-4">
             <dt className="text-xs font-medium text-slate-500">Notes</dt>
-            <dd className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{inspection.notes}</dd>
+            <dd className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{inspection.summary_notes}</dd>
           </div>
         )}
       </div>

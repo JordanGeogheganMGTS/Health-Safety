@@ -18,8 +18,6 @@ interface EquipmentDetail {
   manufacturer: string | null
   model: string | null
   purchase_date: string | null
-  service_interval_months: number
-  last_service_date: string | null
   next_inspection_date: string
   status: { value: EquipmentStatus } | null
   notes: string | null
@@ -31,13 +29,12 @@ interface EquipmentDetail {
 interface ServiceRecord {
   id: string
   service_date: string
-  service_type: string
-  engineer_name: string | null
-  company: string | null
-  outcome: ServiceOutcome
+  performed_by: string | null
   notes: string | null
-  next_service_due: string | null
-  recorded_at: string
+  next_due_date: string | null
+  created_at: string
+  type: { value: string }[] | null
+  outcome: { value: string }[] | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -73,10 +70,10 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .from('equipment')
     .select(
       `id, name, description, location, serial_number, asset_tag, manufacturer, model,
-       purchase_date, service_interval_months, last_service_date, next_inspection_date,
-       status:status_id(value), notes, created_at,
+       purchase_date, next_inspection_date,
+       status:lookup_values!status_id(value), notes, created_at,
        sites(name),
-       responsible:responsible_person(first_name, last_name)`
+       responsible:users!responsible_person(first_name, last_name)`
     )
     .eq('id', id)
     .single()
@@ -87,7 +84,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
 
   const { data: serviceRows } = await supabase
     .from('equipment_service_records')
-    .select('id, service_date, service_type, engineer_name, company, outcome, notes, next_service_due, recorded_at')
+    .select('id, service_date, performed_by, notes, next_due_date, created_at, type:lookup_values!type_id(value), outcome:lookup_values!outcome_id(value)')
     .eq('equipment_id', id)
     .order('service_date', { ascending: false })
 
@@ -190,14 +187,6 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
             <h2 className="text-sm font-semibold text-slate-700">Service Summary</h2>
             <dl className="space-y-3 text-sm">
               <div>
-                <dt className="text-xs font-medium text-slate-500">Service Interval</dt>
-                <dd className="mt-0.5 text-slate-800">{eq.service_interval_months} month{eq.service_interval_months !== 1 ? 's' : ''}</dd>
-              </div>
-              <div>
-                <dt className="text-xs font-medium text-slate-500">Last Service Date</dt>
-                <dd className="mt-0.5 text-slate-800">{formatDate(eq.last_service_date)}</dd>
-              </div>
-              <div>
                 <dt className="text-xs font-medium text-slate-500">Next Inspection Date</dt>
                 <dd className="mt-0.5 text-slate-800">{formatDate(eq.next_inspection_date)}</dd>
               </div>
@@ -250,16 +239,18 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
                   {records.map((r) => (
                     <tr key={r.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(r.service_date)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-700">{r.service_type}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{r.engineer_name ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{r.company ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{r.type?.[0]?.value ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{r.performed_by ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{'—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${outcomeBadgeClass(r.outcome)}`}>
-                          {r.outcome}
-                        </span>
+                        {r.outcome?.[0]?.value ? (
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${outcomeBadgeClass(r.outcome[0].value as ServiceOutcome)}`}>
+                            {r.outcome[0].value}
+                          </span>
+                        ) : <span className="text-slate-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-xs truncate">{r.notes ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.next_service_due)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.next_due_date)}</td>
                     </tr>
                   ))}
                 </tbody>

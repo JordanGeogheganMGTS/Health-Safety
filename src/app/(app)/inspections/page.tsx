@@ -4,7 +4,7 @@ import { formatDate } from '@/lib/dates'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue'
+type InspectionStatus = 'Draft' | 'Submitted' | 'Closed'
 
 interface InspectionRow {
   id: string
@@ -20,10 +20,9 @@ interface InspectionRow {
 
 function statusBadgeClass(status: InspectionStatus): string {
   switch (status) {
-    case 'Scheduled':   return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'In Progress': return 'bg-orange-100 text-orange-700 ring-blue-200'
-    case 'Completed':   return 'bg-green-100 text-green-700 ring-green-200'
-    case 'Overdue':     return 'bg-red-100 text-red-700 ring-red-200'
+    case 'Draft':     return 'bg-slate-100 text-slate-700 ring-slate-200'
+    case 'Submitted': return 'bg-orange-100 text-orange-700 ring-orange-200'
+    case 'Closed':    return 'bg-green-100 text-green-700 ring-green-200'
   }
 }
 
@@ -42,8 +41,8 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
     .select(
       `id, title, inspection_date, status,
        sites(name),
-       type:type_id(label),
-       conducted_by:inspected_by(first_name, last_name)`
+       type:lookup_values!type_id(label),
+       conducted_by:users!inspected_by(first_name, last_name)`
     )
     .order('inspection_date', { ascending: false })
 
@@ -62,7 +61,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
   }
 
   const inspections = (rows ?? []) as unknown as InspectionRow[]
-  const statusOptions: InspectionStatus[] = ['Scheduled', 'In Progress', 'Completed', 'Overdue']
+  const statusOptions: InspectionStatus[] = ['Draft', 'Submitted', 'Closed']
 
   function filterUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams()
