@@ -11,12 +11,12 @@ interface IncidentDetail {
   id: string
   incident_date: string
   incident_time: string | null
-  type: string
-  location_description: string
+  type: { label: string } | null
+  location: string
   description: string
   persons_involved: string | null
   immediate_actions: string | null
-  riddor_reportable: boolean
+  is_riddor_reportable: boolean
   riddor_reference: string | null
   riddor_reported_date: string | null
   status: IncidentStatus
@@ -51,11 +51,12 @@ export default async function IncidentDetailPage({ params }: PageProps) {
   const { data, error } = await supabase
     .from('incidents')
     .select(
-      `id, incident_date, incident_time, type, location_description, description,
-       persons_involved, immediate_actions, riddor_reportable, riddor_reference,
+      `id, incident_date, incident_time, location, is_riddor_reportable, description,
+       persons_involved, immediate_actions, riddor_reference,
        riddor_reported_date, status, investigation_summary, closed_at, created_at,
+       type:type_id(label),
        sites(name),
-       reported_by:reported_by_id(first_name, last_name),
+       reported_by:reported_by(first_name, last_name),
        investigated_by:investigated_by_id(first_name, last_name)`
     )
     .eq('id', id)
@@ -71,18 +72,22 @@ export default async function IncidentDetailPage({ params }: PageProps) {
       <nav className="flex items-center gap-2 text-sm text-slate-500">
         <Link href="/incidents" className="hover:text-slate-700 hover:underline">Incident Log</Link>
         <span>/</span>
-        <span className="font-medium text-slate-800 truncate max-w-xs">{incident.type} — {formatDate(incident.incident_date)}</span>
+        <span className="font-medium text-slate-800 truncate max-w-xs">
+          {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? 'Incident'} — {formatDate(incident.incident_date)}
+        </span>
       </nav>
 
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-slate-900">{incident.type}</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? 'Incident'}
+          </h1>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(incident.status)}`}>
               {incident.status}
             </span>
-            {incident.riddor_reportable && (
+            {incident.is_riddor_reportable && (
               <span className="inline-flex rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200">
                 RIDDOR
               </span>
@@ -135,7 +140,9 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Type</dt>
-                <dd className="mt-0.5 text-slate-800">{incident.type}</dd>
+                <dd className="mt-0.5 text-slate-800">
+                  {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
+                </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
@@ -143,7 +150,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-xs font-medium text-slate-500">Location</dt>
-                <dd className="mt-0.5 text-slate-800">{incident.location_description}</dd>
+                <dd className="mt-0.5 text-slate-800">{incident.location}</dd>
               </div>
             </dl>
             <div>
@@ -170,7 +177,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               </dd>
             </div>
 
-            {incident.riddor_reportable && (
+            {incident.is_riddor_reportable && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
                 <p className="text-xs font-semibold text-red-700 uppercase tracking-wide">RIDDOR Reporting</p>
                 <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
@@ -200,9 +207,10 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">Investigated By</dt>
                 <dd className="mt-0.5 text-slate-800">
-                  {incident.investigated_by
-                    ? `${incident.investigated_by.first_name} ${incident.investigated_by.last_name}`
-                    : <span className="text-slate-400">—</span>}
+                  {(() => {
+                    const ib = (incident.investigated_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    return ib ? `${ib.first_name} ${ib.last_name}` : <span className="text-slate-400">—</span>
+                  })()}
                 </dd>
               </div>
               {incident.closed_at && (
@@ -230,9 +238,10 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">Reported By</dt>
                 <dd className="mt-0.5 text-slate-800">
-                  {incident.reported_by
-                    ? `${incident.reported_by.first_name} ${incident.reported_by.last_name}`
-                    : '—'}
+                  {(() => {
+                    const rb = (incident.reported_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    return rb ? `${rb.first_name} ${rb.last_name}` : '—'
+                  })()}
                 </dd>
               </div>
               <div>
@@ -250,7 +259,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">RIDDOR</dt>
                 <dd className="mt-0.5">
-                  {incident.riddor_reportable ? (
+                  {incident.is_riddor_reportable ? (
                     <span className="text-red-700 font-semibold text-xs">Yes — RIDDOR Reportable</span>
                   ) : (
                     <span className="text-slate-500">No</span>

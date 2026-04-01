@@ -11,8 +11,8 @@ interface EquipmentRow {
   name: string
   asset_tag: string | null
   serial_number: string | null
-  next_service_due: string
-  status: EquipmentStatus
+  next_inspection_date: string
+  status: { value: EquipmentStatus } | null
   sites: { name: string } | null
   responsible: { first_name: string; last_name: string } | null
 }
@@ -47,14 +47,16 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   let query = supabase
     .from('equipment')
     .select(
-      `id, name, asset_tag, serial_number, next_service_due, status,
+      `id, name, asset_tag, serial_number, next_inspection_date,
+       status:status_id(value),
        sites(name),
-       responsible:responsible_person_id(first_name, last_name)`
+       responsible:responsible_person(first_name, last_name)`
     )
     .order('name')
 
   if (site_id) query = query.eq('site_id', site_id)
-  if (status) query = query.eq('status', status)
+  // status filter removed — cannot filter directly on a joined column (status_id FK)
+  // if (status) query = query.eq('status', status)
 
   const { data: rows, error } = await query
   const { data: sites } = await supabase.from('sites').select('id, name').order('name')
@@ -200,19 +202,22 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                       {eq.serial_number ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={dueDateClass(eq.next_service_due)}>
-                        {formatDate(eq.next_service_due)}
+                      <span className={dueDateClass(eq.next_inspection_date)}>
+                        {formatDate(eq.next_inspection_date)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(eq.status)}`}>
-                        {eq.status}
-                      </span>
+                      {eq.status?.[0]?.value ? (
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(eq.status[0].value)}`}>
+                          {eq.status[0].value}
+                        </span>
+                      ) : <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {eq.responsible
-                        ? `${eq.responsible.first_name} ${eq.responsible.last_name}`
-                        : <span className="text-slate-400">—</span>}
+                      {(() => {
+                        const r = (eq.responsible as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        return r ? `${r.first_name} ${r.last_name}` : <span className="text-slate-400">—</span>
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <Link

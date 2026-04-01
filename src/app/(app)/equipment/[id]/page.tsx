@@ -20,8 +20,8 @@ interface EquipmentDetail {
   purchase_date: string | null
   service_interval_months: number
   last_service_date: string | null
-  next_service_due: string
-  status: EquipmentStatus
+  next_inspection_date: string
+  status: { value: EquipmentStatus } | null
   notes: string | null
   created_at: string
   sites: { name: string } | null
@@ -73,10 +73,10 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .from('equipment')
     .select(
       `id, name, description, location, serial_number, asset_tag, manufacturer, model,
-       purchase_date, service_interval_months, last_service_date, next_service_due,
-       status, notes, created_at,
+       purchase_date, service_interval_months, last_service_date, next_inspection_date,
+       status:status_id(value), notes, created_at,
        sites(name),
-       responsible:responsible_person_id(first_name, last_name)`
+       responsible:responsible_person(first_name, last_name)`
     )
     .eq('id', id)
     .single()
@@ -106,9 +106,11 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-slate-900">{eq.name}</h1>
-          <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(eq.status)}`}>
-            {eq.status}
-          </span>
+          {eq.status?.[0]?.value && (
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(eq.status[0].value)}`}>
+              {eq.status[0].value}
+            </span>
+          )}
         </div>
         <div className="flex shrink-0 gap-2">
           <Link
@@ -158,7 +160,10 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">Responsible Person</dt>
                 <dd className="mt-0.5 text-slate-800">
-                  {eq.responsible ? `${eq.responsible.first_name} ${eq.responsible.last_name}` : '—'}
+                  {(() => {
+                    const r = (eq.responsible as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    return r ? `${r.first_name} ${r.last_name}` : '—'
+                  })()}
                 </dd>
               </div>
             </dl>
@@ -193,8 +198,8 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
                 <dd className="mt-0.5 text-slate-800">{formatDate(eq.last_service_date)}</dd>
               </div>
               <div>
-                <dt className="text-xs font-medium text-slate-500">Next Service Due</dt>
-                <dd className="mt-0.5 text-slate-800">{formatDate(eq.next_service_due)}</dd>
+                <dt className="text-xs font-medium text-slate-500">Next Inspection Date</dt>
+                <dd className="mt-0.5 text-slate-800">{formatDate(eq.next_inspection_date)}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Added</dt>

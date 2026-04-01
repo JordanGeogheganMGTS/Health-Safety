@@ -12,23 +12,22 @@ interface CorrectiveActionDetail {
   id: string
   title: string
   description: string | null
-  source_module: string | null
-  source_id: string | null
-  priority: Priority
+  source_table: string | null
+  source_record_id: string | null
+  priority: { label: Priority } | null
   due_date: string | null
-  completed_date: string | null
+  completed_at: string | null
   status: CAStatus
-  closure_notes: string | null
+  completion_notes: string | null
   created_at: string
   updated_at: string
   sites: { name: string } | null
   assigned: { id: string; first_name: string; last_name: string } | null
-  created_by: { id: string; first_name: string; last_name: string } | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatSourceModule(source: string | null): string {
+function formatSourceTable(source: string | null): string {
   if (!source) return '—'
   const map: Record<string, string> = {
     inspections: 'Inspection',
@@ -41,8 +40,8 @@ function formatSourceModule(source: string | null): string {
   return map[source] ?? source.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-function sourceModuleHref(module: string | null, sourceId: string | null): string | null {
-  if (!module || !sourceId) return null
+function sourceTableHref(table: string | null, sourceId: string | null): string | null {
+  if (!table || !sourceId) return null
   const map: Record<string, string> = {
     inspections: '/inspections',
     incidents: '/incidents',
@@ -50,7 +49,7 @@ function sourceModuleHref(module: string | null, sourceId: string | null): strin
     risk_assessments: '/risk-assessments',
     fire_safety: '/fire-safety',
   }
-  const base = map[module]
+  const base = map[table]
   if (!base) return null
   return `${base}/${sourceId}`
 }
@@ -92,11 +91,11 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
   const { data, error } = await supabase
     .from('corrective_actions')
     .select(
-      `id, title, description, source_module, source_id, priority,
-       due_date, completed_date, status, closure_notes, created_at, updated_at,
+      `id, title, description, source_table, source_record_id, due_date,
+       completed_at, status, completion_notes, created_at, updated_at,
+       priority:priority_id(label),
        sites(name),
-       assigned:assigned_to_id(id, first_name, last_name),
-       created_by:created_by_id(id, first_name, last_name)`
+       assigned:assigned_to(id, first_name, last_name)`
     )
     .eq('id', params.id)
     .single()
@@ -107,7 +106,8 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
 
   const ca = data as unknown as CorrectiveActionDetail
 
-  const sourceHref = sourceModuleHref(ca.source_module, ca.source_id)
+  const sourceHref = sourceTableHref(ca.source_table, ca.source_record_id)
+  const priorityLabel = (ca.priority as unknown as { label: Priority }[] | null)?.[0]?.label ?? null
   const timelineStep = statusTimelineStep(ca.status)
   const timelineSteps: { label: string; status: CAStatus }[] = [
     { label: 'Open', status: 'Open' },
@@ -132,11 +132,13 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-slate-900">{ca.title}</h1>
           <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(ca.priority)}`}
-            >
-              {ca.priority} Priority
-            </span>
+            {priorityLabel && (
+              <span
+                className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(priorityLabel)}`}
+              >
+                {priorityLabel} Priority
+              </span>
+            )}
             <span
               className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(ca.status)}`}
             >
@@ -178,7 +180,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
                         isComplete
                           ? 'bg-green-500 text-white'
                           : isCurrent
-                          ? 'bg-orange-500 text-white ring-4 ring-blue-100'
+                          ? 'bg-orange-500 text-white ring-4 ring-orange-100'
                           : 'bg-slate-100 text-slate-400'
                       }`}
                     >
@@ -235,22 +237,22 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
             )}
           </div>
 
-          {/* Closure notes */}
-          {(ca.status === 'Completed' || ca.status === 'Closed') && ca.closure_notes && (
+          {/* Completion notes */}
+          {(ca.status === 'Completed' || ca.status === 'Closed') && ca.completion_notes && (
             <div className="rounded-xl border border-green-200 bg-green-50 p-5">
-              <h2 className="mb-3 text-sm font-semibold text-green-800">Closure Notes</h2>
+              <h2 className="mb-3 text-sm font-semibold text-green-800">Completion Notes</h2>
               <p className="whitespace-pre-wrap text-sm text-green-800 leading-relaxed">
-                {ca.closure_notes}
+                {ca.completion_notes}
               </p>
             </div>
           )}
 
           {/* Source */}
-          {ca.source_module && ca.source_module !== 'manual' && (
+          {ca.source_table && ca.source_table !== 'manual' && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="mb-3 text-sm font-semibold text-slate-700">Source</h2>
               <div className="flex items-center gap-3">
-                <span className="text-sm text-slate-700">{formatSourceModule(ca.source_module)}</span>
+                <span className="text-sm text-slate-700">{formatSourceTable(ca.source_table)}</span>
                 {sourceHref && (
                   <Link
                     href={sourceHref}
@@ -277,29 +279,32 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
               <div>
                 <dt className="text-xs font-medium text-slate-500">Assigned To</dt>
                 <dd className="mt-0.5 text-slate-800">
-                  {ca.assigned
-                    ? `${ca.assigned.first_name} ${ca.assigned.last_name}`
-                    : '—'}
+                  {(() => {
+                    const a = (ca.assigned as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    return a ? `${a.first_name} ${a.last_name}` : '—'
+                  })()}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Due Date</dt>
                 <dd className="mt-0.5 text-slate-800">{formatDate(ca.due_date)}</dd>
               </div>
-              {ca.completed_date && (
+              {ca.completed_at && (
                 <div>
-                  <dt className="text-xs font-medium text-slate-500">Completed Date</dt>
-                  <dd className="mt-0.5 text-slate-800">{formatDate(ca.completed_date)}</dd>
+                  <dt className="text-xs font-medium text-slate-500">Completed</dt>
+                  <dd className="mt-0.5 text-slate-800">{formatDateTime(ca.completed_at)}</dd>
                 </div>
               )}
               <div>
                 <dt className="text-xs font-medium text-slate-500">Priority</dt>
                 <dd className="mt-0.5">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(ca.priority)}`}
-                  >
-                    {ca.priority}
-                  </span>
+                  {priorityLabel ? (
+                    <span
+                      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(priorityLabel)}`}
+                    >
+                      {priorityLabel}
+                    </span>
+                  ) : '—'}
                 </dd>
               </div>
               <div>
@@ -314,17 +319,9 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Source</dt>
-                <dd className="mt-0.5 text-slate-800">{formatSourceModule(ca.source_module)}</dd>
+                <dd className="mt-0.5 text-slate-800">{formatSourceTable(ca.source_table)}</dd>
               </div>
               <div className="border-t border-slate-100 pt-3">
-                <dt className="text-xs font-medium text-slate-500">Created By</dt>
-                <dd className="mt-0.5 text-slate-800">
-                  {ca.created_by
-                    ? `${ca.created_by.first_name} ${ca.created_by.last_name}`
-                    : '—'}
-                </dd>
-              </div>
-              <div>
                 <dt className="text-xs font-medium text-slate-500">Created</dt>
                 <dd className="mt-0.5 text-slate-800">{formatDateTime(ca.created_at)}</dd>
               </div>

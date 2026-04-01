@@ -13,13 +13,9 @@ const schema = z.object({
   title: z.string().min(1, 'Title is required').max(255),
   description: z.string().optional(),
   site_id: z.string().uuid('Please select a site'),
-  priority: z.enum(['Low', 'Medium', 'High', 'Critical'], {
-    required_error: 'Please select a priority',
-  }),
-  assigned_to_id: z.string().uuid('Please select a user'),
+  priority_id: z.string().uuid('Please select a priority'),
+  assigned_to: z.string().uuid('Please select a user'),
   due_date: z.string().min(1, 'Due date is required'),
-  source_module: z.string().default('manual'),
-  status: z.string().default('Open'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -37,6 +33,11 @@ interface UserOption {
   last_name: string
 }
 
+interface PriorityOption {
+  id: string
+  label: string
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function NewCorrectiveActionPage() {
@@ -45,6 +46,7 @@ export default function NewCorrectiveActionPage() {
 
   const [sites, setSites] = useState<Site[]>([])
   const [users, setUsers] = useState<UserOption[]>([])
+  const [priorities, setPriorities] = useState<PriorityOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -54,25 +56,37 @@ export default function NewCorrectiveActionPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      source_module: 'manual',
-      status: 'Open',
-    },
   })
 
-  // Load sites and users on mount
+  // Load sites, users and priorities on mount
   useEffect(() => {
     async function load() {
-      const [{ data: sitesData }, { data: usersData }] = await Promise.all([
-        supabase.from('sites').select('id, name').order('name'),
-        supabase
-          .from('users')
-          .select('id, first_name, last_name')
-          .eq('is_active', true)
-          .order('last_name'),
-      ])
+      const { data: catData } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'ca_priority')
+        .single()
+
+      const [{ data: sitesData }, { data: usersData }, { data: prioritiesData }] =
+        await Promise.all([
+          supabase.from('sites').select('id, name').order('name'),
+          supabase
+            .from('users')
+            .select('id, first_name, last_name')
+            .eq('is_active', true)
+            .order('last_name'),
+          catData
+            ? supabase
+                .from('lookup_values')
+                .select('id, label')
+                .eq('category_id', catData.id)
+                .order('sort_order')
+            : Promise.resolve({ data: [] }),
+        ])
+
       setSites(sitesData ?? [])
       setUsers(usersData ?? [])
+      setPriorities((prioritiesData ?? []) as PriorityOption[])
       setLoadingOptions(false)
     }
     load()
@@ -93,12 +107,12 @@ export default function NewCorrectiveActionPage() {
         title: values.title,
         description: values.description || null,
         site_id: values.site_id,
-        priority: values.priority,
-        assigned_to_id: values.assigned_to_id,
+        priority_id: values.priority_id,
+        assigned_to: values.assigned_to,
+        assigned_by: user.id,
         due_date: values.due_date,
-        source_module: values.source_module,
-        status: values.status,
-        created_by_id: user.id,
+        source_table: 'manual',
+        status: 'Open',
       })
       .select('id')
       .single()
@@ -133,10 +147,6 @@ export default function NewCorrectiveActionPage() {
               {serverError}
             </div>
           )}
-
-          {/* Hidden fields */}
-          <input type="hidden" {...register('source_module')} />
-          <input type="hidden" {...register('status')} />
 
           {/* Title */}
           <div className="space-y-1">
@@ -197,33 +207,35 @@ export default function NewCorrectiveActionPage() {
 
           {/* Priority */}
           <div className="space-y-1">
-            <label htmlFor="priority" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="priority_id" className="block text-sm font-medium text-slate-700">
               Priority <span className="text-red-500">*</span>
             </label>
             <select
-              id="priority"
-              {...register('priority')}
-              className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              id="priority_id"
+              {...register('priority_id')}
+              disabled={loadingOptions}
+              className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
             >
               <option value="">Select priority…</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
+              {priorities.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
             </select>
-            {errors.priority && (
-              <p className="text-xs text-red-600">{errors.priority.message}</p>
+            {errors.priority_id && (
+              <p className="text-xs text-red-600">{errors.priority_id.message}</p>
             )}
           </div>
 
           {/* Assigned To */}
           <div className="space-y-1">
-            <label htmlFor="assigned_to_id" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="assigned_to" className="block text-sm font-medium text-slate-700">
               Assigned To <span className="text-red-500">*</span>
             </label>
             <select
-              id="assigned_to_id"
-              {...register('assigned_to_id')}
+              id="assigned_to"
+              {...register('assigned_to')}
               disabled={loadingOptions}
               className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50"
             >
@@ -234,8 +246,8 @@ export default function NewCorrectiveActionPage() {
                 </option>
               ))}
             </select>
-            {errors.assigned_to_id && (
-              <p className="text-xs text-red-600">{errors.assigned_to_id.message}</p>
+            {errors.assigned_to && (
+              <p className="text-xs text-red-600">{errors.assigned_to.message}</p>
             )}
           </div>
 

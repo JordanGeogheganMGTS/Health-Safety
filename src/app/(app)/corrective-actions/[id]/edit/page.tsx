@@ -14,21 +14,19 @@ const schema = z
     title: z.string().min(1, 'Title is required').max(255),
     description: z.string().optional(),
     site_id: z.string().uuid('Please select a site'),
-    priority: z.enum(['Low', 'Medium', 'High', 'Critical'], {
-      required_error: 'Please select a priority',
-    }),
-    assigned_to_id: z.string().uuid('Please select a user'),
+    priority_id: z.string().uuid('Please select a priority'),
+    assigned_to: z.string().uuid('Please select a user'),
     due_date: z.string().min(1, 'Due date is required'),
     status: z.enum(['Open', 'In Progress', 'Completed', 'Overdue', 'Closed'], {
       required_error: 'Please select a status',
     }),
-    completed_date: z.string().optional(),
-    closure_notes: z.string().optional(),
+    completed_at: z.string().optional(),
+    completion_notes: z.string().optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.status === 'Completed' && !data.completed_date) {
+    if (data.status === 'Completed' && !data.completed_at) {
       ctx.addIssue({
-        path: ['completed_date'],
+        path: ['completed_at'],
         code: z.ZodIssueCode.custom,
         message: 'Completed date is required when status is Completed',
       })
@@ -50,17 +48,22 @@ interface UserOption {
   last_name: string
 }
 
+interface PriorityOption {
+  id: string
+  label: string
+}
+
 interface ExistingCA {
   id: string
   title: string
   description: string | null
   site_id: string
-  priority: 'Low' | 'Medium' | 'High' | 'Critical'
-  assigned_to_id: string
+  priority_id: string
+  assigned_to: string
   due_date: string | null
   status: 'Open' | 'In Progress' | 'Completed' | 'Overdue' | 'Closed'
-  completed_date: string | null
-  closure_notes: string | null
+  completed_at: string | null
+  completion_notes: string | null
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -77,6 +80,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
 
   const [sites, setSites] = useState<Site[]>([])
   const [users, setUsers] = useState<UserOption[]>([])
+  const [priorities, setPriorities] = useState<PriorityOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -92,15 +96,23 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
   })
 
   const watchedStatus = watch('status')
-  const showCompletedDate = watchedStatus === 'Completed'
-  const showClosureNotes = watchedStatus === 'Completed' || watchedStatus === 'Closed'
+  const showCompletedAt = watchedStatus === 'Completed'
+  const showCompletionNotes = watchedStatus === 'Completed' || watchedStatus === 'Closed'
 
   // Load existing record + options
   useEffect(() => {
     async function load() {
+      // Fetch priority category ID first, then all other data in parallel
+      const { data: catData } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'ca_priority')
+        .single()
+
       const [
         { data: sitesData },
         { data: usersData },
+        { data: prioritiesData },
         { data: caData, error: caError },
       ] = await Promise.all([
         supabase.from('sites').select('id, name').order('name'),
@@ -109,10 +121,17 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
           .select('id, first_name, last_name')
           .eq('is_active', true)
           .order('last_name'),
+        catData
+          ? supabase
+              .from('lookup_values')
+              .select('id, label')
+              .eq('category_id', catData.id)
+              .order('sort_order')
+          : Promise.resolve({ data: [] }),
         supabase
           .from('corrective_actions')
           .select(
-            'id, title, description, site_id, priority, assigned_to_id, due_date, status, completed_date, closure_notes'
+            'id, title, description, site_id, priority_id, assigned_to, due_date, status, completed_at, completion_notes'
           )
           .eq('id', params.id)
           .single(),
@@ -120,6 +139,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
 
       setSites(sitesData ?? [])
       setUsers(usersData ?? [])
+      setPriorities((prioritiesData ?? []) as PriorityOption[])
 
       if (caError || !caData) {
         setNotFound(true)
@@ -127,18 +147,18 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
         return
       }
 
-      const ca = caData as ExistingCA
+      const ca = caData as unknown as ExistingCA
 
       reset({
         title: ca.title,
         description: ca.description ?? '',
         site_id: ca.site_id,
-        priority: ca.priority,
-        assigned_to_id: ca.assigned_to_id,
+        priority_id: ca.priority_id,
+        assigned_to: ca.assigned_to,
         due_date: ca.due_date ?? '',
         status: isClosingAction ? 'Closed' : ca.status,
-        completed_date: ca.completed_date ?? '',
-        closure_notes: ca.closure_notes ?? '',
+        completed_at: ca.completed_at ? ca.completed_at.slice(0, 10) : '',
+        completion_notes: ca.completion_notes ?? '',
       })
 
       setLoadingOptions(false)
@@ -156,12 +176,12 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
         title: values.title,
         description: values.description || null,
         site_id: values.site_id,
-        priority: values.priority,
-        assigned_to_id: values.assigned_to_id,
+        priority_id: values.priority_id,
+        assigned_to: values.assigned_to,
         due_date: values.due_date,
         status: values.status,
-        completed_date: values.completed_date || null,
-        closure_notes: values.closure_notes || null,
+        completed_at: values.completed_at ? new Date(values.completed_at).toISOString() : null,
+        completion_notes: values.completion_notes || null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
@@ -191,7 +211,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
         </h1>
         <p className="mt-1 text-sm text-slate-500">
           {isClosingAction
-            ? 'Review details and add closure notes before closing.'
+            ? 'Review details and add completion notes before closing.'
             : 'Update the fields below.'}
         </p>
       </div>
@@ -273,33 +293,34 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
 
               {/* Priority */}
               <div className="space-y-1">
-                <label htmlFor="priority" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="priority_id" className="block text-sm font-medium text-slate-700">
                   Priority <span className="text-red-500">*</span>
                 </label>
                 <select
-                  id="priority"
-                  {...register('priority')}
+                  id="priority_id"
+                  {...register('priority_id')}
                   className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select priority…</option>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                  <option value="Critical">Critical</option>
+                  {priorities.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
                 </select>
-                {errors.priority && (
-                  <p className="text-xs text-red-600">{errors.priority.message}</p>
+                {errors.priority_id && (
+                  <p className="text-xs text-red-600">{errors.priority_id.message}</p>
                 )}
               </div>
 
               {/* Assigned To */}
               <div className="space-y-1">
-                <label htmlFor="assigned_to_id" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="assigned_to" className="block text-sm font-medium text-slate-700">
                   Assigned To <span className="text-red-500">*</span>
                 </label>
                 <select
-                  id="assigned_to_id"
-                  {...register('assigned_to_id')}
+                  id="assigned_to"
+                  {...register('assigned_to')}
                   className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select a user…</option>
@@ -309,8 +330,8 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                     </option>
                   ))}
                 </select>
-                {errors.assigned_to_id && (
-                  <p className="text-xs text-red-600">{errors.assigned_to_id.message}</p>
+                {errors.assigned_to && (
+                  <p className="text-xs text-red-600">{errors.assigned_to.message}</p>
                 )}
               </div>
 
@@ -353,32 +374,32 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
               </div>
 
               {/* Completed Date — conditional */}
-              {showCompletedDate && (
+              {showCompletedAt && (
                 <div className="space-y-1">
-                  <label htmlFor="completed_date" className="block text-sm font-medium text-slate-700">
+                  <label htmlFor="completed_at" className="block text-sm font-medium text-slate-700">
                     Completed Date <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="completed_date"
+                    id="completed_at"
                     type="date"
-                    {...register('completed_date')}
+                    {...register('completed_at')}
                     className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
-                  {errors.completed_date && (
-                    <p className="text-xs text-red-600">{errors.completed_date.message}</p>
+                  {errors.completed_at && (
+                    <p className="text-xs text-red-600">{errors.completed_at.message}</p>
                   )}
                 </div>
               )}
 
-              {/* Closure Notes — conditional */}
-              {showClosureNotes && (
+              {/* Completion Notes — conditional */}
+              {showCompletionNotes && (
                 <div className="space-y-1">
-                  <label htmlFor="closure_notes" className="block text-sm font-medium text-slate-700">
-                    Closure Notes
+                  <label htmlFor="completion_notes" className="block text-sm font-medium text-slate-700">
+                    Completion Notes
                   </label>
                   <textarea
-                    id="closure_notes"
-                    {...register('closure_notes')}
+                    id="completion_notes"
+                    {...register('completion_notes')}
                     rows={4}
                     placeholder="Describe how this action was resolved…"
                     className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"

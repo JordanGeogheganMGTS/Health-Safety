@@ -11,11 +11,11 @@ interface CorrectiveActionRow {
   id: string
   title: string
   description: string | null
-  source_module: string | null
+  source_table: string | null
   site_id: string | null
-  priority: Priority
+  priority: { label: Priority } | null
   due_date: string | null
-  completed_date: string | null
+  completed_at: string | null
   status: CAStatus
   created_at: string
   sites: { name: string } | null
@@ -24,7 +24,7 @@ interface CorrectiveActionRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatSourceModule(source: string | null): string {
+function formatSourceTable(source: string | null): string {
   if (!source) return '—'
   const map: Record<string, string> = {
     inspections: 'Inspection',
@@ -69,19 +69,21 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   let query = supabase
     .from('corrective_actions')
     .select(
-      `id, title, description, source_module, site_id, priority, due_date,
-       completed_date, status, created_at,
+      `id, title, description, source_table, site_id, due_date,
+       completed_at, status, created_at,
+       priority:priority_id(label),
        sites(name),
-       assigned:assigned_to_id(first_name, last_name)`
+       assigned:assigned_to(first_name, last_name)`
     )
     .order('due_date', { ascending: true, nullsFirst: false })
 
   if (searchParams.status) {
     query = query.eq('status', searchParams.status)
   }
-  if (searchParams.priority) {
-    query = query.eq('priority', searchParams.priority)
-  }
+  // priority filter removed — cannot filter directly on a joined column (priority_id FK)
+  // if (searchParams.priority) {
+  //   query = query.eq('priority', searchParams.priority)
+  // }
   if (searchParams.site_id) {
     query = query.eq('site_id', searchParams.site_id)
   }
@@ -294,22 +296,26 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {formatSourceModule(ca.source_module)}
+                      {formatSourceTable(ca.source_table)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {ca.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(ca.priority)}`}
-                      >
-                        {ca.priority}
-                      </span>
+                      {(() => {
+                        const p = (ca.priority as unknown as { label: Priority }[] | null)?.[0]?.label
+                        return p ? (
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(p)}`}>
+                            {p}
+                          </span>
+                        ) : <span className="text-slate-400">—</span>
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {ca.assigned
-                        ? `${ca.assigned.first_name} ${ca.assigned.last_name}`
-                        : <span className="text-slate-400">Unassigned</span>}
+                      {(() => {
+                        const a = (ca.assigned as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        return a ? `${a.first_name} ${a.last_name}` : <span className="text-slate-400">Unassigned</span>
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {formatDate(ca.due_date)}

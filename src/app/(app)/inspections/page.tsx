@@ -9,8 +9,7 @@ type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue'
 interface InspectionRow {
   id: string
   title: string
-  scheduled_date: string
-  completed_date: string | null
+  inspection_date: string
   status: InspectionStatus
   sites: { name: string } | null
   type: { label: string } | null
@@ -41,12 +40,12 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
   let query = supabase
     .from('inspections')
     .select(
-      `id, title, scheduled_date, completed_date, status,
+      `id, title, inspection_date, status,
        sites(name),
        type:type_id(label),
-       conducted_by:conducted_by_id(first_name, last_name)`
+       conducted_by:inspected_by(first_name, last_name)`
     )
-    .order('scheduled_date', { ascending: false })
+    .order('inspection_date', { ascending: false })
 
   if (statusFilter) {
     query = query.eq('status', statusFilter)
@@ -163,7 +162,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
                       {insp.type?.[0]?.label ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {formatDate(insp.scheduled_date)}
+                      {formatDate(insp.inspection_date)}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -173,9 +172,10 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {insp.conducted_by
-                        ? `${insp.conducted_by.first_name} ${insp.conducted_by.last_name}`
-                        : <span className="text-slate-400">—</span>}
+                      {(() => {
+                        const cb = (insp.conducted_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        return cb ? `${cb.first_name} ${cb.last_name}` : <span className="text-slate-400">—</span>
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <Link

@@ -10,9 +10,9 @@ interface IncidentRow {
   id: string
   incident_date: string
   incident_time: string | null
-  type: string
-  location_description: string
-  riddor_reportable: boolean
+  type: { label: string } | null
+  location: string
+  is_riddor_reportable: boolean
   status: IncidentStatus
   sites: { name: string } | null
   reported_by: { first_name: string; last_name: string } | null
@@ -41,14 +41,15 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
   let query = supabase
     .from('incidents')
     .select(
-      `id, incident_date, incident_time, type, location_description, riddor_reportable, status,
+      `id, incident_date, incident_time, location, is_riddor_reportable, status,
+       type:type_id(label),
        sites(name),
-       reported_by:reported_by_id(first_name, last_name)`
+       reported_by:reported_by(first_name, last_name)`
     )
     .order('incident_date', { ascending: false })
 
   if (status) query = query.eq('status', status)
-  if (riddor === 'true') query = query.eq('riddor_reportable', true)
+  if (riddor === 'true') query = query.eq('is_riddor_reportable', true)
 
   const { data: rows, error } = await query
 
@@ -173,13 +174,15 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                   <tr key={inc.id} className="group hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 text-sm text-slate-700">{formatDate(inc.incident_date)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{inc.incident_time ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{inc.type}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {(inc.type as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{inc.sites?.[0]?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[160px] truncate">
-                      {inc.location_description}
+                      {inc.location}
                     </td>
                     <td className="px-4 py-3">
-                      {inc.riddor_reportable ? (
+                      {inc.is_riddor_reportable ? (
                         <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200">
                           RIDDOR
                         </span>
@@ -193,9 +196,10 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {inc.reported_by
-                        ? `${inc.reported_by.first_name} ${inc.reported_by.last_name}`
-                        : '—'}
+                      {(() => {
+                        const rb = (inc.reported_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        return rb ? `${rb.first_name} ${rb.last_name}` : '—'
+                      })()}
                     </td>
                     <td className="px-4 py-3">
                       <Link

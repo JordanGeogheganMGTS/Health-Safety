@@ -10,8 +10,7 @@ type InspectionStatus = 'Scheduled' | 'In Progress' | 'Completed' | 'Overdue'
 interface Inspection {
   id: string
   title: string
-  scheduled_date: string
-  completed_date: string | null
+  inspection_date: string
   status: InspectionStatus
   notes: string | null
   sites: { name: string } | null
@@ -20,6 +19,7 @@ interface Inspection {
   conducted_by: { first_name: string; last_name: string } | null
   overall_outcome: { label: string } | null
   approved_by: { first_name: string; last_name: string } | null
+  // Note: no completed_date column in DB (use inspection_date for scheduling)
 }
 
 interface Finding {
@@ -64,11 +64,11 @@ export default async function InspectionDetailPage({ params }: PageProps) {
   const { data: insp, error } = await supabase
     .from('inspections')
     .select(
-      `id, title, scheduled_date, completed_date, status, notes,
+      `id, title, inspection_date, status, notes,
        sites(name),
        type:type_id(label),
        template:template_id(name),
-       conducted_by:conducted_by_id(first_name, last_name),
+       conducted_by:inspected_by(first_name, last_name),
        overall_outcome:overall_outcome_id(label),
        approved_by(first_name, last_name)`
     )
@@ -129,12 +129,8 @@ export default async function InspectionDetailPage({ params }: PageProps) {
         <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">Inspection Details</h2>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3">
           <div>
-            <dt className="text-xs font-medium text-slate-500">Scheduled Date</dt>
-            <dd className="mt-0.5 text-sm text-slate-800">{formatDate(inspection.scheduled_date)}</dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500">Completed Date</dt>
-            <dd className="mt-0.5 text-sm text-slate-800">{formatDate(inspection.completed_date)}</dd>
+            <dt className="text-xs font-medium text-slate-500">Inspection Date</dt>
+            <dd className="mt-0.5 text-sm text-slate-800">{formatDate(inspection.inspection_date)}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500">Template</dt>
@@ -143,21 +139,25 @@ export default async function InspectionDetailPage({ params }: PageProps) {
           <div>
             <dt className="text-xs font-medium text-slate-500">Conducted By</dt>
             <dd className="mt-0.5 text-sm text-slate-800">
-              {inspection.conducted_by
-                ? `${inspection.conducted_by.first_name} ${inspection.conducted_by.last_name}`
-                : '—'}
+              {(() => {
+                const cb = (inspection.conducted_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                return cb ? `${cb.first_name} ${cb.last_name}` : '—'
+              })()}
             </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500">Overall Outcome</dt>
-            <dd className="mt-0.5 text-sm text-slate-800">{inspection.overall_outcome?.label ?? '—'}</dd>
+            <dd className="mt-0.5 text-sm text-slate-800">
+              {(inspection.overall_outcome as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
+            </dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500">Approved By</dt>
             <dd className="mt-0.5 text-sm text-slate-800">
-              {inspection.approved_by
-                ? `${inspection.approved_by.first_name} ${inspection.approved_by.last_name}`
-                : '—'}
+              {(() => {
+                const ab = (inspection.approved_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                return ab ? `${ab.first_name} ${ab.last_name}` : '—'
+              })()}
             </dd>
           </div>
         </dl>

@@ -12,33 +12,24 @@ import { createClient } from '@/lib/supabase/client'
 const today = new Date().toISOString().split('T')[0]
 
 const schema = z.object({
+  title: z.string().min(1, 'Title is required').max(255),
   incident_date: z.string().min(1, 'Incident date is required'),
   incident_time: z.string().optional(),
-  type: z.string().min(1, 'Please select an incident type'),
+  type_id: z.string().uuid('Please select an incident type'),
   site_id: z.string().uuid('Please select a site'),
-  location_description: z.string().min(1, 'Location is required'),
+  location: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
-  persons_involved: z.string().optional(),
-  immediate_actions: z.string().optional(),
-  riddor_reportable: z.boolean(),
+  witnesses: z.string().optional(),
+  immediate_causes: z.string().optional(),
+  is_riddor_reportable: z.boolean(),
   riddor_reference: z.string().optional(),
-  riddor_reported_date: z.string().optional(),
+  riddor_report_date: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
 
 interface Site { id: string; name: string }
-
-const INCIDENT_TYPES = [
-  'Near Miss',
-  'First Aid',
-  'RIDDOR Reportable',
-  'Property Damage',
-  'Environmental',
-  'Fire',
-  'Theft',
-  'Violence',
-]
+interface IncidentType { id: string; label: string }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -47,6 +38,7 @@ export default function NewIncidentPage() {
   const supabase = createClient()
 
   const [sites, setSites] = useState<Site[]>([])
+  const [incidentTypes, setIncidentTypes] = useState<IncidentType[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -59,16 +51,33 @@ export default function NewIncidentPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       incident_date: today,
-      riddor_reportable: false,
+      is_riddor_reportable: false,
     },
   })
 
-  const riddorWatched = useWatch({ control, name: 'riddor_reportable' })
+  const riddorWatched = useWatch({ control, name: 'is_riddor_reportable' })
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('sites').select('id, name').order('name')
-      setSites(data ?? [])
+      const { data: catData } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'incident_type')
+        .single()
+
+      const [{ data: sitesData }, { data: typesData }] = await Promise.all([
+        supabase.from('sites').select('id, name').order('name'),
+        catData
+          ? supabase
+              .from('lookup_values')
+              .select('id, label')
+              .eq('category_id', catData.id)
+              .order('sort_order')
+          : Promise.resolve({ data: [] }),
+      ])
+
+      setSites(sitesData ?? [])
+      setIncidentTypes((typesData ?? []) as IncidentType[])
       setLoadingOptions(false)
     }
     load()
@@ -87,18 +96,19 @@ export default function NewIncidentPage() {
     const { data, error } = await supabase
       .from('incidents')
       .insert({
+        title: values.title,
         incident_date: values.incident_date,
         incident_time: values.incident_time || null,
-        type: values.type,
+        type_id: values.type_id,
         site_id: values.site_id,
-        location_description: values.location_description,
+        location: values.location || null,
         description: values.description,
-        persons_involved: values.persons_involved || null,
-        immediate_actions: values.immediate_actions || null,
-        riddor_reportable: values.riddor_reportable,
-        riddor_reference: values.riddor_reportable ? (values.riddor_reference || null) : null,
-        riddor_reported_date: values.riddor_reportable ? (values.riddor_reported_date || null) : null,
-        reported_by_id: user.id,
+        witnesses: values.witnesses || null,
+        immediate_causes: values.immediate_causes || null,
+        is_riddor_reportable: values.is_riddor_reportable,
+        riddor_reference: values.is_riddor_reportable ? (values.riddor_reference || null) : null,
+        riddor_report_date: values.is_riddor_reportable ? (values.riddor_report_date || null) : null,
+        reported_by: user.id,
         status: 'Open',
       })
       .select('id')
@@ -138,6 +148,21 @@ export default function NewIncidentPage() {
             </div>
           )}
 
+          {/* Title */}
+          <div className="space-y-1">
+            <label htmlFor="title" className={labelClass}>
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="title"
+              type="text"
+              {...register('title')}
+              className={inputClass}
+              placeholder="Brief summary of the incident"
+            />
+            {errors.title && <p className={errorClass}>{errors.title.message}</p>}
+          </div>
+
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -155,16 +180,16 @@ export default function NewIncidentPage() {
 
           {/* Type */}
           <div className="space-y-1">
-            <label htmlFor="type" className={labelClass}>
+            <label htmlFor="type_id" className={labelClass}>
               Incident Type <span className="text-red-500">*</span>
             </label>
-            <select id="type" {...register('type')} className={selectClass}>
+            <select id="type_id" {...register('type_id')} disabled={loadingOptions} className={selectClass}>
               <option value="">Select a type…</option>
-              {INCIDENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+              {incidentTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
-            {errors.type && <p className={errorClass}>{errors.type.message}</p>}
+            {errors.type_id && <p className={errorClass}>{errors.type_id.message}</p>}
           </div>
 
           {/* Site */}
@@ -183,17 +208,14 @@ export default function NewIncidentPage() {
 
           {/* Location */}
           <div className="space-y-1">
-            <label htmlFor="location_description" className={labelClass}>
-              Location Description <span className="text-red-500">*</span>
-            </label>
+            <label htmlFor="location" className={labelClass}>Location</label>
             <input
-              id="location_description"
+              id="location"
               type="text"
-              {...register('location_description')}
+              {...register('location')}
               className={inputClass}
               placeholder="e.g. Warehouse, loading bay 3"
             />
-            {errors.location_description && <p className={errorClass}>{errors.location_description.message}</p>}
           </div>
 
           {/* Description */}
@@ -211,24 +233,24 @@ export default function NewIncidentPage() {
             {errors.description && <p className={errorClass}>{errors.description.message}</p>}
           </div>
 
-          {/* Persons Involved */}
+          {/* Witnesses */}
           <div className="space-y-1">
-            <label htmlFor="persons_involved" className={labelClass}>Persons Involved</label>
+            <label htmlFor="witnesses" className={labelClass}>Witnesses / Persons Involved</label>
             <textarea
-              id="persons_involved"
-              {...register('persons_involved')}
+              id="witnesses"
+              {...register('witnesses')}
               rows={3}
               className={inputClass}
-              placeholder="Names and roles of persons involved…"
+              placeholder="Names and roles of witnesses or persons involved…"
             />
           </div>
 
           {/* Immediate Actions */}
           <div className="space-y-1">
-            <label htmlFor="immediate_actions" className={labelClass}>Immediate Actions Taken</label>
+            <label htmlFor="immediate_causes" className={labelClass}>Immediate Actions Taken</label>
             <textarea
-              id="immediate_actions"
-              {...register('immediate_actions')}
+              id="immediate_causes"
+              {...register('immediate_causes')}
               rows={3}
               className={inputClass}
               placeholder="What actions were taken immediately after the incident?…"
@@ -239,12 +261,12 @@ export default function NewIncidentPage() {
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <input
-                id="riddor_reportable"
+                id="is_riddor_reportable"
                 type="checkbox"
-                {...register('riddor_reportable')}
+                {...register('is_riddor_reportable')}
                 className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
               />
-              <label htmlFor="riddor_reportable" className="text-sm font-medium text-slate-700">
+              <label htmlFor="is_riddor_reportable" className="text-sm font-medium text-slate-700">
                 RIDDOR Reportable
               </label>
             </div>
@@ -264,8 +286,8 @@ export default function NewIncidentPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="riddor_reported_date" className={labelClass}>Date Reported to HSE</label>
-                  <input id="riddor_reported_date" type="date" {...register('riddor_reported_date')} className={inputClass} />
+                  <label htmlFor="riddor_report_date" className={labelClass}>Date Reported to HSE</label>
+                  <input id="riddor_report_date" type="date" {...register('riddor_report_date')} className={inputClass} />
                 </div>
               </div>
             )}
