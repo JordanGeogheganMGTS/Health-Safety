@@ -64,7 +64,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   if (error) {
     return (
       <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-sm text-red-700">
-        Unable to load equipment. Please try again later.
+        Unable to load equipment: {error.message}
       </div>
     )
   }
