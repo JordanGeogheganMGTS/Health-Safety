@@ -62,7 +62,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
         </div>
         <Link
           href="/training/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -77,7 +77,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
           <h2 className="text-sm font-semibold text-slate-700">Training Types</h2>
           <Link
             href="/training/types/new"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
           >
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -143,7 +143,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
               <div className="flex gap-1">
                 <Link
                   href={`/training${searchParams.expired === 'true' ? '?expired=true' : ''}`}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.type ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.type ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                 >
                   All
                 </Link>
@@ -151,7 +151,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
                   <Link
                     key={t.id}
                     href={`/training?type=${t.id}${searchParams.expired === 'true' ? '&expired=true' : ''}`}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.type === t.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.type === t.id ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     {t.name}
                   </Link>

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -83,8 +84,15 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
     <aside className={sidebarClasses}>
       {/* Logo */}
       <div className="flex-shrink-0 px-4 py-5 border-b border-slate-200">
-        <div className="text-blue-600 text-xl font-bold tracking-tight">MGTS</div>
-        <div className="text-slate-500 text-xs mt-0.5">Health &amp; Safety</div>
+        <Image
+          src="/logo.png"
+          alt="MGTS"
+          width={140}
+          height={48}
+          className="object-contain"
+          priority
+        />
+        <div className="text-slate-500 text-xs mt-1.5">Health &amp; Safety</div>
       </div>
 
       {/* Navigation */}
@@ -101,7 +109,7 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
                   className={[
                     'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
                     isActive
-                      ? 'bg-blue-50 text-blue-700'
+                      ? 'bg-orange-50 text-orange-600'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                   ].join(' ')}
                 >

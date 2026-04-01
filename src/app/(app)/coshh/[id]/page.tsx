@@ -94,7 +94,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-            <Link href="/coshh" className="hover:text-blue-600 transition-colors">COSHH Assessments</Link>
+            <Link href="/coshh" className="hover:text-orange-600 transition-colors">COSHH Assessments</Link>
             <span>/</span>
             <span>{ca.substance_name}</span>
           </div>
@@ -130,7 +130,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
           )}
           <Link
             href={`/coshh/${ca.id}/edit`}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors shadow-sm"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />

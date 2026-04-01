@@ -102,7 +102,7 @@ export default async function PpePage() {
         {isAdmin && (
           <Link
             href="/ppe/items/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -142,7 +142,7 @@ export default async function PpePage() {
                     <td className="px-4 py-3 text-sm font-medium text-slate-900">{item.name}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {item.has_sizes ? (
-                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">Yes</span>
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-orange-100 text-orange-700">Yes</span>
                       ) : (
                         <span className="text-slate-400">No</span>
                       )}
@@ -162,7 +162,7 @@ export default async function PpePage() {
                     </td>
                     {isAdmin && (
                       <td className="px-4 py-3 text-right">
-                        <Link href={`/ppe/items/${item.id}/edit`} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        <Link href={`/ppe/items/${item.id}/edit`} className="text-xs text-orange-600 hover:text-orange-700 font-medium">
                           Edit
                         </Link>
                       </td>
@@ -201,7 +201,7 @@ export default async function PpePage() {
                   {complianceRows.map(({ user, totalIssued, overdueItems, dueSoonItems, missingSignatures }) => (
                     <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
-                        <Link href={`/ppe/${user.id}`} className="text-sm font-medium text-slate-900 hover:text-blue-600 transition-colors">
+                        <Link href={`/ppe/${user.id}`} className="text-sm font-medium text-slate-900 hover:text-orange-600 transition-colors">
                           {user.first_name} {user.last_name}
                         </Link>
                       </td>

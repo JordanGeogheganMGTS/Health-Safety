@@ -73,7 +73,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-            <Link href="/risk-assessments" className="hover:text-blue-600 transition-colors">Risk Assessments</Link>
+            <Link href="/risk-assessments" className="hover:text-orange-600 transition-colors">Risk Assessments</Link>
             <span>/</span>
             <span>{ra.title}</span>
           </div>
@@ -81,7 +81,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
         </div>
         <Link
           href={`/risk-assessments/${ra.id}/edit`}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm shrink-0"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors shadow-sm shrink-0"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -126,7 +126,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
         {!hazards || hazards.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-400">
             <p className="text-sm">No hazards recorded yet.</p>
-            <Link href={`/risk-assessments/${ra.id}/edit`} className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium">
+            <Link href={`/risk-assessments/${ra.id}/edit`} className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium">
               Add hazards
             </Link>
           </div>

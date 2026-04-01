@@ -161,18 +161,18 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
     )
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
   const textareaCls = `${inputCls} resize-none`
-  const smInputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none'
+  const smInputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-xs text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none'
 
   return (
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/method-statements" className="hover:text-blue-600 transition-colors">Method Statements</a>
+          <a href="/method-statements" className="hover:text-orange-600 transition-colors">Method Statements</a>
           <span>/</span>
-          <a href={`/method-statements/${params.id}`} className="hover:text-blue-600 transition-colors">Statement</a>
+          <a href={`/method-statements/${params.id}`} className="hover:text-orange-600 transition-colors">Statement</a>
           <span>/</span>
           <span>Edit</span>
         </div>
@@ -251,7 +251,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
             <button
               type="button"
               onClick={() => append({ ...blankStep })}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -270,7 +270,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
                 <div key={field.id} className="p-5">
                   <div className="flex items-center justify-between mb-3">
                     <span className="flex items-center gap-2">
-                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                      <span className="flex items-center justify-center w-7 h-7 rounded-full bg-orange-50 text-orange-700 text-xs font-bold border border-blue-100">
                         {idx + 1}
                       </span>
                       <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Step {idx + 1}</span>
@@ -331,7 +331,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
               <button
                 type="button"
                 onClick={() => append({ ...blankStep })}
-                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -346,7 +346,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Saving…' : 'Save Method Statement'}
           </button>

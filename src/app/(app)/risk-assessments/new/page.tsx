@@ -88,7 +88,7 @@ export default function NewRiskAssessmentPage() {
     <div className="max-w-2xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/risk-assessments" className="hover:text-blue-600 transition-colors">Risk Assessments</a>
+          <a href="/risk-assessments" className="hover:text-orange-600 transition-colors">Risk Assessments</a>
           <span>/</span>
           <span>New</span>
         </div>
@@ -110,7 +110,7 @@ export default function NewRiskAssessmentPage() {
           </label>
           <input
             {...register('title')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             placeholder="e.g. Manual Handling Assessment"
           />
           {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
@@ -123,7 +123,7 @@ export default function NewRiskAssessmentPage() {
           </label>
           <select
             {...register('site_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select site…</option>
             {sites.map((s) => (
@@ -140,7 +140,7 @@ export default function NewRiskAssessmentPage() {
           </label>
           <select
             {...register('category_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select category…</option>
             {categories.map((c) => (
@@ -157,7 +157,7 @@ export default function NewRiskAssessmentPage() {
           </label>
           <select
             {...register('assessor_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select assessor…</option>
             {users.map((u) => (
@@ -176,7 +176,7 @@ export default function NewRiskAssessmentPage() {
             <input
               {...register('assessment_date')}
               type="date"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             {errors.assessment_date && <p className="mt-1 text-xs text-red-600">{errors.assessment_date.message}</p>}
           </div>
@@ -187,7 +187,7 @@ export default function NewRiskAssessmentPage() {
             <input
               {...register('review_date')}
               type="date"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
           </div>
@@ -198,7 +198,7 @@ export default function NewRiskAssessmentPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Creating…' : 'Create & Add Hazards'}
           </button>

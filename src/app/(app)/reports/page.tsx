@@ -102,7 +102,7 @@ export default async function ReportsPage() {
             key={report.slug}
             className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
               {report.icon}
             </div>
             <div className="flex-1">
@@ -112,7 +112,7 @@ export default async function ReportsPage() {
             <a
               href={`/api/reports/${report.slug}`}
               download={report.filename}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-300 bg-orange-50 px-4 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100 transition-colors"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />

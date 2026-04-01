@@ -54,7 +54,7 @@ function ScoreSelector({
           onClick={() => onChange(String(n))}
           className={`h-9 w-9 rounded-lg border text-sm font-semibold transition-colors ${
             value === String(n)
-              ? 'border-blue-500 bg-blue-600 text-white'
+              ? 'border-orange-500 bg-orange-500 text-white'
               : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
           }`}
         >
@@ -378,7 +378,7 @@ export default function ConductInspectionPage() {
                       onChange={f.onChange}
                       rows={2}
                       placeholder="Enter response…"
-                      className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                     />
                   )
                 }}
@@ -407,7 +407,7 @@ export default function ConductInspectionPage() {
                       </label>
                       <select
                         {...register(`findings.${index}.severity_id`)}
-                        className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                       >
                         <option value="">Select severity…</option>
                         {severities.map((s) => (
@@ -434,7 +434,7 @@ export default function ConductInspectionPage() {
             {...register('notes')}
             rows={3}
             placeholder="Any additional notes about this inspection…"
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
         </div>
 
@@ -450,7 +450,7 @@ export default function ConductInspectionPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
+            className="rounded-lg bg-orange-500 px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
             {submitting ? 'Submitting…' : 'Complete Inspection'}
           </button>

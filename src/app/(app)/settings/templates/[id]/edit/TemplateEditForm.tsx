@@ -140,7 +140,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
               name="name"
               required
               defaultValue={template.name}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
 
@@ -150,7 +150,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
               id="site_id"
               name="site_id"
               defaultValue={template.site_id ?? ''}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
               <option value="">All sites</option>
               {sites.map((s) => (
@@ -166,7 +166,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
               name="description"
               rows={2}
               defaultValue={template.description ?? ''}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
             />
           </div>
 
@@ -176,7 +176,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
               id="is_active"
               name="is_active"
               defaultValue={template.is_active ? 'true' : 'false'}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
               <option value="true">Active</option>
               <option value="false">Inactive</option>
@@ -228,7 +228,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                         onChange={(e) => updateItem(idx, 'item_text', e.target.value)}
                         required
                         rows={2}
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
                         placeholder="Describe what the inspector should check…"
                       />
                     </div>
@@ -238,7 +238,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                         <select
                           value={item.response_type}
                           onChange={(e) => updateItem(idx, 'response_type', e.target.value)}
-                          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         >
                           {RESPONSE_TYPES.map((rt) => (
                             <option key={rt.value} value={rt.value}>{rt.label}</option>
@@ -251,7 +251,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                           type="number"
                           value={item.sort_order}
                           onChange={(e) => updateItem(idx, 'sort_order', parseInt(e.target.value) || 0)}
-                          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         />
                       </div>
                       <div className="flex items-end pb-2">
@@ -260,7 +260,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                             type="checkbox"
                             checked={item.is_mandatory}
                             onChange={(e) => updateItem(idx, 'is_mandatory', e.target.checked)}
-                            className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                           />
                           <span className="text-sm text-slate-700">Mandatory</span>
                         </label>
@@ -272,7 +272,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                         type="text"
                         value={item.guidance}
                         onChange={(e) => updateItem(idx, 'guidance', e.target.value)}
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         placeholder="Optional guidance note for inspector"
                       />
                     </div>
@@ -304,7 +304,7 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
         >
           {submitting ? 'Saving…' : 'Save Template'}
         </button>

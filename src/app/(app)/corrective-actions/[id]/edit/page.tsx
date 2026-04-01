@@ -229,7 +229,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                   id="title"
                   type="text"
                   {...register('title')}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
                 {errors.title && (
                   <p className="text-xs text-red-600">{errors.title.message}</p>
@@ -245,7 +245,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                   id="description"
                   {...register('description')}
                   rows={4}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
@@ -257,7 +257,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                 <select
                   id="site_id"
                   {...register('site_id')}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select a site…</option>
                   {sites.map((s) => (
@@ -279,7 +279,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                 <select
                   id="priority"
                   {...register('priority')}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select priority…</option>
                   <option value="Low">Low</option>
@@ -300,7 +300,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                 <select
                   id="assigned_to_id"
                   {...register('assigned_to_id')}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select a user…</option>
                   {users.map((u) => (
@@ -323,7 +323,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                   id="due_date"
                   type="date"
                   {...register('due_date')}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
                 {errors.due_date && (
                   <p className="text-xs text-red-600">{errors.due_date.message}</p>
@@ -338,7 +338,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                 <select
                   id="status"
                   {...register('status')}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="">Select status…</option>
                   <option value="Open">Open</option>
@@ -362,7 +362,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                     id="completed_date"
                     type="date"
                     {...register('completed_date')}
-                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
                   {errors.completed_date && (
                     <p className="text-xs text-red-600">{errors.completed_date.message}</p>
@@ -381,7 +381,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                     {...register('closure_notes')}
                     rows={4}
                     placeholder="Describe how this action was resolved…"
-                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                   />
                 </div>
               )}
@@ -398,7 +398,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+                  className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
                 >
                   {isSubmitting
                     ? 'Saving…'

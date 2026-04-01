@@ -37,7 +37,7 @@ interface Finding {
 function statusBadgeClass(status: InspectionStatus): string {
   switch (status) {
     case 'Scheduled':   return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'In Progress': return 'bg-blue-100 text-blue-700 ring-blue-200'
+    case 'In Progress': return 'bg-orange-100 text-orange-700 ring-blue-200'
     case 'Completed':   return 'bg-green-100 text-green-700 ring-green-200'
     case 'Overdue':     return 'bg-red-100 text-red-700 ring-red-200'
   }
@@ -117,7 +117,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
         {canConduct && (
           <Link
             href={`/inspections/${id}/conduct`}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors whitespace-nowrap"
           >
             Conduct Inspection
           </Link>
@@ -220,7 +220,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
                         {f.corrective_action ? (
                           <Link
                             href={`/corrective-actions/${f.corrective_action.id}`}
-                            className="text-blue-600 hover:underline"
+                            className="text-orange-600 hover:underline"
                           >
                             {f.corrective_action.title}
                           </Link>
@@ -239,7 +239,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
 
       {/* Back link */}
       <div>
-        <Link href="/inspections" className="text-sm text-blue-600 hover:underline">
+        <Link href="/inspections" className="text-sm text-orange-600 hover:underline">
           &larr; Back to Inspections
         </Link>
       </div>

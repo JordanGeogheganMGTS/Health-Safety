@@ -22,7 +22,7 @@ interface InspectionRow {
 function statusBadgeClass(status: InspectionStatus): string {
   switch (status) {
     case 'Scheduled':   return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'In Progress': return 'bg-blue-100 text-blue-700 ring-blue-200'
+    case 'In Progress': return 'bg-orange-100 text-orange-700 ring-blue-200'
     case 'Completed':   return 'bg-green-100 text-green-700 ring-green-200'
     case 'Overdue':     return 'bg-red-100 text-red-700 ring-red-200'
   }
@@ -87,7 +87,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
         </div>
         <Link
           href="/inspections/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
         >
           <span aria-hidden="true">+</span> Schedule Inspection
         </Link>
@@ -124,7 +124,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
             <p className="text-sm font-medium text-slate-500">No inspections found.</p>
             <p className="mt-1 text-xs text-slate-400">
               Try adjusting your filters or{' '}
-              <Link href="/inspections/new" className="text-blue-600 hover:underline">
+              <Link href="/inspections/new" className="text-orange-600 hover:underline">
                 schedule a new inspection
               </Link>
               .
@@ -151,7 +151,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/inspections/${insp.id}`}
-                        className="block max-w-xs truncate text-sm font-medium text-slate-800 group-hover:text-blue-700"
+                        className="block max-w-xs truncate text-sm font-medium text-slate-800 group-hover:text-orange-700"
                       >
                         {insp.title}
                       </Link>
@@ -180,7 +180,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/inspections/${insp.id}`}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline"
                       >
                         View
                       </Link>

@@ -33,7 +33,7 @@ interface IncidentDetail {
 function statusBadgeClass(status: IncidentStatus): string {
   switch (status) {
     case 'Open': return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'Under Investigation': return 'bg-blue-100 text-blue-700 ring-blue-200'
+    case 'Under Investigation': return 'bg-orange-100 text-orange-700 ring-blue-200'
     case 'Closed': return 'bg-green-100 text-green-700 ring-green-200'
   }
 }
@@ -94,7 +94,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
           {incident.status === 'Open' && (
             <Link
               href={`/incidents/${incident.id}/edit?action=investigate`}
-              className="inline-flex items-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
             >
               Start Investigation
             </Link>

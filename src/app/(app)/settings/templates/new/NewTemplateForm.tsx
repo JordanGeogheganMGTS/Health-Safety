@@ -76,7 +76,7 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
             id="name"
             name="name"
             required
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             placeholder="e.g. Monthly Fire Safety Check"
           />
         </div>
@@ -89,7 +89,7 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
             id="description"
             name="description"
             rows={3}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
             placeholder="Optional description of this template"
           />
         </div>
@@ -101,7 +101,7 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
           <select
             id="site_id"
             name="site_id"
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">All sites</option>
             {sites.map((site) => (
@@ -118,7 +118,7 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
             id="is_active"
             name="is_active"
             defaultValue="true"
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="true">Active</option>
             <option value="false">Inactive</option>
@@ -135,7 +135,7 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
           >
             {submitting ? 'Creating…' : 'Create & Add Items'}
           </button>

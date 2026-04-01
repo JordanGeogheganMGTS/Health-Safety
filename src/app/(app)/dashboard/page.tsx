@@ -72,7 +72,7 @@ function priorityBadgeClass(priority: Priority): string {
 function statusBadgeClass(status: CAStatus): string {
   switch (status) {
     case 'Open': return 'bg-slate-100 text-slate-700'
-    case 'In Progress': return 'bg-blue-100 text-blue-700'
+    case 'In Progress': return 'bg-orange-100 text-orange-700'
     case 'Completed': return 'bg-green-100 text-green-700'
     case 'Overdue': return 'bg-red-100 text-red-700'
     case 'Closed': return 'bg-gray-100 text-gray-600'
@@ -278,9 +278,9 @@ export default async function DashboardPage() {
       label: 'Docs Due for Review',
       value: docsDue60,
       sub: 'Within 60 days',
-      bg: 'bg-blue-50',
+      bg: 'bg-orange-50',
       border: 'border-blue-200',
-      text: 'text-blue-700',
+      text: 'text-orange-700',
       subText: 'text-blue-500',
       dot: 'bg-blue-400',
     },
@@ -366,7 +366,7 @@ export default async function DashboardPage() {
             </h2>
             <Link
               href="/corrective-actions"
-              className="text-xs font-medium text-blue-600 hover:underline"
+              className="text-xs font-medium text-orange-600 hover:underline"
             >
               View all →
             </Link>

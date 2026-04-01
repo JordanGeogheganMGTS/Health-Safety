@@ -85,16 +85,16 @@ export default async function SettingsPage() {
             href={card.href}
             className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:border-blue-300 hover:shadow-md"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 group-hover:bg-blue-100 transition-colors">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-50 text-orange-600 group-hover:bg-orange-100 transition-colors">
               {card.icon}
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
+              <h2 className="text-sm font-semibold text-slate-900 group-hover:text-orange-700 transition-colors">
                 {card.title}
               </h2>
               <p className="mt-1 text-xs text-slate-500 leading-relaxed">{card.description}</p>
             </div>
-            <div className="mt-auto flex items-center text-xs font-medium text-blue-600 group-hover:text-blue-700">
+            <div className="mt-auto flex items-center text-xs font-medium text-orange-600 group-hover:text-orange-700">
               Manage
               <svg className="ml-1 h-3 w-3 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />

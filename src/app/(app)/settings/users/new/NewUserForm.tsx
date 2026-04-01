@@ -82,7 +82,7 @@ export default function NewUserForm({ roles, sites }: Props) {
             id="email"
             name="email"
             required
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             placeholder="user@example.com"
           />
         </div>
@@ -97,7 +97,7 @@ export default function NewUserForm({ roles, sites }: Props) {
               id="first_name"
               name="first_name"
               required
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
           <div>
@@ -109,7 +109,7 @@ export default function NewUserForm({ roles, sites }: Props) {
               id="last_name"
               name="last_name"
               required
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function NewUserForm({ roles, sites }: Props) {
             id="role_id"
             name="role_id"
             required
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">Select a role…</option>
             {roles.map((role) => (
@@ -138,7 +138,7 @@ export default function NewUserForm({ roles, sites }: Props) {
           <select
             id="site_id"
             name="site_id"
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">All sites</option>
             {sites.map((site) => (
@@ -147,7 +147,7 @@ export default function NewUserForm({ roles, sites }: Props) {
           </select>
         </div>
 
-        <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-sm text-blue-700">
+        <div className="rounded-lg bg-orange-50 border border-blue-200 px-4 py-3 text-sm text-orange-700">
           The user will receive an email invitation to set their password.
         </div>
 
@@ -161,7 +161,7 @@ export default function NewUserForm({ roles, sites }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
           >
             {submitting ? 'Creating…' : 'Create User'}
           </button>

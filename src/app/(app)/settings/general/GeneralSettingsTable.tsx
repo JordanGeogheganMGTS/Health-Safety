@@ -63,7 +63,7 @@ export default function GeneralSettingsTable({ settings, updateSetting }: Props)
                     type="text"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="block w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="block w-full rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSave(setting.key)
@@ -73,7 +73,7 @@ export default function GeneralSettingsTable({ settings, updateSetting }: Props)
                   <button
                     onClick={() => handleSave(setting.key)}
                     disabled={saving}
-                    className="shrink-0 rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                    className="shrink-0 rounded-md bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Save'}
                   </button>
@@ -94,7 +94,7 @@ export default function GeneralSettingsTable({ settings, updateSetting }: Props)
               {editingKey !== setting.key && (
                 <button
                   onClick={() => startEdit(setting)}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                  className="text-sm font-medium text-orange-600 hover:text-orange-700"
                 >
                   Edit
                 </button>

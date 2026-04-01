@@ -117,14 +117,14 @@ export default function NewTrainingRecordPage() {
     router.push('/training')
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
 
   return (
     <div className="max-w-xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/training" className="hover:text-blue-600 transition-colors">Training</a>
+          <a href="/training" className="hover:text-orange-600 transition-colors">Training</a>
           <span>/</span>
           <span>Record Training</span>
         </div>
@@ -200,7 +200,7 @@ export default function NewTrainingRecordPage() {
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
             onChange={(e) => setCertFile(e.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+            className="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100 cursor-pointer"
           />
           {certFile && <p className="mt-1 text-xs text-slate-500">Selected: {certFile.name}</p>}
         </div>
@@ -209,7 +209,7 @@ export default function NewTrainingRecordPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Saving…' : 'Record Training'}
           </button>

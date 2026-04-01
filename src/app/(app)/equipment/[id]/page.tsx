@@ -211,7 +211,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
           <h2 className="text-lg font-semibold text-slate-900">Service Records</h2>
           <Link
             href={`/equipment/${eq.id}/service/new`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             <span aria-hidden="true">+</span> Log Service Record
           </Link>
@@ -222,7 +222,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No service records yet.</p>
               <p className="mt-1 text-xs text-slate-400">
-                <Link href={`/equipment/${eq.id}/service/new`} className="text-blue-600 hover:underline">
+                <Link href={`/equipment/${eq.id}/service/new`} className="text-orange-600 hover:underline">
                   Log the first service record
                 </Link>
               </p>

@@ -159,9 +159,9 @@ export default function EditIncidentPage({ params }: PageProps) {
   }
 
   const inputClass =
-    'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+    'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectClass =
-    'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50'
+    'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:opacity-50'
   const labelClass = 'block text-sm font-medium text-slate-700'
   const errorClass = 'text-xs text-red-600'
 
@@ -279,7 +279,7 @@ export default function EditIncidentPage({ params }: PageProps) {
                 id="riddor_reportable"
                 type="checkbox"
                 {...register('riddor_reportable')}
-                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
               />
               <label htmlFor="riddor_reportable" className="text-sm font-medium text-slate-700">
                 RIDDOR Reportable
@@ -359,7 +359,7 @@ export default function EditIncidentPage({ params }: PageProps) {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+              className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
             >
               {isSubmitting ? 'Saving…' : 'Save Changes'}
             </button>

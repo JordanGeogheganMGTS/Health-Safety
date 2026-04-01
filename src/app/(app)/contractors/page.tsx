@@ -89,7 +89,7 @@ export default async function ContractorsPage({
         </div>
         <Link
           href="/contractors/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-600 transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -103,19 +103,19 @@ export default async function ContractorsPage({
         <span className="text-sm text-slate-500 font-medium">Filter:</span>
         <Link
           href="/contractors"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${!params.approved ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${!params.approved ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           All
         </Link>
         <Link
           href="/contractors?approved=true"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'true' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'true' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           Approved
         </Link>
         <Link
           href="/contractors?approved=false"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'false' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'false' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
         >
           Not Approved
         </Link>
@@ -129,7 +129,7 @@ export default async function ContractorsPage({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-2 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
             </svg>
             <p className="mt-3 text-sm text-slate-500">No contractors found.</p>
-            <Link href="/contractors/new" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:underline">
+            <Link href="/contractors/new" className="mt-2 inline-block text-sm font-medium text-orange-600 hover:underline">
               Add the first contractor
             </Link>
           </div>
@@ -180,7 +180,7 @@ export default async function ContractorsPage({
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/contractors/${c.id}`}
-                        className="text-xs font-medium text-blue-600 hover:underline"
+                        className="text-xs font-medium text-orange-600 hover:underline"
                       >
                         View →
                       </Link>

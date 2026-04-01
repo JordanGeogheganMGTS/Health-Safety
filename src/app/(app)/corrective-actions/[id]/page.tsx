@@ -58,7 +58,7 @@ function sourceModuleHref(module: string | null, sourceId: string | null): strin
 function statusBadgeClass(status: CAStatus): string {
   switch (status) {
     case 'Open': return 'bg-slate-100 text-slate-700 ring-slate-200'
-    case 'In Progress': return 'bg-blue-100 text-blue-700 ring-blue-200'
+    case 'In Progress': return 'bg-orange-100 text-orange-700 ring-blue-200'
     case 'Completed': return 'bg-green-100 text-green-700 ring-green-200'
     case 'Overdue': return 'bg-red-100 text-red-700 ring-red-200'
     case 'Closed': return 'bg-gray-100 text-gray-600 ring-gray-200'
@@ -178,7 +178,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
                         isComplete
                           ? 'bg-green-500 text-white'
                           : isCurrent
-                          ? 'bg-blue-600 text-white ring-4 ring-blue-100'
+                          ? 'bg-orange-500 text-white ring-4 ring-blue-100'
                           : 'bg-slate-100 text-slate-400'
                       }`}
                     >
@@ -192,7 +192,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
                     </div>
                     <span
                       className={`text-xs font-medium ${
-                        isCurrent ? 'text-blue-700' : isComplete ? 'text-green-700' : 'text-slate-400'
+                        isCurrent ? 'text-orange-700' : isComplete ? 'text-green-700' : 'text-slate-400'
                       }`}
                     >
                       {step.label}
@@ -254,7 +254,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
                 {sourceHref && (
                   <Link
                     href={sourceHref}
-                    className="text-xs font-medium text-blue-600 hover:underline"
+                    className="text-xs font-medium text-orange-600 hover:underline"
                   >
                     View source record →
                   </Link>

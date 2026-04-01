@@ -124,7 +124,7 @@ export default function NewInspectionPage() {
             type="text"
             {...register('title')}
             placeholder="e.g. Monthly Fire Safety Audit"
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
           {errors.title && (
             <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>
@@ -138,7 +138,7 @@ export default function NewInspectionPage() {
           </label>
           <select
             {...register('site_id')}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">Select a site…</option>
             {sites.map((s) => (
@@ -157,7 +157,7 @@ export default function NewInspectionPage() {
           </label>
           <select
             {...register('type_id')}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">Select a type…</option>
             {types.map((t) => (
@@ -175,7 +175,7 @@ export default function NewInspectionPage() {
           <select
             {...register('template_id')}
             disabled={!selectedSite}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50 disabled:text-slate-400"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 disabled:bg-slate-50 disabled:text-slate-400"
           >
             <option value="">No template</option>
             {filteredTemplates.map((t) => (
@@ -195,7 +195,7 @@ export default function NewInspectionPage() {
           <input
             type="date"
             {...register('scheduled_date')}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
           {errors.scheduled_date && (
             <p className="mt-1 text-xs text-red-600">{errors.scheduled_date.message}</p>
@@ -207,7 +207,7 @@ export default function NewInspectionPage() {
           <label className="block text-sm font-medium text-slate-700">Conducted By (optional)</label>
           <select
             {...register('conducted_by_id')}
-            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="">Unassigned</option>
             {users.map((u) => (
@@ -230,7 +230,7 @@ export default function NewInspectionPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-60"
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
             {submitting ? 'Saving…' : 'Schedule Inspection'}
           </button>

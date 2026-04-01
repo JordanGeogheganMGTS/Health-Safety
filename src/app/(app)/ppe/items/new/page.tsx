@@ -65,14 +65,14 @@ export default function NewPpeItemPage() {
     router.push('/ppe')
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const textareaCls = `${inputCls} resize-none`
 
   return (
     <div className="max-w-xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/ppe" className="hover:text-blue-600 transition-colors">PPE Management</a>
+          <a href="/ppe" className="hover:text-orange-600 transition-colors">PPE Management</a>
           <span>/</span>
           <span>New PPE Item</span>
         </div>
@@ -104,7 +104,7 @@ export default function NewPpeItemPage() {
             <input
               {...register('has_sizes')}
               type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
             />
             <span className="text-sm font-medium text-slate-700">This item comes in sizes</span>
           </label>
@@ -150,7 +150,7 @@ export default function NewPpeItemPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Saving…' : 'Add PPE Item'}
           </button>

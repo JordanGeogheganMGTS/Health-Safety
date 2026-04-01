@@ -86,7 +86,7 @@ export default async function LookupsPage() {
                   <td className="px-6 py-4 text-right">
                     <Link
                       href={`/settings/lookups/${cat.id}`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                      className="text-sm font-medium text-orange-600 hover:text-orange-700"
                     >
                       Edit Values
                     </Link>

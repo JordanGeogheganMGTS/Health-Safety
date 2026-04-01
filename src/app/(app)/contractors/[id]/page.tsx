@@ -152,7 +152,7 @@ export default async function ContractorDetailPage({
           <dl className="space-y-3">
             <InfoRow label="Contact Name" value={c.contact_name} />
             <InfoRow label="Email" value={c.contact_email ? (
-              <a href={`mailto:${c.contact_email}`} className="text-blue-600 hover:underline">{c.contact_email}</a>
+              <a href={`mailto:${c.contact_email}`} className="text-orange-600 hover:underline">{c.contact_email}</a>
             ) : null} />
             <InfoRow label="Phone" value={c.contact_phone} />
             <InfoRow label="Address" value={c.address} />
@@ -227,7 +227,7 @@ export default async function ContractorDetailPage({
                         href={fileUrl(doc.storage_key)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-medium text-blue-600 hover:underline"
+                        className="text-xs font-medium text-orange-600 hover:underline"
                       >
                         View ↗
                       </a>

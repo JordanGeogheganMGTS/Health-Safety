@@ -118,7 +118,7 @@ export default async function FireSafetyPage() {
           <h2 className="text-lg font-semibold text-slate-900">Fire Extinguishers</h2>
           <Link
             href="/fire-safety/extinguisher/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             <span aria-hidden="true">+</span> Add Extinguisher
           </Link>
@@ -129,7 +129,7 @@ export default async function FireSafetyPage() {
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No extinguishers recorded.</p>
               <p className="mt-1 text-xs text-slate-400">
-                <Link href="/fire-safety/extinguisher/new" className="text-blue-600 hover:underline">
+                <Link href="/fire-safety/extinguisher/new" className="text-orange-600 hover:underline">
                   Add the first extinguisher
                 </Link>
               </p>
@@ -168,7 +168,7 @@ export default async function FireSafetyPage() {
                       <td className="px-4 py-3">
                         <Link
                           href={`/fire-safety/extinguisher/${ext.id}/inspect`}
-                          className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                          className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline"
                         >
                           Inspect
                         </Link>
@@ -188,7 +188,7 @@ export default async function FireSafetyPage() {
           <h2 className="text-lg font-semibold text-slate-900">Fire Alarm Tests</h2>
           <Link
             href="/fire-safety/alarm/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             <span aria-hidden="true">+</span> Log Alarm Test
           </Link>
@@ -199,7 +199,7 @@ export default async function FireSafetyPage() {
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No alarm tests recorded.</p>
               <p className="mt-1 text-xs text-slate-400">
-                <Link href="/fire-safety/alarm/new" className="text-blue-600 hover:underline">
+                <Link href="/fire-safety/alarm/new" className="text-orange-600 hover:underline">
                   Log the first alarm test
                 </Link>
               </p>
@@ -251,7 +251,7 @@ export default async function FireSafetyPage() {
           <h2 className="text-lg font-semibold text-slate-900">Fire Drills</h2>
           <Link
             href="/fire-safety/drill/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
           >
             <span aria-hidden="true">+</span> Log Drill
           </Link>
@@ -262,7 +262,7 @@ export default async function FireSafetyPage() {
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No fire drills recorded.</p>
               <p className="mt-1 text-xs text-slate-400">
-                <Link href="/fire-safety/drill/new" className="text-blue-600 hover:underline">
+                <Link href="/fire-safety/drill/new" className="text-orange-600 hover:underline">
                   Log the first fire drill
                 </Link>
               </p>

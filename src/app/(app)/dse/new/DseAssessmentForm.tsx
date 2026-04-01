@@ -196,7 +196,7 @@ export default function DseAssessmentForm({
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               required
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
               <option value="">Select staff member…</option>
               {users.map((u) => (
@@ -217,7 +217,7 @@ export default function DseAssessmentForm({
               value={assessmentDate}
               onChange={(e) => setAssessmentDate(e.target.value)}
               required
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
 
@@ -230,7 +230,7 @@ export default function DseAssessmentForm({
               id="workstation_location"
               value={workstationLocation}
               onChange={(e) => setWorkstationLocation(e.target.value)}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               placeholder="e.g. Desk 4, 2nd Floor"
             />
           </div>
@@ -314,7 +314,7 @@ export default function DseAssessmentForm({
                         value={discomfortDetail}
                         onChange={(e) => setDiscomfortDetail(e.target.value)}
                         rows={2}
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
                         placeholder="Describe the discomfort or symptoms…"
                       />
                     </div>
@@ -336,7 +336,7 @@ export default function DseAssessmentForm({
           value={additionalNotes}
           onChange={(e) => setAdditionalNotes(e.target.value)}
           rows={4}
-          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"
+          className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
           placeholder="Any additional observations or recommendations…"
         />
       </div>
@@ -351,7 +351,7 @@ export default function DseAssessmentForm({
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
         >
           {submitting ? (
             <>

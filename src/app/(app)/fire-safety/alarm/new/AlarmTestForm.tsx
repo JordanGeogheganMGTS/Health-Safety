@@ -128,9 +128,9 @@ export default function AlarmTestForm({ systems }: Props) {
   }
 
   const inputClass =
-    'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+    'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectClass =
-    'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+    'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const labelClass = 'block text-sm font-medium text-slate-700'
   const errorClass = 'text-xs text-red-600'
 
@@ -238,7 +238,7 @@ export default function AlarmTestForm({ systems }: Props) {
           <button
             type="submit"
             disabled={isSubmitting || systems.length === 0}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-60"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors disabled:opacity-60"
           >
             {isSubmitting ? 'Saving…' : 'Log Alarm Test'}
           </button>

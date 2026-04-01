@@ -53,7 +53,7 @@ export default async function TemplatesPage() {
         </div>
         <Link
           href="/settings/templates/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
         >
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -102,7 +102,7 @@ export default async function TemplatesPage() {
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/settings/templates/${t.id}/edit`}
-                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                        className="text-sm font-medium text-orange-600 hover:text-orange-700"
                       >
                         Edit
                       </Link>

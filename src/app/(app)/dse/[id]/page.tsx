@@ -167,7 +167,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
                         {ca && (
                           <Link
                             href={`/corrective-actions/${ca.id}`}
-                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                            className="text-xs text-orange-600 hover:text-orange-700 font-medium"
                           >
                             CA: {ca.title} ({ca.status})
                           </Link>

@@ -145,7 +145,7 @@ export default function EditContractorPage() {
             <input
               {...register('company_name')}
               type="text"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             {errors.company_name && (
               <p className="mt-1 text-xs text-red-600">{errors.company_name.message}</p>
@@ -156,7 +156,7 @@ export default function EditContractorPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Contractor Type</label>
             <select
               {...register('type_id')}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             >
               <option value="">Select type…</option>
               {contractorTypes.map((t) => (
@@ -170,7 +170,7 @@ export default function EditContractorPage() {
             <textarea
               {...register('address')}
               rows={3}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
           </div>
 
@@ -179,7 +179,7 @@ export default function EditContractorPage() {
               {...register('is_active')}
               type="checkbox"
               id="is_active"
-              className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
             />
             <label htmlFor="is_active" className="text-sm font-medium text-slate-700">Active</label>
           </div>
@@ -195,7 +195,7 @@ export default function EditContractorPage() {
               <input
                 {...register('contact_name')}
                 type="text"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -203,7 +203,7 @@ export default function EditContractorPage() {
               <input
                 {...register('contact_phone')}
                 type="tel"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function EditContractorPage() {
             <input
               {...register('contact_email')}
               type="email"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             {errors.contact_email && (
               <p className="mt-1 text-xs text-red-600">{errors.contact_email.message}</p>
@@ -233,7 +233,7 @@ export default function EditContractorPage() {
               <input
                 {...register('public_liability_expiry')}
                 type="date"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
               {errors.public_liability_expiry && (
                 <p className="mt-1 text-xs text-red-600">{errors.public_liability_expiry.message}</p>
@@ -244,7 +244,7 @@ export default function EditContractorPage() {
               <input
                 {...register('employers_liability_expiry')}
                 type="date"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -256,7 +256,7 @@ export default function EditContractorPage() {
           <textarea
             {...register('notes')}
             rows={3}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
         </div>
 
@@ -273,7 +273,7 @@ export default function EditContractorPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
             >
               {isSubmitting ? 'Saving…' : 'Save Changes'}
             </button>

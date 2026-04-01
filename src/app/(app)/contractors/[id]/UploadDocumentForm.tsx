@@ -76,7 +76,7 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
         <select
           value={typeId}
           onChange={(e) => setTypeId(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
         >
           <option value="">Select type…</option>
           {docTypes.map((t) => (
@@ -93,7 +93,7 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           placeholder="Document title"
         />
       </div>
@@ -104,7 +104,7 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
           type="date"
           value={expiryDate}
           onChange={(e) => setExpiryDate(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
         />
       </div>
 
@@ -115,7 +115,7 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
         <input
           type="file"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-blue-700 hover:file:bg-blue-100"
+          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
         />
       </div>
@@ -130,7 +130,7 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
         <button
           type="submit"
           disabled={uploading}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
         >
           {uploading ? 'Uploading…' : 'Upload Document'}
         </button>

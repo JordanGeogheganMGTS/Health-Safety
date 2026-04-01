@@ -95,7 +95,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
           <select
             value={selectedSite}
             onChange={(e) => setSelectedSite(e.target.value)}
-            className="appearance-none bg-slate-50 border border-slate-200 rounded-md pl-3 pr-8 py-1.5 text-sm text-slate-700 cursor-pointer hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="appearance-none bg-slate-50 border border-slate-200 rounded-md pl-3 pr-8 py-1.5 text-sm text-slate-700 cursor-pointer hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
           >
             {SITES.map((site) => (
               <option key={site} value={site}>
@@ -123,7 +123,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
       <div className="relative" ref={avatarRef}>
         <button
           onClick={() => setAvatarOpen((prev) => !prev)}
-          className="flex items-center justify-center h-8 w-8 rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+          className="flex items-center justify-center h-8 w-8 rounded-full bg-orange-500 text-white text-xs font-semibold hover:bg-orange-600 transition-colors focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-1"
           aria-label="User menu"
           aria-expanded={avatarOpen}
         >

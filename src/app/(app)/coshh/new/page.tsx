@@ -115,7 +115,7 @@ export default function NewCoshhPage() {
     router.push(`/coshh/${data.id}`)
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
   const textareaCls = `${inputCls} resize-none`
 
@@ -123,7 +123,7 @@ export default function NewCoshhPage() {
     <div className="max-w-3xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/coshh" className="hover:text-blue-600 transition-colors">COSHH Assessments</a>
+          <a href="/coshh" className="hover:text-orange-600 transition-colors">COSHH Assessments</a>
           <span>/</span>
           <span>New</span>
         </div>
@@ -280,7 +280,7 @@ export default function NewCoshhPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Creating…' : 'Create Assessment'}
           </button>

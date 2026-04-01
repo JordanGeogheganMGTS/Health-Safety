@@ -229,18 +229,18 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
     )
   }
 
-  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
-  const smInputCls = 'w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500'
+  const smInputCls = 'w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const smSelectCls = `${smInputCls} bg-white`
 
   return (
     <div>
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/risk-assessments" className="hover:text-blue-600 transition-colors">Risk Assessments</a>
+          <a href="/risk-assessments" className="hover:text-orange-600 transition-colors">Risk Assessments</a>
           <span>/</span>
-          <a href={`/risk-assessments/${params.id}`} className="hover:text-blue-600 transition-colors">Assessment</a>
+          <a href={`/risk-assessments/${params.id}`} className="hover:text-orange-600 transition-colors">Assessment</a>
           <span>/</span>
           <span>Edit</span>
         </div>
@@ -322,7 +322,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
             <button
               type="button"
               onClick={() => append({ ...blankHazard })}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
             >
               <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -465,7 +465,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
               <button
                 type="button"
                 onClick={() => append({ ...blankHazard })}
-                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-orange-600 hover:text-orange-700 font-medium transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -481,7 +481,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Saving…' : 'Save Risk Assessment'}
           </button>

@@ -127,7 +127,7 @@ export default function NewDocumentPage() {
           </label>
           <input
             {...register('title')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             placeholder="e.g. Health & Safety Policy"
           />
           {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
@@ -140,7 +140,7 @@ export default function NewDocumentPage() {
           </label>
           <select
             {...register('category_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select category…</option>
             {categories.map((c) => (
@@ -157,7 +157,7 @@ export default function NewDocumentPage() {
           </label>
           <select
             {...register('site_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select site…</option>
             {sites.map((s) => (
@@ -173,7 +173,7 @@ export default function NewDocumentPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Version</label>
             <input
               {...register('version')}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
               placeholder="e.g. 1.0"
             />
           </div>
@@ -184,7 +184,7 @@ export default function NewDocumentPage() {
             <input
               {...register('review_date')}
               type="date"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
             {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
           </div>
@@ -197,7 +197,7 @@ export default function NewDocumentPage() {
           </label>
           <select
             {...register('owner_id')}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select owner…</option>
             {users.map((u) => (
@@ -229,7 +229,7 @@ export default function NewDocumentPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? 'Uploading…' : 'Upload Document'}
           </button>

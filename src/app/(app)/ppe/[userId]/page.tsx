@@ -136,7 +136,7 @@ export default async function UserPpePage({ params }: { params: { userId: string
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-          <a href="/ppe" className="hover:text-blue-600 transition-colors">PPE Management</a>
+          <a href="/ppe" className="hover:text-orange-600 transition-colors">PPE Management</a>
           <span>/</span>
           <span>{profile.first_name} {profile.last_name}</span>
         </div>

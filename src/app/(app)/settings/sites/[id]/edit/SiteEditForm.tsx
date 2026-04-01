@@ -74,7 +74,7 @@ export default function SiteEditForm({ site }: { site: Site }) {
             name="name"
             required
             defaultValue={site.name}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
         </div>
 
@@ -87,7 +87,7 @@ export default function SiteEditForm({ site }: { site: Site }) {
             id="address"
             name="address"
             defaultValue={site.address ?? ''}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
         </div>
 
@@ -100,7 +100,7 @@ export default function SiteEditForm({ site }: { site: Site }) {
             id="postcode"
             name="postcode"
             defaultValue={site.postcode ?? ''}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
         </div>
 
@@ -112,7 +112,7 @@ export default function SiteEditForm({ site }: { site: Site }) {
             id="is_active"
             name="is_active"
             defaultValue={site.is_active ? 'true' : 'false'}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <option value="true">Active</option>
             <option value="false">Inactive</option>
@@ -129,7 +129,7 @@ export default function SiteEditForm({ site }: { site: Site }) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
           >
             {submitting ? 'Saving…' : 'Save Changes'}
           </button>

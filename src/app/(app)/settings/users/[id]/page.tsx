@@ -130,7 +130,7 @@ export default async function UserProfilePage({
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Role</dt>
             <dd className="mt-1">
               {role ? (
-                <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{role}</span>
+                <span className="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">{role}</span>
               ) : '—'}
             </dd>
           </div>
@@ -146,7 +146,7 @@ export default async function UserProfilePage({
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">DSE Not Applicable</dt>
             <dd className="mt-1">
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                profile.dse_not_applicable ? 'bg-slate-100 text-slate-700' : 'bg-blue-50 text-blue-700'
+                profile.dse_not_applicable ? 'bg-slate-100 text-slate-700' : 'bg-orange-50 text-orange-700'
               }`}>
                 {profile.dse_not_applicable ? 'Not Applicable' : 'Applicable'}
               </span>
@@ -204,7 +204,7 @@ export default async function UserProfilePage({
           </p>
           <Link
             href={`/ppe/${id}`}
-            className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            className="text-sm font-medium text-orange-600 hover:text-orange-700 flex items-center gap-1"
           >
             Manage PPE
             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
@@ -259,7 +259,7 @@ export default async function UserProfilePage({
               <div className="flex items-center gap-3">
                 <Link
                   href={`/dse/${lastAssessment.id}`}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                  className="text-sm font-medium text-orange-600 hover:text-orange-700"
                 >
                   View Assessment
                 </Link>
@@ -276,7 +276,7 @@ export default async function UserProfilePage({
               <p className="text-sm text-slate-600">No assessment on record.</p>
               <Link
                 href={`/dse/new?userId=${id}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
               >
                 Conduct Assessment
               </Link>

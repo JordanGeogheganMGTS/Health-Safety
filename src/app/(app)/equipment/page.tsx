@@ -92,7 +92,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
         </div>
         <Link
           href="/equipment/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
         >
           <span aria-hidden="true">+</span> Add Equipment
         </Link>
@@ -158,7 +158,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
             <p className="text-sm font-medium text-slate-500">No equipment records found.</p>
             <p className="mt-1 text-xs text-slate-400">
               Try adjusting your filters or{' '}
-              <Link href="/equipment/new" className="text-blue-600 hover:underline">
+              <Link href="/equipment/new" className="text-orange-600 hover:underline">
                 add new equipment
               </Link>
               .
@@ -185,7 +185,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/equipment/${eq.id}`}
-                        className="block text-sm font-medium text-slate-800 group-hover:text-blue-700"
+                        className="block text-sm font-medium text-slate-800 group-hover:text-orange-700"
                       >
                         {eq.name}
                       </Link>
@@ -217,7 +217,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3">
                       <Link
                         href={`/equipment/${eq.id}`}
-                        className="text-xs font-medium text-blue-600 hover:text-blue-800 hover:underline"
+                        className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline"
                       >
                         View
                       </Link>
