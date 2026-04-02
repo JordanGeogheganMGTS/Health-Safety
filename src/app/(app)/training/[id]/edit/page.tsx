@@ -1,17 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { uploadFile } from '@/lib/storage'
 import { addMonthsToDate } from '@/lib/dates'
 import Link from 'next/link'
-import { use } from 'react'
 
 interface TrainingType { id: string; name: string; validity_months: number | null }
 
-export default function EditTrainingRecordPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function EditTrainingRecordPage() {
+  const { id } = useParams<{ id: string }>()
   const router = useRouter()
   const supabase = createClient()
 
