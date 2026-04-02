@@ -35,13 +35,14 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
     .from('training_records')
     .select(`
       id,
-      completed_date,
+      completion_date,
       expiry_date,
       provider,
+      certificate_file_path,
       user:users!training_records_user_id_fkey(id, first_name, last_name),
       training_type:training_types!training_records_training_type_id_fkey(id, name, is_mandatory)
     `)
-    .order('completed_date', { ascending: false })
+    .order('completion_date', { ascending: false })
 
   if (searchParams.type) {
     recordsQuery = recordsQuery.eq('training_type_id', searchParams.type)
@@ -188,6 +189,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Completed</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Expiry</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Provider</th>
+                    <th className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -210,11 +212,19 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
                             <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-500">Optional</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.completed_date)}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.completion_date)}</td>
                         <td className="px-4 py-3">
                           <ExpiryBadge expiry={r.expiry_date} />
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-600">{r.provider ?? '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Link
+                            href={`/training/${r.id}`}
+                            className="text-xs font-medium text-orange-600 hover:text-orange-700"
+                          >
+                            View →
+                          </Link>
+                        </td>
                       </tr>
                     )
                   })}
