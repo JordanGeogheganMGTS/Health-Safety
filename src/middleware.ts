@@ -29,10 +29,10 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith('/login')
-  const isPublicRoute = isAuthRoute
+  const pathname = request.nextUrl.pathname
+  const isAuthRoute = pathname.startsWith('/login')
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isAuthRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -44,8 +44,24 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Pass pathname to server components via header
-  supabaseResponse.headers.set("x-pathname", request.nextUrl.pathname)
+  // Force password change: check flag for authenticated users not already on change-password
+  if (user && !pathname.startsWith('/change-password')) {
+    const { data: profile } = await supabase
+      .from('users')
+      .select('must_change_password')
+      .eq('id', user.id)
+      .single()
+
+    if (profile?.must_change_password) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/change-password'
+      const redirectRes = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((c) =>
+        redirectRes.cookies.set(c.name, c.value)
+      )
+      return redirectRes
+    }
+  }
 
   return supabaseResponse
 }
