@@ -98,7 +98,7 @@ export default async function UsersPage() {
                     <td className="px-6 py-4 text-sm text-slate-500">{formatDate(u.last_login_at)}</td>
                     <td className="px-6 py-4 text-right">
                       <Link
-                        href={`/settings/users/${u.id}`}
+                        href={`/profile/${u.id}`}
                         className="text-sm font-medium text-orange-600 hover:text-orange-700"
                       >
                         View

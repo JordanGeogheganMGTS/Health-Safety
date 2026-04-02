@@ -139,7 +139,7 @@ export function Header({ user, onMenuClick }: HeaderProps) {
               <div className="text-xs text-slate-500 truncate">{user.email}</div>
             </div>
             <button
-              onClick={() => { setAvatarOpen(false); router.push('/settings/profile') }}
+              onClick={() => { setAvatarOpen(false); router.push(`/profile/${user.id}`) }}
               className="flex w-full items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
             >
               <User className="h-4 w-4" />
