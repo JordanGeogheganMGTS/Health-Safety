@@ -51,16 +51,16 @@ function ratingClass(r: number): string {
 }
 
 const blankHazard = {
-  hazard: '',
-  persons_at_risk: '',
+  hazard_description: '',
+  who_is_affected: '',
   existing_controls: '',
-  likelihood: 1 as const,
-  severity: 1 as const,
+  likelihood_before: 1 as const,
+  severity_before: 1 as const,
   additional_controls: '',
-  action_owner_id: '',
+  responsible_person: '',
   action_due_date: '',
-  residual_likelihood: '' as const,
-  residual_severity: '' as const,
+  likelihood_after: '' as const,
+  severity_after: '' as const,
 }
 
 export default function EditRiskAssessmentPage({ params }: { params: { id: string } }) {
@@ -100,7 +100,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
         supabase
           .from('ra_hazards')
           .select('*')
-          .eq('ra_id', params.id)
+          .eq('risk_assessment_id', params.id)
           .order('sort_order'),
         supabase
           .from('lookup_values')
@@ -120,16 +120,16 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
         const d = raRes.data
         const hz = (hazardsRes.data ?? []).map((h: Record<string, unknown>) => ({
           id: h.id as string,
-          hazard: h.hazard as string,
-          persons_at_risk: h.persons_at_risk as string,
-          existing_controls: h.existing_controls as string,
-          likelihood: h.likelihood as number,
-          severity: h.severity as number,
+          hazard_description: (h.hazard_description as string) ?? '',
+          who_is_affected: (h.who_is_affected as string) ?? '',
+          existing_controls: (h.existing_controls as string) ?? '',
+          likelihood_before: (h.likelihood_before as number) ?? 1,
+          severity_before: (h.severity_before as number) ?? 1,
           additional_controls: (h.additional_controls as string) ?? '',
-          action_owner_id: (h.action_owner_id as string) ?? '',
+          responsible_person: (h.responsible_person as string) ?? '',
           action_due_date: h.action_due_date ? (h.action_due_date as string).split('T')[0] : '',
-          residual_likelihood: (h.residual_likelihood as number | null) ?? ('' as const),
-          residual_severity: (h.residual_severity as number | null) ?? ('' as const),
+          likelihood_after: (h.likelihood_after as number | null) ?? ('' as const),
+          severity_after: (h.severity_after as number | null) ?? ('' as const),
         }))
         reset({
           title: d.title,
@@ -177,7 +177,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
     const { error: delErr } = await supabase
       .from('ra_hazards')
       .delete()
-      .eq('ra_id', params.id)
+      .eq('risk_assessment_id', params.id)
 
     if (delErr) {
       setServerError(delErr.message)
@@ -188,24 +188,20 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
     // Insert new hazards
     if (values.hazards.length > 0) {
       const hazardRows = values.hazards.map((h, idx) => {
-        const l = Number(h.likelihood)
-        const s = Number(h.severity)
-        const rl = h.residual_likelihood ? Number(h.residual_likelihood) : null
-        const rs = h.residual_severity ? Number(h.residual_severity) : null
+        const la = h.likelihood_after ? Number(h.likelihood_after) : null
+        const sa = h.severity_after ? Number(h.severity_after) : null
         return {
-          ra_id: params.id,
-          hazard: h.hazard,
-          persons_at_risk: h.persons_at_risk,
+          risk_assessment_id: params.id,
+          hazard_description: h.hazard_description,
+          who_is_affected: h.who_is_affected,
           existing_controls: h.existing_controls,
-          likelihood: l,
-          severity: s,
-          risk_rating: l * s,
+          likelihood_before: Number(h.likelihood_before),
+          severity_before: Number(h.severity_before),
           additional_controls: h.additional_controls || null,
-          action_owner_id: h.action_owner_id || null,
+          responsible_person: h.responsible_person || null,
           action_due_date: h.action_due_date || null,
-          residual_likelihood: rl,
-          residual_severity: rs,
-          residual_risk_rating: rl && rs ? rl * rs : null,
+          likelihood_after: la,
+          severity_after: sa,
           sort_order: idx + 1,
         }
       })
@@ -338,11 +334,11 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
           ) : (
             <div className="divide-y divide-slate-100">
               {fields.map((field, idx) => {
-                const l = Number(watchedHazards[idx]?.likelihood ?? 1)
-                const s = Number(watchedHazards[idx]?.severity ?? 1)
+                const l = Number(watchedHazards[idx]?.likelihood_before ?? 1)
+                const s = Number(watchedHazards[idx]?.severity_before ?? 1)
                 const rr = l * s
-                const rl = Number(watchedHazards[idx]?.residual_likelihood) || null
-                const rs = Number(watchedHazards[idx]?.residual_severity) || null
+                const rl = Number(watchedHazards[idx]?.likelihood_after) || null
+                const rs = Number(watchedHazards[idx]?.severity_after) || null
                 const residualRR = rl && rs ? rl * rs : null
 
                 return (
@@ -364,20 +360,20 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
                       <div className="md:col-span-2">
                         <label className="block text-xs font-medium text-slate-600 mb-1">Hazard Description <span className="text-red-500">*</span></label>
                         <textarea
-                          {...register(`hazards.${idx}.hazard`)}
+                          {...register(`hazards.${idx}.hazard_description`)}
                           rows={2}
                           className={smInputCls}
                           placeholder="Describe the hazard…"
                         />
-                        {errors.hazards?.[idx]?.hazard && (
-                          <p className="mt-0.5 text-xs text-red-600">{errors.hazards[idx]?.hazard?.message}</p>
+                        {errors.hazards?.[idx]?.hazard_description && (
+                          <p className="mt-0.5 text-xs text-red-600">{errors.hazards[idx]?.hazard_description?.message}</p>
                         )}
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Persons at Risk <span className="text-red-500">*</span></label>
-                        <input {...register(`hazards.${idx}.persons_at_risk`)} className={smInputCls} placeholder="e.g. All staff, Visitors" />
-                        {errors.hazards?.[idx]?.persons_at_risk && (
-                          <p className="mt-0.5 text-xs text-red-600">{errors.hazards[idx]?.persons_at_risk?.message}</p>
+                        <input {...register(`hazards.${idx}.who_is_affected`)} className={smInputCls} placeholder="e.g. All staff, Visitors" />
+                        {errors.hazards?.[idx]?.who_is_affected && (
+                          <p className="mt-0.5 text-xs text-red-600">{errors.hazards[idx]?.who_is_affected?.message}</p>
                         )}
                       </div>
                       <div>
@@ -398,13 +394,13 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-3 items-end mb-3">
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Likelihood (1-5)</label>
-                        <select {...register(`hazards.${idx}.likelihood`)} className={smSelectCls}>
+                        <select {...register(`hazards.${idx}.likelihood_before`)} className={smSelectCls}>
                           {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Severity (1-5)</label>
-                        <select {...register(`hazards.${idx}.severity`)} className={smSelectCls}>
+                        <select {...register(`hazards.${idx}.severity_before`)} className={smSelectCls}>
                           {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
                       </div>
@@ -416,14 +412,14 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Residual L</label>
-                        <select {...register(`hazards.${idx}.residual_likelihood`)} className={smSelectCls}>
+                        <select {...register(`hazards.${idx}.likelihood_after`)} className={smSelectCls}>
                           <option value="">—</option>
                           {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Residual S</label>
-                        <select {...register(`hazards.${idx}.residual_severity`)} className={smSelectCls}>
+                        <select {...register(`hazards.${idx}.severity_after`)} className={smSelectCls}>
                           <option value="">—</option>
                           {[1,2,3,4,5].map((n) => <option key={n} value={n}>{n}</option>)}
                         </select>
@@ -443,11 +439,8 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
                         <textarea {...register(`hazards.${idx}.additional_controls`)} rows={2} className={smInputCls} placeholder="Further controls required…" />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Action Owner</label>
-                        <select {...register(`hazards.${idx}.action_owner_id`)} className={smSelectCls}>
-                          <option value="">None</option>
-                          {users.map((u) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
-                        </select>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">Responsible Person</label>
+                        <input {...register(`hazards.${idx}.responsible_person`)} className={smInputCls} placeholder="Name of responsible person" />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Action Due Date</label>
