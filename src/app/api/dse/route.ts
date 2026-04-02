@@ -97,8 +97,7 @@ export async function POST(request: NextRequest) {
     .map((r) => ({
       assessment_id: assessmentId,
       item_key: r.item_key,
-      // DB constraint requires 'n/a' not 'na'
-      response: r.response === 'na' ? 'n/a' : r.response,
+      response: r.response,
       notes: r.notes || null,
     }))
 
