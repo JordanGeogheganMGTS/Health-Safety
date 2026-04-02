@@ -9,6 +9,7 @@ function StatusBadge({ status }: { status: string }) {
     Active: 'bg-green-100 text-green-700',
     'Under Review': 'bg-amber-100 text-amber-700',
     Superseded: 'bg-slate-200 text-slate-500',
+    Archived: 'bg-slate-200 text-slate-500',
   }
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -17,19 +18,10 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function RiskBadge({ rating }: { rating: string | null }) {
-  if (!rating) return <span className="text-slate-400">—</span>
-  const styles: Record<string, string> = {
-    Low: 'bg-green-100 text-green-700',
-    Medium: 'bg-amber-100 text-amber-700',
-    High: 'bg-orange-100 text-orange-700',
-    'Very High': 'bg-red-100 text-red-700',
-  }
-  return (
-    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold ${styles[rating] ?? 'bg-slate-100 text-slate-600'}`}>
-      {rating}
-    </span>
-  )
+function BoolRow({ label, value }: { label: string; value: boolean }) {
+  return value ? (
+    <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700 mr-1.5 mb-1.5">{label}</span>
+  ) : null
 }
 
 async function approveCoshh(id: string) {
@@ -62,13 +54,16 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
   const { data: ca } = await supabase
     .from('coshh_assessments')
     .select(`
-      id, substance_name, location_used, supplier, sds_reference, sds_storage_key,
-      hazard_classification, persons_at_risk, exposure_route, existing_controls,
-      ppe_required, storage_requirements, disposal_method, first_aid_measures,
-      emergency_procedures, risk_rating, assessment_date, review_date,
-      status, approved_at, created_at,
+      id, product_name, supplier, product_reference, cas_number,
+      location_of_use, description_of_use, quantity_used, frequency_of_use,
+      is_flammable, is_oxidising, is_toxic, is_corrosive, is_irritant,
+      is_harmful, is_carcinogenic, is_sensitiser, other_hazards,
+      exposure_inhalation, exposure_skin, exposure_ingestion, exposure_eyes,
+      engineering_controls, ppe_required, storage_requirements, disposal_method,
+      first_aid_measures, spillage_procedure, sds_file_path, sds_file_name, sds_issue_date,
+      status, version, assessment_date, review_due_date, approved_at, created_at,
       sites(name),
-      assessor:users!coshh_assessments_assessor_id_fkey(first_name, last_name),
+      assessor:users!coshh_assessments_assessed_by_fkey(first_name, last_name),
       approver:users!coshh_assessments_approved_by_fkey(first_name, last_name)
     `)
     .eq('id', params.id)
@@ -79,14 +74,18 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
   const site = ca.sites as unknown as { name: string } | null
   const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
   const approver = ca.approver as unknown as { first_name: string; last_name: string } | null
-  const overdue = isOverdue(ca.review_date)
+  const overdue = isOverdue(ca.review_due_date)
 
   let sdsUrl: string | null = null
-  if (ca.sds_storage_key) {
-    sdsUrl = await getSdsUrl(ca.sds_storage_key)
+  if (ca.sds_file_path) {
+    sdsUrl = await getSdsUrl(ca.sds_file_path)
   }
 
   const approveAction = approveCoshh.bind(null, ca.id)
+
+  const anyHazard = ca.is_flammable || ca.is_oxidising || ca.is_toxic || ca.is_corrosive ||
+    ca.is_irritant || ca.is_harmful || ca.is_carcinogenic || ca.is_sensitiser
+  const anyExposure = ca.exposure_inhalation || ca.exposure_skin || ca.exposure_ingestion || ca.exposure_eyes
 
   return (
     <div className="max-w-4xl">
@@ -96,12 +95,12 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
             <Link href="/coshh" className="hover:text-orange-600 transition-colors">COSHH Assessments</Link>
             <span>/</span>
-            <span>{ca.substance_name}</span>
+            <span>{ca.product_name}</span>
           </div>
-          <h1 className="text-2xl font-semibold text-slate-900">{ca.substance_name}</h1>
+          <h1 className="text-2xl font-semibold text-slate-900">{ca.product_name}</h1>
           <div className="flex items-center gap-3 mt-2">
-            <RiskBadge rating={ca.risk_rating} />
             <StatusBadge status={ca.status} />
+            {ca.version && <span className="text-xs text-slate-500">v{ca.version}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -140,56 +139,100 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
         </div>
       </div>
 
-      {/* Substance Information */}
+      {/* Product Information */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
-        <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3 mb-4">Substance Information</h2>
+        <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3 mb-4">Product Information</h2>
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Site</dt>
             <dd className="text-slate-900">{site?.name ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Location Used</dt>
-            <dd className="text-slate-900">{ca.location_used ?? '—'}</dd>
-          </div>
-          <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Supplier</dt>
             <dd className="text-slate-900">{ca.supplier ?? '—'}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">SDS Reference</dt>
-            <dd className="text-slate-900">{ca.sds_reference ?? '—'}</dd>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Product Reference</dt>
+            <dd className="text-slate-900">{ca.product_reference ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">CAS Number</dt>
+            <dd className="text-slate-900">{ca.cas_number ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Location of Use</dt>
+            <dd className="text-slate-900">{ca.location_of_use ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Quantity Used</dt>
+            <dd className="text-slate-900">{ca.quantity_used ?? '—'}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Frequency of Use</dt>
+            <dd className="text-slate-900">{ca.frequency_of_use ?? '—'}</dd>
           </div>
         </dl>
+        {ca.description_of_use && (
+          <div className="mt-4">
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Description of Use</p>
+            <p className="text-sm text-slate-900 whitespace-pre-wrap">{ca.description_of_use}</p>
+          </div>
+        )}
       </div>
 
       {/* Hazard Information */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
         <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3 mb-4">Hazard Information</h2>
-        <dl className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
+        <div className="space-y-3">
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Classification</dt>
-            <dd className="text-slate-900">{ca.hazard_classification ?? '—'}</dd>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Hazard Classifications</p>
+            {anyHazard ? (
+              <div className="flex flex-wrap">
+                <BoolRow label="Flammable" value={ca.is_flammable} />
+                <BoolRow label="Oxidising" value={ca.is_oxidising} />
+                <BoolRow label="Toxic" value={ca.is_toxic} />
+                <BoolRow label="Corrosive" value={ca.is_corrosive} />
+                <BoolRow label="Irritant" value={ca.is_irritant} />
+                <BoolRow label="Harmful" value={ca.is_harmful} />
+                <BoolRow label="Carcinogenic" value={ca.is_carcinogenic} />
+                <BoolRow label="Sensitiser" value={ca.is_sensitiser} />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">None specified</p>
+            )}
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Persons at Risk</dt>
-            <dd className="text-slate-900">{ca.persons_at_risk}</dd>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Exposure Routes</p>
+            {anyExposure ? (
+              <div className="flex flex-wrap">
+                <BoolRow label="Inhalation" value={ca.exposure_inhalation} />
+                <BoolRow label="Skin Contact" value={ca.exposure_skin} />
+                <BoolRow label="Ingestion" value={ca.exposure_ingestion} />
+                <BoolRow label="Eyes" value={ca.exposure_eyes} />
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400">None specified</p>
+            )}
           </div>
-          <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Exposure Route</dt>
-            <dd className="text-slate-900">{ca.exposure_route ?? '—'}</dd>
-          </div>
-        </dl>
+          {ca.other_hazards && (
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Other Hazards</p>
+              <p className="text-sm text-slate-900 whitespace-pre-wrap">{ca.other_hazards}</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Controls */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
         <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3 mb-4">Controls</h2>
         <div className="space-y-4 text-sm">
-          <div>
-            <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Existing Controls</p>
-            <p className="text-slate-900 whitespace-pre-wrap">{ca.existing_controls}</p>
-          </div>
+          {ca.engineering_controls && (
+            <div>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Engineering Controls</p>
+              <p className="text-slate-900 whitespace-pre-wrap">{ca.engineering_controls}</p>
+            </div>
+          )}
           {ca.ppe_required && (
             <div>
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">PPE Required</p>
@@ -214,7 +257,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
       </div>
 
       {/* Emergency Information */}
-      {(ca.first_aid_measures || ca.emergency_procedures) && (
+      {(ca.first_aid_measures || ca.spillage_procedure) && (
         <div className="rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm mb-6">
           <h2 className="text-sm font-semibold text-red-700 border-b border-red-100 pb-3 mb-4">Emergency Information</h2>
           <div className="space-y-4 text-sm">
@@ -224,10 +267,10 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
                 <p className="text-slate-900 whitespace-pre-wrap">{ca.first_aid_measures}</p>
               </div>
             )}
-            {ca.emergency_procedures && (
+            {ca.spillage_procedure && (
               <div>
-                <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">Emergency Procedures</p>
-                <p className="text-slate-900 whitespace-pre-wrap">{ca.emergency_procedures}</p>
+                <p className="text-xs font-medium text-red-600 uppercase tracking-wider mb-1">Spillage Procedure</p>
+                <p className="text-slate-900 whitespace-pre-wrap">{ca.spillage_procedure}</p>
               </div>
             )}
           </div>
@@ -239,7 +282,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
         <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3 mb-4">Assessment Details</h2>
         <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Assessor</dt>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Assessed By</dt>
             <dd className="text-slate-900">{assessor ? `${assessor.first_name} ${assessor.last_name}` : '—'}</dd>
           </div>
           <div>
@@ -247,9 +290,9 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
             <dd className="text-slate-900">{formatDate(ca.assessment_date)}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Review Date</dt>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Review Due</dt>
             <dd className={overdue ? 'text-red-600 font-medium' : 'text-slate-900'}>
-              {formatDate(ca.review_date)}{overdue && ' (Overdue)'}
+              {formatDate(ca.review_due_date)}{overdue && ' (Overdue)'}
             </dd>
           </div>
           <div>

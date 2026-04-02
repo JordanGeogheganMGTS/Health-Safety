@@ -9,16 +9,16 @@ import { createClient } from '@/lib/supabase/client'
 
 const hazardSchema = z.object({
   id: z.string().optional(),
-  hazard: z.string().min(1, 'Hazard description is required'),
-  persons_at_risk: z.string().min(1, 'Persons at risk is required'),
+  hazard_description: z.string().min(1, 'Hazard description is required'),
+  who_is_affected: z.string().min(1, 'Persons at risk is required'),
   existing_controls: z.string().min(1, 'Existing controls are required'),
-  likelihood: z.coerce.number().min(1).max(5),
-  severity: z.coerce.number().min(1).max(5),
+  likelihood_before: z.coerce.number().min(1).max(5),
+  severity_before: z.coerce.number().min(1).max(5),
   additional_controls: z.string().optional(),
-  action_owner_id: z.string().optional(),
+  responsible_person: z.string().optional(),
   action_due_date: z.string().optional(),
-  residual_likelihood: z.coerce.number().min(1).max(5).optional().or(z.literal('')),
-  residual_severity: z.coerce.number().min(1).max(5).optional().or(z.literal('')),
+  likelihood_after: z.coerce.number().min(1).max(5).optional().or(z.literal('')),
+  severity_after: z.coerce.number().min(1).max(5).optional().or(z.literal('')),
 })
 
 const schema = z.object({

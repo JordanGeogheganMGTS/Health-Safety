@@ -40,11 +40,11 @@ export default async function RiskAssessmentsPage() {
       id,
       title,
       assessment_date,
-      review_date,
+      review_due_date,
       status,
       overall_rating,
       sites(name),
-      assessor:users!risk_assessments_assessor_id_fkey(first_name, last_name),
+      assessor:users!risk_assessments_assessed_by_fkey(first_name, last_name),
       category:lookup_values!risk_assessments_category_id_fkey(label)
     `)
     .order('created_at', { ascending: false })
@@ -97,7 +97,7 @@ export default async function RiskAssessmentsPage() {
                 {assessments.map((ra) => {
                   const site = ra.sites as unknown as { name: string } | null
                   const category = ra.category as unknown as { label: string } | null
-                  const overdue = isOverdue(ra.review_date)
+                  const overdue = isOverdue(ra.review_due_date)
 
                   return (
                     <tr key={ra.id} className="hover:bg-slate-50 transition-colors">
@@ -110,7 +110,7 @@ export default async function RiskAssessmentsPage() {
                       <td className="px-4 py-3 text-sm text-slate-600">{category?.label ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(ra.assessment_date)}</td>
                       <td className={`px-4 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
-                        {formatDate(ra.review_date)}
+                        {formatDate(ra.review_due_date)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>
                       <td className="px-4 py-3">

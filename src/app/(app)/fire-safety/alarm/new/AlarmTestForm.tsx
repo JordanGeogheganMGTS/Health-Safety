@@ -12,13 +12,13 @@ import { createClient } from '@/lib/supabase/client'
 const today = new Date().toISOString().split('T')[0]
 
 const schema = z.object({
-  system_id: z.string().uuid('Please select a fire alarm system'),
+  fire_alarm_system_id: z.string().uuid('Please select a fire alarm system'),
   test_date: z.string().min(1, 'Test date is required'),
-  test_type: z.enum(['Weekly', 'Monthly', 'Annual']),
-  call_point_ref: z.string().optional(),
-  outcome: z.enum(['Pass', 'Fail'], { required_error: 'Outcome is required' }),
-  faults_found: z.string().optional(),
-  actions_taken: z.string().optional(),
+  test_type_id: z.string().uuid('Please select a test type'),
+  call_point_tested: z.string().optional(),
+  outcome_id: z.string().uuid('Outcome is required'),
+  fault_description: z.string().optional(),
+  remedial_action: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -35,6 +35,8 @@ interface AlarmSystem {
 
 interface Props {
   systems: AlarmSystem[]
+  testTypes: { id: string; label: string }[]
+  outcomeOptions: { id: string; label: string }[]
 }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
@@ -47,7 +49,7 @@ function futureDateStr(daysFromNow: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function AlarmTestForm({ systems }: Props) {
+export default function AlarmTestForm({ systems, testTypes, outcomeOptions }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -62,15 +64,14 @@ export default function AlarmTestForm({ systems }: Props) {
     resolver: zodResolver(schema),
     defaultValues: {
       test_date: today,
-      test_type: 'Weekly',
-      outcome: 'Pass',
+      test_type_id: testTypes[0]?.id ?? '',
+      outcome_id: outcomeOptions[0]?.id ?? '',
     },
   })
 
-  const testTypeWatched = useWatch({ control, name: 'test_type' })
-  const outcomeWatched = useWatch({ control, name: 'outcome' })
-  const showCallPoint = testTypeWatched === 'Weekly'
-  const showFaults = outcomeWatched === 'Fail'
+  const outcomeIdWatched = useWatch({ control, name: 'outcome_id' })
+  const selectedOutcomeLabel = outcomeOptions.find((o) => o.id === outcomeIdWatched)?.label ?? ''
+  const showFaults = selectedOutcomeLabel.toLowerCase() === 'fail'
 
   async function onSubmit(values: FormValues) {
     setServerError(null)
@@ -82,24 +83,24 @@ export default function AlarmTestForm({ systems }: Props) {
     }
 
     // Find the selected system's site
-    const selectedSystem = systems.find((s) => s.id === values.system_id)
+    const selectedSystem = systems.find((s) => s.id === values.fire_alarm_system_id)
     const siteId = selectedSystem?.sites?.id ?? null
 
     // Build alarm test row
     const testRow: Record<string, unknown> = {
-      system_id: values.system_id,
+      fire_alarm_system_id: values.fire_alarm_system_id,
       test_date: values.test_date,
-      test_type: values.test_type,
-      call_point_ref: values.call_point_ref || null,
-      tested_by_id: user.id,
-      outcome: values.outcome,
-      faults_found: values.faults_found || null,
-      actions_taken: values.actions_taken || null,
+      test_type_id: values.test_type_id,
+      call_point_tested: values.call_point_tested || null,
+      tested_by: user.id,
+      outcome_id: values.outcome_id,
+      fault_description: values.fault_description || null,
+      remedial_action: values.remedial_action || null,
     }
 
     // If fail with faults, create a corrective action first
-    if (values.outcome === 'Fail' && values.faults_found) {
-      const truncatedTitle = `Fire Alarm Fault: ${values.faults_found}`.slice(0, 80)
+    if (showFaults && values.fault_description) {
+      const truncatedTitle = `Fire Alarm Fault: ${values.fault_description}`.slice(0, 80)
 
       // Look up 'High' priority UUID
       let highPriorityId: string | null = null
@@ -166,10 +167,10 @@ export default function AlarmTestForm({ systems }: Props) {
 
         {/* System */}
         <div className="space-y-1">
-          <label htmlFor="system_id" className={labelClass}>
+          <label htmlFor="fire_alarm_system_id" className={labelClass}>
             Fire Alarm System <span className="text-red-500">*</span>
           </label>
-          <select id="system_id" {...register('system_id')} className={selectClass}>
+          <select id="fire_alarm_system_id" {...register('fire_alarm_system_id')} className={selectClass}>
             <option value="">Select a system…</option>
             {systems.map((s) => (
               <option key={s.id} value={s.id}>
@@ -177,7 +178,7 @@ export default function AlarmTestForm({ systems }: Props) {
               </option>
             ))}
           </select>
-          {errors.system_id && <p className={errorClass}>{errors.system_id.message}</p>}
+          {errors.fire_alarm_system_id && <p className={errorClass}>{errors.fire_alarm_system_id.message}</p>}
         </div>
 
         {/* Test Date */}
@@ -191,50 +192,51 @@ export default function AlarmTestForm({ systems }: Props) {
 
         {/* Test Type */}
         <div className="space-y-1">
-          <label htmlFor="test_type" className={labelClass}>
+          <label htmlFor="test_type_id" className={labelClass}>
             Test Type <span className="text-red-500">*</span>
           </label>
-          <select id="test_type" {...register('test_type')} className={selectClass}>
-            <option value="Weekly">Weekly</option>
-            <option value="Monthly">Monthly</option>
-            <option value="Annual">Annual</option>
+          <select id="test_type_id" {...register('test_type_id')} className={selectClass}>
+            <option value="">Select a test type…</option>
+            {testTypes.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
           </select>
-          {errors.test_type && <p className={errorClass}>{errors.test_type.message}</p>}
+          {errors.test_type_id && <p className={errorClass}>{errors.test_type_id.message}</p>}
         </div>
 
-        {/* Call Point Ref — shown for Weekly tests */}
-        {showCallPoint && (
-          <div className="space-y-1">
-            <label htmlFor="call_point_ref" className={labelClass}>Call Point Reference</label>
-            <input id="call_point_ref" type="text" {...register('call_point_ref')} className={inputClass} placeholder="e.g. CP-01, Zone A" />
-          </div>
-        )}
+        {/* Call Point Tested */}
+        <div className="space-y-1">
+          <label htmlFor="call_point_tested" className={labelClass}>Call Point Tested</label>
+          <input id="call_point_tested" type="text" {...register('call_point_tested')} className={inputClass} placeholder="e.g. CP-01, Zone A" />
+        </div>
 
         {/* Outcome */}
         <div className="space-y-1">
-          <label htmlFor="outcome" className={labelClass}>
+          <label htmlFor="outcome_id" className={labelClass}>
             Outcome <span className="text-red-500">*</span>
           </label>
-          <select id="outcome" {...register('outcome')} className={selectClass}>
-            <option value="Pass">Pass</option>
-            <option value="Fail">Fail</option>
+          <select id="outcome_id" {...register('outcome_id')} className={selectClass}>
+            <option value="">Select an outcome…</option>
+            {outcomeOptions.map((o) => (
+              <option key={o.id} value={o.id}>{o.label}</option>
+            ))}
           </select>
-          {errors.outcome && <p className={errorClass}>{errors.outcome.message}</p>}
+          {errors.outcome_id && <p className={errorClass}>{errors.outcome_id.message}</p>}
         </div>
 
-        {/* Faults Found — shown when Fail */}
+        {/* Fault Description — shown when Fail */}
         {showFaults && (
           <div className="space-y-1">
-            <label htmlFor="faults_found" className={labelClass}>Faults Found</label>
-            <textarea id="faults_found" {...register('faults_found')} rows={3} className={inputClass} placeholder="Describe the faults identified…" />
+            <label htmlFor="fault_description" className={labelClass}>Fault Description</label>
+            <textarea id="fault_description" {...register('fault_description')} rows={3} className={inputClass} placeholder="Describe the faults identified…" />
             <p className="text-xs text-amber-600">A corrective action will be automatically created for this fault.</p>
           </div>
         )}
 
-        {/* Actions Taken */}
+        {/* Remedial Action */}
         <div className="space-y-1">
-          <label htmlFor="actions_taken" className={labelClass}>Actions Taken</label>
-          <textarea id="actions_taken" {...register('actions_taken')} rows={3} className={inputClass} placeholder="Describe any immediate actions taken…" />
+          <label htmlFor="remedial_action" className={labelClass}>Remedial Action</label>
+          <textarea id="remedial_action" {...register('remedial_action')} rows={3} className={inputClass} placeholder="Describe any immediate actions taken…" />
         </div>
 
         {/* Form Actions */}

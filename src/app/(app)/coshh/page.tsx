@@ -8,6 +8,7 @@ function StatusBadge({ status }: { status: string }) {
     Active: 'bg-green-100 text-green-700',
     'Under Review': 'bg-amber-100 text-amber-700',
     Superseded: 'bg-slate-200 text-slate-500',
+    Archived: 'bg-slate-200 text-slate-500',
   }
   return (
     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status] ?? 'bg-slate-100 text-slate-600'}`}>
@@ -16,24 +17,8 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function RiskBadge({ rating }: { rating: string | null }) {
-  if (!rating) return <span className="text-slate-400 text-sm">—</span>
-  const styles: Record<string, string> = {
-    Low: 'bg-green-100 text-green-700',
-    Medium: 'bg-amber-100 text-amber-700',
-    High: 'bg-orange-100 text-orange-700',
-    'Very High': 'bg-red-100 text-red-700',
-  }
-  return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[rating] ?? 'bg-slate-100 text-slate-600'}`}>
-      {rating}
-    </span>
-  )
-}
-
 interface SearchParams {
   status?: string
-  risk_rating?: string
 }
 
 export default async function CoshhPage({ searchParams }: { searchParams: SearchParams }) {
@@ -43,27 +28,22 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
     .from('coshh_assessments')
     .select(`
       id,
-      substance_name,
-      risk_rating,
+      product_name,
       status,
       assessment_date,
-      review_date,
+      review_due_date,
       sites(name),
-      assessor:users!coshh_assessments_assessor_id_fkey(first_name, last_name)
+      assessor:users!coshh_assessments_assessed_by_fkey(first_name, last_name)
     `)
     .order('created_at', { ascending: false })
 
   if (searchParams.status) {
     query = query.eq('status', searchParams.status)
   }
-  if (searchParams.risk_rating) {
-    query = query.eq('risk_rating', searchParams.risk_rating)
-  }
 
   const { data: assessments } = await query
 
-  const statusOptions = ['Draft', 'Active', 'Under Review', 'Superseded']
-  const riskOptions = ['Low', 'Medium', 'High', 'Very High']
+  const statusOptions = ['Draft', 'Active', 'Under Review', 'Superseded', 'Archived']
 
   return (
     <div>
@@ -97,30 +77,10 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
             {statusOptions.map((s) => (
               <Link
                 key={s}
-                href={`/coshh?status=${encodeURIComponent(s)}${searchParams.risk_rating ? `&risk_rating=${encodeURIComponent(searchParams.risk_rating)}` : ''}`}
+                href={`/coshh?status=${encodeURIComponent(s)}`}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.status === s ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
               >
                 {s}
-              </Link>
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500">Risk:</span>
-          <div className="flex gap-1">
-            <Link
-              href={`/coshh${searchParams.status ? `?status=${encodeURIComponent(searchParams.status)}` : ''}`}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.risk_rating ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              All
-            </Link>
-            {riskOptions.map((r) => (
-              <Link
-                key={r}
-                href={`/coshh?risk_rating=${encodeURIComponent(r)}${searchParams.status ? `&status=${encodeURIComponent(searchParams.status)}` : ''}`}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.risk_rating === r ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                {r}
               </Link>
             ))}
           </div>
@@ -141,13 +101,12 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Substance</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Product</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Site</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Risk Rating</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessment Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Review Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessor</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Review Due</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessed By</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -155,25 +114,22 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
                 {assessments.map((ca) => {
                   const site = ca.sites as unknown as { name: string } | null
                   const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
-                  const overdue = isOverdue(ca.review_date)
+                  const overdue = isOverdue(ca.review_due_date)
 
                   return (
                     <tr key={ca.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/coshh/${ca.id}`} className="font-medium text-slate-900 hover:text-orange-600 transition-colors">
-                          {ca.substance_name}
+                          {ca.product_name}
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">{site?.name ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <RiskBadge rating={ca.risk_rating} />
-                      </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={ca.status} />
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">{formatDate(ca.assessment_date)}</td>
                       <td className={`px-4 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
-                        {formatDate(ca.review_date)}
+                        {formatDate(ca.review_due_date)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">

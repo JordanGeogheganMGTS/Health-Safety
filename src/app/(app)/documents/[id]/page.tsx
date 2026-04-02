@@ -37,7 +37,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
       title,
       version,
       status,
-      review_date,
+      review_due_date,
       storage_key,
       approved_at,
       created_at,

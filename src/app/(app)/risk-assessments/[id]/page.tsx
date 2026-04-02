@@ -40,9 +40,9 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
     supabase
       .from('risk_assessments')
       .select(`
-        id, title, assessment_date, review_date, status, overall_rating, approved_at, created_at,
+        id, title, assessment_date, review_due_date, status, overall_rating, approved_at, created_at,
         sites(name),
-        assessor:users!risk_assessments_assessor_id_fkey(first_name, last_name),
+        assessor:users!risk_assessments_assessed_by_fkey(first_name, last_name),
         approver:users!risk_assessments_approved_by_fkey(first_name, last_name),
         category:lookup_values!risk_assessments_category_id_fkey(label)
       `)
@@ -51,11 +51,11 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
     supabase
       .from('ra_hazards')
       .select(`
-        id, hazard, persons_at_risk, existing_controls, likelihood, severity, risk_rating,
-        additional_controls, action_due_date, residual_likelihood, residual_severity, residual_risk_rating, sort_order,
-        action_owner:users!ra_hazards_action_owner_id_fkey(first_name, last_name)
+        id, hazard_description, who_is_affected, existing_controls, likelihood_before, severity_before, risk_rating_before,
+        additional_controls, action_due_date, likelihood_after, severity_after, risk_rating_after, sort_order,
+        responsible_person
       `)
-      .eq('ra_id', params.id)
+      .eq('risk_assessment_id', params.id)
       .order('sort_order'),
   ])
 
@@ -65,7 +65,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
   const assessor = ra.assessor as unknown as { first_name: string; last_name: string } | null
   const approver = ra.approver as unknown as { first_name: string; last_name: string } | null
   const category = ra.category as unknown as { label: string } | null
-  const overdue = isOverdue(ra.review_date)
+  const overdue = isOverdue(ra.review_due_date)
 
   return (
     <div className="max-w-6xl">
@@ -102,7 +102,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
             label: 'Review Date',
             value: (
               <span className={overdue ? 'text-red-600 font-medium' : ''}>
-                {formatDate(ra.review_date)}{overdue && ' (Overdue)'}
+                {formatDate(ra.review_due_date)}{overdue && ' (Overdue)'}
               </span>
             ),
           },
@@ -150,24 +150,23 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {hazards.map((h, idx) => {
-                  const actionOwner = h.action_owner as unknown as { first_name: string; last_name: string } | null
                   return (
                     <tr key={h.id} className="hover:bg-slate-50 align-top">
                       <td className="px-3 py-3 text-slate-500 font-mono text-xs">{idx + 1}</td>
-                      <td className="px-3 py-3 text-slate-900 max-w-[160px]">{h.hazard}</td>
-                      <td className="px-3 py-3 text-slate-600 max-w-[120px]">{h.persons_at_risk}</td>
+                      <td className="px-3 py-3 text-slate-900 max-w-[160px]">{h.hazard_description}</td>
+                      <td className="px-3 py-3 text-slate-600 max-w-[120px]">{h.who_is_affected}</td>
                       <td className="px-3 py-3 text-slate-600 max-w-[180px]">{h.existing_controls}</td>
-                      <td className="px-3 py-3 text-center text-slate-700 font-medium">{h.likelihood}</td>
-                      <td className="px-3 py-3 text-center text-slate-700 font-medium">{h.severity}</td>
+                      <td className="px-3 py-3 text-center text-slate-700 font-medium">{h.likelihood_before}</td>
+                      <td className="px-3 py-3 text-center text-slate-700 font-medium">{h.severity_before}</td>
                       <td className="px-3 py-3 text-center">
-                        <RiskChip rating={h.risk_rating} />
+                        <RiskChip rating={h.risk_rating_before} />
                       </td>
                       <td className="px-3 py-3 text-slate-600 max-w-[180px]">{h.additional_controls ?? '—'}</td>
                       <td className="px-3 py-3 text-center">
-                        <RiskChip rating={h.residual_risk_rating} />
+                        <RiskChip rating={h.risk_rating_after} />
                       </td>
                       <td className="px-3 py-3 text-slate-600">
-                        {actionOwner ? `${actionOwner.first_name} ${actionOwner.last_name}` : '—'}
+                        {h.responsible_person ?? '—'}
                       </td>
                       <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{formatDate(h.action_due_date)}</td>
                     </tr>

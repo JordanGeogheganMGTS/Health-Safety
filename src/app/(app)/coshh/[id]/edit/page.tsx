@@ -9,25 +9,38 @@ import { createClient } from '@/lib/supabase/client'
 import { uploadFile } from '@/lib/storage'
 
 const schema = z.object({
-  substance_name: z.string().min(1, 'Substance name is required'),
+  product_name: z.string().min(1, 'Product name is required'),
   site_id: z.string().min(1, 'Site is required'),
-  location_used: z.string().optional(),
   supplier: z.string().optional(),
-  sds_reference: z.string().optional(),
-  hazard_classification: z.string().optional(),
-  persons_at_risk: z.string().min(1, 'Persons at risk is required'),
-  exposure_route: z.string().optional(),
-  risk_rating: z.string().optional(),
-  existing_controls: z.string().min(1, 'Existing controls are required'),
+  product_reference: z.string().optional(),
+  cas_number: z.string().optional(),
+  location_of_use: z.string().optional(),
+  description_of_use: z.string().optional(),
+  quantity_used: z.string().optional(),
+  frequency_of_use: z.string().optional(),
+  is_flammable: z.boolean().default(false),
+  is_oxidising: z.boolean().default(false),
+  is_toxic: z.boolean().default(false),
+  is_corrosive: z.boolean().default(false),
+  is_irritant: z.boolean().default(false),
+  is_harmful: z.boolean().default(false),
+  is_carcinogenic: z.boolean().default(false),
+  is_sensitiser: z.boolean().default(false),
+  other_hazards: z.string().optional(),
+  exposure_inhalation: z.boolean().default(false),
+  exposure_skin: z.boolean().default(false),
+  exposure_ingestion: z.boolean().default(false),
+  exposure_eyes: z.boolean().default(false),
+  engineering_controls: z.string().optional(),
   ppe_required: z.string().optional(),
   storage_requirements: z.string().optional(),
   disposal_method: z.string().optional(),
   first_aid_measures: z.string().optional(),
-  emergency_procedures: z.string().optional(),
-  assessor_id: z.string().min(1, 'Assessor is required'),
+  spillage_procedure: z.string().optional(),
+  assessed_by: z.string().min(1, 'Assessor is required'),
   assessment_date: z.string().min(1, 'Assessment date is required'),
-  review_date: z.string().min(1, 'Review date is required'),
-  status: z.enum(['Draft', 'Active', 'Under Review', 'Superseded']),
+  review_due_date: z.string().min(1, 'Review date is required'),
+  status: z.enum(['Draft', 'Active', 'Under Review', 'Superseded', 'Archived']),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -45,7 +58,7 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [sdsFile, setSdsFile] = useState<File | null>(null)
-  const [existingSdsKey, setExistingSdsKey] = useState<string | null>(null)
+  const [existingSdsPath, setExistingSdsPath] = useState<string | null>(null)
 
   const {
     register,
@@ -71,26 +84,39 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
 
       if (caRes.data) {
         const d = caRes.data
-        setExistingSdsKey(d.sds_storage_key ?? null)
+        setExistingSdsPath(d.sds_file_path ?? null)
         reset({
-          substance_name: d.substance_name,
+          product_name: d.product_name,
           site_id: d.site_id ?? '',
-          location_used: d.location_used ?? '',
           supplier: d.supplier ?? '',
-          sds_reference: d.sds_reference ?? '',
-          hazard_classification: d.hazard_classification ?? '',
-          persons_at_risk: d.persons_at_risk,
-          exposure_route: d.exposure_route ?? '',
-          risk_rating: d.risk_rating ?? '',
-          existing_controls: d.existing_controls,
+          product_reference: d.product_reference ?? '',
+          cas_number: d.cas_number ?? '',
+          location_of_use: d.location_of_use ?? '',
+          description_of_use: d.description_of_use ?? '',
+          quantity_used: d.quantity_used ?? '',
+          frequency_of_use: d.frequency_of_use ?? '',
+          is_flammable: d.is_flammable ?? false,
+          is_oxidising: d.is_oxidising ?? false,
+          is_toxic: d.is_toxic ?? false,
+          is_corrosive: d.is_corrosive ?? false,
+          is_irritant: d.is_irritant ?? false,
+          is_harmful: d.is_harmful ?? false,
+          is_carcinogenic: d.is_carcinogenic ?? false,
+          is_sensitiser: d.is_sensitiser ?? false,
+          other_hazards: d.other_hazards ?? '',
+          exposure_inhalation: d.exposure_inhalation ?? false,
+          exposure_skin: d.exposure_skin ?? false,
+          exposure_ingestion: d.exposure_ingestion ?? false,
+          exposure_eyes: d.exposure_eyes ?? false,
+          engineering_controls: d.engineering_controls ?? '',
           ppe_required: d.ppe_required ?? '',
           storage_requirements: d.storage_requirements ?? '',
           disposal_method: d.disposal_method ?? '',
           first_aid_measures: d.first_aid_measures ?? '',
-          emergency_procedures: d.emergency_procedures ?? '',
-          assessor_id: d.assessor_id ?? '',
+          spillage_procedure: d.spillage_procedure ?? '',
+          assessed_by: d.assessed_by ?? '',
           assessment_date: d.assessment_date ? d.assessment_date.split('T')[0] : '',
-          review_date: d.review_date ? d.review_date.split('T')[0] : '',
+          review_due_date: d.review_due_date ? d.review_due_date.split('T')[0] : '',
           status: d.status as FormValues['status'],
         })
       }
@@ -103,7 +129,8 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
     setSubmitting(true)
     setServerError(null)
 
-    let sdsStorageKey = existingSdsKey
+    let sdsFilePath = existingSdsPath
+    let sdsFileName = null
 
     if (sdsFile) {
       const { key, error: uploadError } = await uploadFile(`coshh/${params.id}/sds`, sdsFile)
@@ -112,31 +139,46 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
         setSubmitting(false)
         return
       }
-      sdsStorageKey = key
+      sdsFilePath = key
+      sdsFileName = sdsFile.name
     }
 
     const { error } = await supabase
       .from('coshh_assessments')
       .update({
-        substance_name: values.substance_name,
+        product_name: values.product_name,
         site_id: values.site_id,
-        location_used: values.location_used || null,
         supplier: values.supplier || null,
-        sds_reference: values.sds_reference || null,
-        sds_storage_key: sdsStorageKey,
-        hazard_classification: values.hazard_classification || null,
-        persons_at_risk: values.persons_at_risk,
-        exposure_route: values.exposure_route || null,
-        risk_rating: values.risk_rating || null,
-        existing_controls: values.existing_controls,
+        product_reference: values.product_reference || null,
+        cas_number: values.cas_number || null,
+        location_of_use: values.location_of_use || null,
+        description_of_use: values.description_of_use || null,
+        quantity_used: values.quantity_used || null,
+        frequency_of_use: values.frequency_of_use || null,
+        is_flammable: values.is_flammable,
+        is_oxidising: values.is_oxidising,
+        is_toxic: values.is_toxic,
+        is_corrosive: values.is_corrosive,
+        is_irritant: values.is_irritant,
+        is_harmful: values.is_harmful,
+        is_carcinogenic: values.is_carcinogenic,
+        is_sensitiser: values.is_sensitiser,
+        other_hazards: values.other_hazards || null,
+        exposure_inhalation: values.exposure_inhalation,
+        exposure_skin: values.exposure_skin,
+        exposure_ingestion: values.exposure_ingestion,
+        exposure_eyes: values.exposure_eyes,
+        engineering_controls: values.engineering_controls || null,
         ppe_required: values.ppe_required || null,
         storage_requirements: values.storage_requirements || null,
         disposal_method: values.disposal_method || null,
         first_aid_measures: values.first_aid_measures || null,
-        emergency_procedures: values.emergency_procedures || null,
-        assessor_id: values.assessor_id,
+        spillage_procedure: values.spillage_procedure || null,
+        sds_file_path: sdsFilePath,
+        sds_file_name: sdsFileName,
+        assessed_by: values.assessed_by,
         assessment_date: values.assessment_date,
-        review_date: values.review_date,
+        review_due_date: values.review_due_date,
         status: values.status,
       })
       .eq('id', params.id)
@@ -161,6 +203,7 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
   const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
   const textareaCls = `${inputCls} resize-none`
+  const checkboxLabelCls = 'flex items-center gap-2 text-sm text-slate-700'
 
   return (
     <div className="max-w-3xl">
@@ -182,14 +225,14 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
           </div>
         )}
 
-        {/* Substance Information */}
+        {/* Product Information */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Substance Information</h2>
+          <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Product Information</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Substance Name <span className="text-red-500">*</span></label>
-            <input {...register('substance_name')} className={inputCls} />
-            {errors.substance_name && <p className="mt-1 text-xs text-red-600">{errors.substance_name.message}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Product Name <span className="text-red-500">*</span></label>
+            <input {...register('product_name')} className={inputCls} />
+            {errors.product_name && <p className="mt-1 text-xs text-red-600">{errors.product_name.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -202,24 +245,41 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
               {errors.site_id && <p className="mt-1 text-xs text-red-600">{errors.site_id.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Location Used</label>
-              <input {...register('location_used')} className={inputCls} />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
               <input {...register('supplier')} className={inputCls} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">SDS Reference</label>
-              <input {...register('sds_reference')} className={inputCls} />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Product Reference</label>
+              <input {...register('product_reference')} className={inputCls} />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">CAS Number</label>
+              <input {...register('cas_number')} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Location of Use</label>
+              <input {...register('location_of_use')} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Frequency of Use</label>
+              <input {...register('frequency_of_use')} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Quantity Used</label>
+              <input {...register('quantity_used')} className={inputCls} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description of Use</label>
+            <textarea {...register('description_of_use')} rows={2} className={textareaCls} />
           </div>
 
           {/* SDS File Upload */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
               Safety Data Sheet (PDF)
-              {existingSdsKey && <span className="ml-2 text-xs text-green-600 font-normal">SDS on file</span>}
+              {existingSdsPath && <span className="ml-2 text-xs text-green-600 font-normal">SDS on file</span>}
             </label>
             <input
               type="file"
@@ -238,42 +298,55 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
           <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Hazard Information</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Hazard Classification</label>
-            <input {...register('hazard_classification')} className={inputCls} />
+            <label className="block text-sm font-medium text-slate-700 mb-2">Hazard Classifications</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                ['is_flammable', 'Flammable'],
+                ['is_oxidising', 'Oxidising'],
+                ['is_toxic', 'Toxic'],
+                ['is_corrosive', 'Corrosive'],
+                ['is_irritant', 'Irritant'],
+                ['is_harmful', 'Harmful'],
+                ['is_carcinogenic', 'Carcinogenic'],
+                ['is_sensitiser', 'Sensitiser'],
+              ] as const).map(([field, label]) => (
+                <label key={field} className={checkboxLabelCls}>
+                  <input {...register(field)} type="checkbox" className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Persons at Risk <span className="text-red-500">*</span></label>
-              <input {...register('persons_at_risk')} className={inputCls} />
-              {errors.persons_at_risk && <p className="mt-1 text-xs text-red-600">{errors.persons_at_risk.message}</p>}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Exposure Routes</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                ['exposure_inhalation', 'Inhalation'],
+                ['exposure_skin', 'Skin Contact'],
+                ['exposure_ingestion', 'Ingestion'],
+                ['exposure_eyes', 'Eyes'],
+              ] as const).map(([field, label]) => (
+                <label key={field} className={checkboxLabelCls}>
+                  <input {...register(field)} type="checkbox" className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" />
+                  {label}
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Exposure Route</label>
-              <select {...register('exposure_route')} className={selectCls}>
-                <option value="">Select route…</option>
-                {['Inhalation', 'Skin Contact', 'Ingestion', 'Injection', 'Multiple Routes'].map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Risk Rating</label>
-              <select {...register('risk_rating')} className={selectCls}>
-                <option value="">Select rating…</option>
-                {['Low', 'Medium', 'High', 'Very High'].map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-              <select {...register('status')} className={selectCls}>
-                {['Draft', 'Active', 'Under Review', 'Superseded'].map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Other Hazards</label>
+            <textarea {...register('other_hazards')} rows={2} className={textareaCls} />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
+            <select {...register('status')} className={selectCls}>
+              {['Draft', 'Active', 'Under Review', 'Superseded', 'Archived'].map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -282,9 +355,8 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
           <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Controls</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Existing Controls <span className="text-red-500">*</span></label>
-            <textarea {...register('existing_controls')} rows={3} className={textareaCls} />
-            {errors.existing_controls && <p className="mt-1 text-xs text-red-600">{errors.existing_controls.message}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Engineering Controls</label>
+            <textarea {...register('engineering_controls')} rows={3} className={textareaCls} />
           </div>
 
           <div>
@@ -314,8 +386,8 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Emergency Procedures</label>
-            <textarea {...register('emergency_procedures')} rows={3} className={textareaCls} />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Spillage Procedure</label>
+            <textarea {...register('spillage_procedure')} rows={3} className={textareaCls} />
           </div>
         </div>
 
@@ -325,11 +397,11 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Assessor <span className="text-red-500">*</span></label>
-            <select {...register('assessor_id')} className={selectCls}>
+            <select {...register('assessed_by')} className={selectCls}>
               <option value="">Select assessor…</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
             </select>
-            {errors.assessor_id && <p className="mt-1 text-xs text-red-600">{errors.assessor_id.message}</p>}
+            {errors.assessed_by && <p className="mt-1 text-xs text-red-600">{errors.assessed_by.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -339,9 +411,9 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
               {errors.assessment_date && <p className="mt-1 text-xs text-red-600">{errors.assessment_date.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Review Date <span className="text-red-500">*</span></label>
-              <input {...register('review_date')} type="date" className={inputCls} />
-              {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
+              <label className="block text-sm font-medium text-slate-700 mb-1">Review Due Date <span className="text-red-500">*</span></label>
+              <input {...register('review_due_date')} type="date" className={inputCls} />
+              {errors.review_due_date && <p className="mt-1 text-xs text-red-600">{errors.review_due_date.message}</p>}
             </div>
           </div>
         </div>

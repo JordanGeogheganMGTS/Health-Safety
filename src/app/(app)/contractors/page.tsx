@@ -6,12 +6,10 @@ import Link from 'next/link'
 
 interface Contractor {
   id: string
-  company_name: string
+  name: string
   contact_name: string | null
   contact_email: string | null
   contact_phone: string | null
-  public_liability_expiry: string
-  employers_liability_expiry: string | null
   is_approved: boolean
   is_active: boolean
   lookup_values: { label: string } | null
@@ -64,8 +62,8 @@ export default async function ContractorsPage({
 
   let query = supabase
     .from('contractors')
-    .select('id, company_name, contact_name, contact_email, contact_phone, public_liability_expiry, employers_liability_expiry, is_approved, is_active, lookup_values(label)')
-    .order('company_name', { ascending: true })
+    .select('id, name, contact_name, contact_email, contact_phone, is_approved, is_active, lookup_values(label)')
+    .order('name', { ascending: true })
 
   if (params.approved === 'true') {
     query = query.eq('is_approved', true)
@@ -141,8 +139,6 @@ export default async function ContractorsPage({
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Company</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Contact</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">PL Expiry</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">EL Expiry</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Approved</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Active</th>
                   <th className="px-4 py-3" />
@@ -152,7 +148,7 @@ export default async function ContractorsPage({
                 {list.map((c) => (
                   <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3">
-                      <p className="text-sm font-semibold text-slate-800">{c.company_name}</p>
+                      <p className="text-sm font-semibold text-slate-800">{c.name}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {c.lookup_values?.label ?? <span className="text-slate-300">—</span>}
@@ -162,12 +158,6 @@ export default async function ContractorsPage({
                       {c.contact_email && (
                         <p className="text-xs text-slate-400">{c.contact_email}</p>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <ExpiryCell date={c.public_liability_expiry} />
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      <ExpiryCell date={c.employers_liability_expiry} />
                     </td>
                     <td className="px-4 py-3">
                       <ApprovedBadge approved={c.is_approved} />

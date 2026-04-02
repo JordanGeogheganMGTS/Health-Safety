@@ -10,18 +10,18 @@ import { createClient } from '@/lib/supabase/client'
 const stepSchema = z.object({
   description: z.string().min(1, 'Step description is required'),
   hazards: z.string().optional(),
-  controls: z.string().optional(),
+  control_measures: z.string().optional(),
 })
 
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   site_id: z.string().min(1, 'Site is required'),
-  task_description: z.string().min(1, 'Task description is required'),
+  description: z.string().min(1, 'Task description is required'),
   category: z.string().optional(),
   ppe_required: z.string().optional(),
-  equipment_required: z.string().optional(),
+  plant_equipment: z.string().optional(),
   emergency_procedures: z.string().optional(),
-  review_date: z.string().optional(),
+  review_due_date: z.string().optional(),
   status: z.enum(['Draft', 'Active', 'Superseded']),
   steps: z.array(stepSchema),
 })
@@ -30,7 +30,7 @@ type FormValues = z.infer<typeof schema>
 
 interface Site { id: string; name: string }
 
-const blankStep = { description: '', hazards: '', controls: '' }
+const blankStep = { description: '', hazards: '', control_measures: '' }
 
 export default function EditMethodStatementPage({ params }: { params: { id: string } }) {
   const router = useRouter()
@@ -59,13 +59,13 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
       const [msRes, stepsRes, sitesRes] = await Promise.all([
         supabase
           .from('method_statements')
-          .select('id, title, site_id, task_description, category, ppe_required, equipment_required, emergency_procedures, review_date, status')
+          .select('id, title, site_id, description, category, ppe_required, plant_equipment, emergency_procedures, review_due_date, status')
           .eq('id', params.id)
           .single(),
         supabase
           .from('method_statement_steps')
-          .select('step_number, description, hazards, controls')
-          .eq('ms_id', params.id)
+          .select('step_number, description, hazards, control_measures')
+          .eq('method_statement_id', params.id)
           .order('step_number'),
         supabase.from('sites').select('id, name').order('name'),
       ])
@@ -77,17 +77,17 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
         const loadedSteps = (stepsRes.data ?? []).map((s) => ({
           description: s.description,
           hazards: s.hazards ?? '',
-          controls: s.controls ?? '',
+          control_measures: s.control_measures ?? '',
         }))
         reset({
           title: d.title,
           site_id: d.site_id ?? '',
-          task_description: d.task_description,
+          description: d.description,
           category: d.category ?? '',
           ppe_required: d.ppe_required ?? '',
-          equipment_required: d.equipment_required ?? '',
+          plant_equipment: d.plant_equipment ?? '',
           emergency_procedures: d.emergency_procedures ?? '',
-          review_date: d.review_date ? d.review_date.split('T')[0] : '',
+          review_due_date: d.review_due_date ? d.review_due_date.split('T')[0] : '',
           status: d.status as FormValues['status'],
           steps: loadedSteps,
         })
@@ -106,12 +106,12 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
       .update({
         title: values.title,
         site_id: values.site_id,
-        task_description: values.task_description,
+        description: values.description,
         category: values.category || null,
         ppe_required: values.ppe_required || null,
-        equipment_required: values.equipment_required || null,
+        plant_equipment: values.plant_equipment || null,
         emergency_procedures: values.emergency_procedures || null,
-        review_date: values.review_date || null,
+        review_due_date: values.review_due_date || null,
         status: values.status,
       })
       .eq('id', params.id)
@@ -125,7 +125,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
     const { error: delErr } = await supabase
       .from('method_statement_steps')
       .delete()
-      .eq('ms_id', params.id)
+      .eq('method_statement_id', params.id)
 
     if (delErr) {
       setServerError(delErr.message)
@@ -135,11 +135,11 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
 
     if (values.steps.length > 0) {
       const stepRows = values.steps.map((s, idx) => ({
-        ms_id: params.id,
+        method_statement_id: params.id,
         step_number: idx + 1,
         description: s.description,
         hazards: s.hazards || null,
-        controls: s.controls || null,
+        control_measures: s.control_measures || null,
       }))
 
       const { error: insErr } = await supabase.from('method_statement_steps').insert(stepRows)
@@ -217,14 +217,14 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Review Date</label>
-              <input {...register('review_date')} type="date" className={inputCls} />
+              <input {...register('review_due_date')} type="date" className={inputCls} />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Task Description <span className="text-red-500">*</span></label>
-            <textarea {...register('task_description')} rows={4} className={textareaCls} />
-            {errors.task_description && <p className="mt-1 text-xs text-red-600">{errors.task_description.message}</p>}
+            <textarea {...register('description')} rows={4} className={textareaCls} />
+            {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -234,7 +234,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Equipment Required</label>
-              <textarea {...register('equipment_required')} rows={3} className={textareaCls} />
+              <textarea {...register('plant_equipment')} rows={3} className={textareaCls} />
             </div>
           </div>
 
@@ -313,7 +313,7 @@ export default function EditMethodStatementPage({ params }: { params: { id: stri
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Controls</label>
                         <textarea
-                          {...register(`steps.${idx}.controls`)}
+                          {...register(`steps.${idx}.control_measures`)}
                           rows={2}
                           className={smInputCls}
                           placeholder="Control measures for this step…"

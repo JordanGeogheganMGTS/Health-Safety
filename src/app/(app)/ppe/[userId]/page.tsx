@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
+import { formatDate } from '@/lib/dates'
 import IssueForm from './IssueForm'
 
 interface PpeItem {
@@ -8,7 +8,7 @@ interface PpeItem {
   name: string
   has_sizes: boolean
   size_category_key: string | null
-  recommended_replacement_months: number | null
+  replacement_months: number | null
   is_active: boolean
 }
 
@@ -16,37 +16,15 @@ interface UserPpeRecord {
   id: string
   ppe_item_id: string
   size_value: string | null
-  date_issued: string
+  issued_date: string
   condition: string
-  next_review_date: string | null
-  signature_obtained: boolean
   notes: string | null
   issued_by: { first_name: string; last_name: string } | null
   ppe_item: PpeItem | null
 }
 
 function TrafficLight({ records }: { records: UserPpeRecord[] }) {
-  const hasOverdue = records.some((r) => r.next_review_date && isOverdue(r.next_review_date))
-  const hasDueSoon = records.some(
-    (r) => r.next_review_date && !isOverdue(r.next_review_date) && isDueWithin(r.next_review_date, 30)
-  )
-
-  if (hasOverdue) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
-        <span className="h-3 w-3 rounded-full bg-red-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-red-700">Action required — one or more items are overdue for review</span>
-      </div>
-    )
-  }
-  if (hasDueSoon) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3">
-        <span className="h-3 w-3 rounded-full bg-amber-500 flex-shrink-0" />
-        <span className="text-sm font-medium text-amber-700">Review due soon — one or more items due within 30 days</span>
-      </div>
-    )
-  }
+  if (records.length === 0) return null
   return (
     <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
       <span className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
@@ -66,34 +44,18 @@ async function issuePpeAction(formData: FormData) {
 
   const userId = formData.get('user_id') as string
   const ppeItemId = formData.get('ppe_item_id') as string
-  const sizeValue = (formData.get('size_value') as string) || null
-  const dateIssued = formData.get('date_issued') as string
+  const sizeValueId = (formData.get('size_value_id') as string) || null
+  const issuedDate = formData.get('issued_date') as string
   const condition = formData.get('condition') as string
-  const signatureObtained = formData.get('signature_obtained') === 'on'
   const notes = (formData.get('notes') as string) || null
-
-  const { data: item } = await supabase
-    .from('ppe_items')
-    .select('recommended_replacement_months')
-    .eq('id', ppeItemId)
-    .single()
-
-  let nextReviewDate: string | null = null
-  if (item?.recommended_replacement_months && dateIssued) {
-    const d = new Date(dateIssued)
-    d.setMonth(d.getMonth() + item.recommended_replacement_months)
-    nextReviewDate = d.toISOString().split('T')[0]
-  }
 
   await supabase.from('user_ppe_records').insert({
     user_id: userId,
     ppe_item_id: ppeItemId,
-    size_value: sizeValue,
-    date_issued: dateIssued,
-    issued_by_id: user.id,
+    size_value_id: sizeValueId,
+    issued_date: issuedDate,
+    issued_by: user.id,
     condition,
-    next_review_date: nextReviewDate,
-    signature_obtained: signatureObtained,
     notes,
   })
 

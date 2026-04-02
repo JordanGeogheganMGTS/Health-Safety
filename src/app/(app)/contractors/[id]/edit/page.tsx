@@ -11,14 +11,12 @@ import Link from 'next/link'
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  company_name: z.string().min(1, 'Company name is required'),
+  name: z.string().min(1, 'Company name is required'),
   contact_name: z.string().optional(),
   contact_email: z.string().email('Invalid email').optional().or(z.literal('')),
   contact_phone: z.string().optional(),
   address: z.string().optional(),
   type_id: z.string().optional(),
-  public_liability_expiry: z.string().min(1, 'Public liability expiry is required'),
-  employers_liability_expiry: z.string().optional(),
   is_active: z.boolean(),
   notes: z.string().optional(),
 })
@@ -56,7 +54,7 @@ export default function EditContractorPage() {
     Promise.all([
       supabase
         .from('contractors')
-        .select('company_name, contact_name, contact_email, contact_phone, address, type_id, public_liability_expiry, employers_liability_expiry, is_active, notes')
+        .select('name, contact_name, contact_email, contact_phone, address, type_id, is_active, notes')
         .eq('id', id)
         .single(),
       supabase
@@ -68,14 +66,12 @@ export default function EditContractorPage() {
     ]).then(([{ data: contractor }, { data: types }]) => {
       if (contractor) {
         reset({
-          company_name: contractor.company_name,
+          name: contractor.name,
           contact_name: contractor.contact_name ?? '',
           contact_email: contractor.contact_email ?? '',
           contact_phone: contractor.contact_phone ?? '',
           address: contractor.address ?? '',
           type_id: contractor.type_id ?? '',
-          public_liability_expiry: contractor.public_liability_expiry,
-          employers_liability_expiry: contractor.employers_liability_expiry ?? '',
           is_active: contractor.is_active,
           notes: contractor.notes ?? '',
         })
@@ -92,14 +88,12 @@ export default function EditContractorPage() {
     const { error } = await supabase
       .from('contractors')
       .update({
-        company_name: data.company_name,
+        name: data.name,
         contact_name: data.contact_name || null,
         contact_email: data.contact_email || null,
         contact_phone: data.contact_phone || null,
         address: data.address || null,
         type_id: data.type_id || null,
-        public_liability_expiry: data.public_liability_expiry,
-        employers_liability_expiry: data.employers_liability_expiry || null,
         is_active: data.is_active,
         notes: data.notes || null,
       })
@@ -143,12 +137,12 @@ export default function EditContractorPage() {
               Company Name <span className="text-red-500">*</span>
             </label>
             <input
-              {...register('company_name')}
+              {...register('name')}
               type="text"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
-            {errors.company_name && (
-              <p className="mt-1 text-xs text-red-600">{errors.company_name.message}</p>
+            {errors.name && (
+              <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>
             )}
           </div>
 
@@ -218,35 +212,6 @@ export default function EditContractorPage() {
             {errors.contact_email && (
               <p className="mt-1 text-xs text-red-600">{errors.contact_email.message}</p>
             )}
-          </div>
-        </div>
-
-        {/* Insurance */}
-        <div className="px-6 py-5 space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Insurance</h2>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Public Liability Expiry <span className="text-red-500">*</span>
-              </label>
-              <input
-                {...register('public_liability_expiry')}
-                type="date"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-              />
-              {errors.public_liability_expiry && (
-                <p className="mt-1 text-xs text-red-600">{errors.public_liability_expiry.message}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Employers Liability Expiry</label>
-              <input
-                {...register('employers_liability_expiry')}
-                type="date"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-              />
-            </div>
           </div>
         </div>
 

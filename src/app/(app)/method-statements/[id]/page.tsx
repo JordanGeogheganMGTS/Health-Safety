@@ -37,18 +37,18 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
     supabase
       .from('method_statements')
       .select(`
-        id, title, task_description, category, ppe_required, equipment_required,
-        emergency_procedures, status, review_date, approved_at, created_at,
+        id, title, description, category, ppe_required, plant_equipment,
+        emergency_procedures, status, review_due_date, approved_at, created_at,
         sites(name),
-        author:users!method_statements_author_id_fkey(first_name, last_name),
+        author:users!method_statements_authored_by_fkey(first_name, last_name),
         approver:users!method_statements_approved_by_fkey(first_name, last_name)
       `)
       .eq('id', params.id)
       .single(),
     supabase
       .from('method_statement_steps')
-      .select('id, step_number, description, hazards, controls')
-      .eq('ms_id', params.id)
+      .select('id, step_number, description, hazards, control_measures')
+      .eq('method_statement_id', params.id)
       .order('step_number'),
   ])
 
@@ -57,7 +57,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
   const site = ms.sites as unknown as { name: string } | null
   const author = ms.author as unknown as { first_name: string; last_name: string } | null
   const approver = ms.approver as unknown as { first_name: string; last_name: string } | null
-  const overdue = isOverdue(ms.review_date)
+  const overdue = isOverdue(ms.review_due_date)
 
   const approveAction = approveMethodStatement.bind(null, ms.id)
 
@@ -103,10 +103,10 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
           { label: 'Status', value: <StatusBadge status={ms.status} /> },
           { label: 'Author', value: author ? `${author.first_name} ${author.last_name}` : '—' },
           {
-            label: 'Review Date',
+            label: 'Review Due Date',
             value: (
               <span className={overdue ? 'text-red-600 font-medium' : ''}>
-                {formatDate(ms.review_date)}{overdue && ' (Overdue)'}
+                {formatDate(ms.review_due_date)}{overdue && ' (Overdue)'}
               </span>
             ),
           },

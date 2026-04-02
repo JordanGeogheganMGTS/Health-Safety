@@ -7,7 +7,7 @@ interface PpeItem {
   name: string
   has_sizes: boolean
   size_category_key: string | null
-  recommended_replacement_months: number | null
+  replacement_months: number | null
   is_active: boolean
 }
 
@@ -103,9 +103,9 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
         </div>
       </div>
 
-      {selectedItem?.recommended_replacement_months && (
+      {selectedItem?.replacement_months && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-          Next review will be calculated as date issued + {selectedItem.recommended_replacement_months} month{selectedItem.recommended_replacement_months !== 1 ? 's' : ''}
+          Next review will be calculated as date issued + {selectedItem.replacement_months} month{selectedItem.replacement_months !== 1 ? 's' : ''}
         </div>
       )}
 

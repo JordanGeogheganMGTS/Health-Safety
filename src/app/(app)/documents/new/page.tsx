@@ -14,7 +14,7 @@ const schema = z.object({
   category_id: z.string().min(1, 'Category is required'),
   site_id: z.string().min(1, 'Site is required'),
   version: z.string().optional(),
-  review_date: z.string().min(1, 'Review date is required'),
+  review_due_date: z.string().min(1, 'Review date is required'),
   owner_id: z.string().min(1, 'Document owner is required'),
 })
 
@@ -85,7 +85,7 @@ export default function NewDocumentPage() {
           category_id: values.category_id,
           site_id: values.site_id,
           version: values.version || null,
-          review_date: values.review_date,
+          review_due_date: values.review_due_date,
           owner_id: values.owner_id,
           storage_key: key,
           status: 'Draft',
@@ -182,11 +182,11 @@ export default function NewDocumentPage() {
               Review Date <span className="text-red-500">*</span>
             </label>
             <input
-              {...register('review_date')}
+              {...register('review_due_date')}
               type="date"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
-            {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
+            {errors.review_due_date && <p className="mt-1 text-xs text-red-600">{errors.review_due_date.message}</p>}
           </div>
         </div>
 

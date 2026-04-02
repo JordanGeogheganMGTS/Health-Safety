@@ -23,6 +23,38 @@ export default async function NewAlarmTestPage() {
 
   const systems = (systemRows ?? []) as unknown as AlarmSystem[]
 
+  // Fetch test type options from lookup_values (category key: alarm_test_type)
+  let testTypes: { id: string; label: string }[] = []
+  const { data: testTypeCat } = await supabase
+    .from('lookup_categories')
+    .select('id')
+    .eq('key', 'alarm_test_type')
+    .single()
+  if (testTypeCat) {
+    const { data: testTypeRows } = await supabase
+      .from('lookup_values')
+      .select('id, label')
+      .eq('category_id', testTypeCat.id)
+      .order('sort_order', { ascending: true })
+    testTypes = testTypeRows ?? []
+  }
+
+  // Fetch outcome options from lookup_values (category key: alarm_outcome)
+  let outcomeOptions: { id: string; label: string }[] = []
+  const { data: outcomeCat } = await supabase
+    .from('lookup_categories')
+    .select('id')
+    .eq('key', 'alarm_outcome')
+    .single()
+  if (outcomeCat) {
+    const { data: outcomeRows } = await supabase
+      .from('lookup_values')
+      .select('id, label')
+      .eq('category_id', outcomeCat.id)
+      .order('sort_order', { ascending: true })
+    outcomeOptions = outcomeRows ?? []
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -35,7 +67,7 @@ export default async function NewAlarmTestPage() {
         <p className="mt-1 text-sm text-slate-500">Record the outcome of a fire alarm test.</p>
       </div>
 
-      <AlarmTestForm systems={systems} />
+      <AlarmTestForm systems={systems} testTypes={testTypes} outcomeOptions={outcomeOptions} />
     </div>
   )
 }

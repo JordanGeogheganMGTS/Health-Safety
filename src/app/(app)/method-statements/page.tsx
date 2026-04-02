@@ -24,9 +24,9 @@ export default async function MethodStatementsPage() {
       id,
       title,
       status,
-      review_date,
+      review_due_date,
       sites(name),
-      author:users!method_statements_author_id_fkey(first_name, last_name)
+      author:users!method_statements_authored_by_fkey(first_name, last_name)
     `)
     .order('created_at', { ascending: false })
 
@@ -74,7 +74,7 @@ export default async function MethodStatementsPage() {
                 {statements.map((ms) => {
                   const site = ms.sites as unknown as { name: string } | null
                   const author = ms.author as unknown as { first_name: string; last_name: string } | null
-                  const overdue = isOverdue(ms.review_date)
+                  const overdue = isOverdue(ms.review_due_date)
 
                   return (
                     <tr key={ms.id} className="hover:bg-slate-50 transition-colors">
@@ -91,7 +91,7 @@ export default async function MethodStatementsPage() {
                         {author ? `${author.first_name} ${author.last_name}` : '—'}
                       </td>
                       <td className={`px-4 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
-                        {formatDate(ms.review_date)}
+                        {formatDate(ms.review_due_date)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>
                       <td className="px-4 py-3 text-right">

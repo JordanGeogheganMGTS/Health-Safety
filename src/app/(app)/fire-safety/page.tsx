@@ -21,16 +21,15 @@ interface ExtinguisherRow {
 interface AlarmTestRow {
   id: string
   test_date: string
-  test_type: string
-  call_point_ref: string | null
-  outcome: AlarmTestOutcome
-  faults_found: string | null
-  recorded_at: string
+  test_type_lookup: { label: string } | null
+  call_point_tested: string | null
+  outcome_lookup: { label: string } | null
+  fault_description: string | null
   system: {
     site_id: string
     sites: { name: string } | null
   } | null
-  tested_by: { first_name: string; last_name: string } | null
+  tested_by_user: { first_name: string; last_name: string } | null
 }
 
 interface DrillRow {
@@ -85,9 +84,11 @@ export default async function FireSafetyPage() {
     supabase
       .from('fire_alarm_tests')
       .select(
-        `id, test_date, test_type, call_point_ref, outcome, faults_found, recorded_at,
-         system:system_id(site_id, sites(name)),
-         tested_by:tested_by_id(first_name, last_name)`
+        `id, test_date, call_point_tested, fault_description,
+         test_type_lookup:test_type_id(label),
+         outcome_lookup:outcome_id(label),
+         system:fire_alarm_system_id(site_id, sites(name)),
+         tested_by_user:tested_by(first_name, last_name)`
       )
       .order('test_date', { ascending: false })
       .limit(50),
@@ -221,20 +222,20 @@ export default async function FireSafetyPage() {
                 <tbody className="divide-y divide-slate-50">
                   {alarmTests.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-700">{t.system?.sites?.[0]?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{(t.system?.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(t.test_date)}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t.test_type}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{t.call_point_ref ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{(t.test_type_lookup as unknown as { label: string } | null)?.label ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{t.call_point_tested ?? '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${outcomeBadgeClass(t.outcome)}`}>
-                          {t.outcome}
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${outcomeBadgeClass(((t.outcome_lookup as unknown as { label: string } | null)?.label ?? 'Pass') as AlarmTestOutcome)}`}>
+                          {(t.outcome_lookup as unknown as { label: string } | null)?.label ?? '—'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
-                        {t.faults_found ?? '—'}
+                        {t.fault_description ?? '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
-                        {t.tested_by ? `${t.tested_by.first_name} ${t.tested_by.last_name}` : '—'}
+                        {t.tested_by_user ? `${(t.tested_by_user as unknown as { first_name: string; last_name: string }).first_name} ${(t.tested_by_user as unknown as { first_name: string; last_name: string }).last_name}` : '—'}
                       </td>
                     </tr>
                   ))}

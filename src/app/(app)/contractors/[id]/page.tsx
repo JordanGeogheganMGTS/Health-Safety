@@ -11,10 +11,10 @@ interface ContractorDocument {
   id: string
   title: string
   expiry_date: string | null
-  uploaded_at: string
-  storage_key: string
+  created_at: string
+  file_path: string
   lookup_values: { label: string } | null
-  users: { first_name: string; last_name: string } | null
+  uploader: { first_name: string; last_name: string } | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -55,8 +55,8 @@ export default async function ContractorDetailPage({
     supabase
       .from('contractors')
       .select(`
-        id, company_name, contact_name, contact_email, contact_phone, address,
-        public_liability_expiry, employers_liability_expiry, is_approved, is_active,
+        id, name, contact_name, contact_email, contact_phone, address,
+        is_approved, is_active,
         approved_at, notes,
         lookup_values(label),
         approved_by_user:users!contractors_approved_by_fkey(first_name, last_name)
@@ -66,12 +66,12 @@ export default async function ContractorDetailPage({
     supabase
       .from('contractor_documents')
       .select(`
-        id, title, expiry_date, uploaded_at, storage_key,
+        id, title, expiry_date, created_at, file_path,
         lookup_values(label),
-        users(first_name, last_name)
+        uploader:users!contractor_documents_uploaded_by_fkey(first_name, last_name)
       `)
       .eq('contractor_id', id)
-      .order('uploaded_at', { ascending: false }),
+      .order('created_at', { ascending: false }),
     supabase
       .from('lookup_values')
       .select('id, label, sort_order, lookup_categories!inner(key)')
@@ -90,8 +90,8 @@ export default async function ContractorDetailPage({
   const docs = (documents ?? []) as unknown as ContractorDocument[]
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  function fileUrl(key: string) {
-    return `${supabaseUrl}/storage/v1/object/public/health-safety-files/${key}`
+  function fileUrl(path: string) {
+    return `${supabaseUrl}/storage/v1/object/public/health-safety-files/${path}`
   }
 
   return (
@@ -100,7 +100,7 @@ export default async function ContractorDetailPage({
       <div className="flex items-center gap-2 text-sm text-slate-500">
         <Link href="/contractors" className="hover:text-slate-700">Contractors</Link>
         <span>/</span>
-        <span className="text-slate-800 font-medium">{c.company_name}</span>
+        <span className="text-slate-800 font-medium">{c.name}</span>
       </div>
 
       {/* Header card */}
@@ -108,7 +108,7 @@ export default async function ContractorDetailPage({
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
           <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{c.company_name}</h1>
+              <h1 className="text-xl font-bold text-slate-900">{c.name}</h1>
               {c.lookup_values?.label && (
                 <p className="mt-0.5 text-sm text-slate-500">{c.lookup_values.label}</p>
               )}
@@ -156,22 +156,6 @@ export default async function ContractorDetailPage({
             ) : null} />
             <InfoRow label="Phone" value={c.contact_phone} />
             <InfoRow label="Address" value={c.address} />
-            <InfoRow
-              label="Public Liability Expiry"
-              value={
-                <span className={expiryClass(c.public_liability_expiry)}>
-                  {formatDate(c.public_liability_expiry)}
-                </span>
-              }
-            />
-            <InfoRow
-              label="Employers Liability Expiry"
-              value={
-                <span className={expiryClass(c.employers_liability_expiry)}>
-                  {formatDate(c.employers_liability_expiry)}
-                </span>
-              }
-            />
             {c.is_approved && (
               <InfoRow
                 label="Approved By"
@@ -219,12 +203,12 @@ export default async function ContractorDetailPage({
                       <span className={expiryClass(doc.expiry_date)}>{formatDate(doc.expiry_date)}</span>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-500">
-                      {doc.users ? `${doc.users.first_name} ${doc.users.last_name}` : '—'}
-                      <span className="ml-1 text-xs text-slate-400">{formatDate(doc.uploaded_at)}</span>
+                      {doc.uploader ? `${doc.uploader.first_name} ${doc.uploader.last_name}` : '—'}
+                      <span className="ml-1 text-xs text-slate-400">{formatDate(doc.created_at)}</span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <a
-                        href={fileUrl(doc.storage_key)}
+                        href={fileUrl(doc.file_path)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs font-medium text-orange-600 hover:underline"

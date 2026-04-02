@@ -8,24 +8,37 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
 
 const schema = z.object({
-  substance_name: z.string().min(1, 'Substance name is required'),
+  product_name: z.string().min(1, 'Product name is required'),
   site_id: z.string().min(1, 'Site is required'),
-  location_used: z.string().optional(),
   supplier: z.string().optional(),
-  sds_reference: z.string().optional(),
-  hazard_classification: z.string().optional(),
-  persons_at_risk: z.string().min(1, 'Persons at risk is required'),
-  exposure_route: z.string().optional(),
-  risk_rating: z.string().optional(),
-  existing_controls: z.string().min(1, 'Existing controls are required'),
+  product_reference: z.string().optional(),
+  cas_number: z.string().optional(),
+  location_of_use: z.string().optional(),
+  description_of_use: z.string().optional(),
+  quantity_used: z.string().optional(),
+  frequency_of_use: z.string().optional(),
+  is_flammable: z.boolean().default(false),
+  is_oxidising: z.boolean().default(false),
+  is_toxic: z.boolean().default(false),
+  is_corrosive: z.boolean().default(false),
+  is_irritant: z.boolean().default(false),
+  is_harmful: z.boolean().default(false),
+  is_carcinogenic: z.boolean().default(false),
+  is_sensitiser: z.boolean().default(false),
+  other_hazards: z.string().optional(),
+  exposure_inhalation: z.boolean().default(false),
+  exposure_skin: z.boolean().default(false),
+  exposure_ingestion: z.boolean().default(false),
+  exposure_eyes: z.boolean().default(false),
+  engineering_controls: z.string().optional(),
   ppe_required: z.string().optional(),
   storage_requirements: z.string().optional(),
   disposal_method: z.string().optional(),
   first_aid_measures: z.string().optional(),
-  emergency_procedures: z.string().optional(),
-  assessor_id: z.string().min(1, 'Assessor is required'),
+  spillage_procedure: z.string().optional(),
+  assessed_by: z.string().min(1, 'Assessor is required'),
   assessment_date: z.string().min(1, 'Assessment date is required'),
-  review_date: z.string().min(1, 'Review date is required'),
+  review_due_date: z.string().min(1, 'Review date is required'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -60,7 +73,19 @@ export default function NewCoshhPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       assessment_date: todayISO(),
-      review_date: plus12Months(),
+      review_due_date: plus12Months(),
+      is_flammable: false,
+      is_oxidising: false,
+      is_toxic: false,
+      is_corrosive: false,
+      is_irritant: false,
+      is_harmful: false,
+      is_carcinogenic: false,
+      is_sensitiser: false,
+      exposure_inhalation: false,
+      exposure_skin: false,
+      exposure_ingestion: false,
+      exposure_eyes: false,
     },
   })
 
@@ -83,24 +108,37 @@ export default function NewCoshhPage() {
     const { data, error } = await supabase
       .from('coshh_assessments')
       .insert({
-        substance_name: values.substance_name,
+        product_name: values.product_name,
         site_id: values.site_id,
-        location_used: values.location_used || null,
         supplier: values.supplier || null,
-        sds_reference: values.sds_reference || null,
-        hazard_classification: values.hazard_classification || null,
-        persons_at_risk: values.persons_at_risk,
-        exposure_route: values.exposure_route || null,
-        risk_rating: values.risk_rating || null,
-        existing_controls: values.existing_controls,
+        product_reference: values.product_reference || null,
+        cas_number: values.cas_number || null,
+        location_of_use: values.location_of_use || null,
+        description_of_use: values.description_of_use || null,
+        quantity_used: values.quantity_used || null,
+        frequency_of_use: values.frequency_of_use || null,
+        is_flammable: values.is_flammable,
+        is_oxidising: values.is_oxidising,
+        is_toxic: values.is_toxic,
+        is_corrosive: values.is_corrosive,
+        is_irritant: values.is_irritant,
+        is_harmful: values.is_harmful,
+        is_carcinogenic: values.is_carcinogenic,
+        is_sensitiser: values.is_sensitiser,
+        other_hazards: values.other_hazards || null,
+        exposure_inhalation: values.exposure_inhalation,
+        exposure_skin: values.exposure_skin,
+        exposure_ingestion: values.exposure_ingestion,
+        exposure_eyes: values.exposure_eyes,
+        engineering_controls: values.engineering_controls || null,
         ppe_required: values.ppe_required || null,
         storage_requirements: values.storage_requirements || null,
         disposal_method: values.disposal_method || null,
         first_aid_measures: values.first_aid_measures || null,
-        emergency_procedures: values.emergency_procedures || null,
-        assessor_id: values.assessor_id,
+        spillage_procedure: values.spillage_procedure || null,
+        assessed_by: values.assessed_by,
         assessment_date: values.assessment_date,
-        review_date: values.review_date,
+        review_due_date: values.review_due_date,
         status: 'Draft',
       })
       .select('id')
@@ -118,6 +156,7 @@ export default function NewCoshhPage() {
   const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
   const selectCls = `${inputCls} bg-white`
   const textareaCls = `${inputCls} resize-none`
+  const checkboxLabelCls = 'flex items-center gap-2 text-sm text-slate-700'
 
   return (
     <div className="max-w-3xl">
@@ -137,14 +176,14 @@ export default function NewCoshhPage() {
           </div>
         )}
 
-        {/* Substance Information */}
+        {/* Product Information */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm space-y-4">
-          <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Substance Information</h2>
+          <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Product Information</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Substance Name <span className="text-red-500">*</span></label>
-            <input {...register('substance_name')} className={inputCls} placeholder="e.g. White Spirit" />
-            {errors.substance_name && <p className="mt-1 text-xs text-red-600">{errors.substance_name.message}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Product Name <span className="text-red-500">*</span></label>
+            <input {...register('product_name')} className={inputCls} placeholder="e.g. White Spirit" />
+            {errors.product_name && <p className="mt-1 text-xs text-red-600">{errors.product_name.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,17 +196,34 @@ export default function NewCoshhPage() {
               {errors.site_id && <p className="mt-1 text-xs text-red-600">{errors.site_id.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Location Used</label>
-              <input {...register('location_used')} className={inputCls} placeholder="e.g. Workshop, Store room" />
-            </div>
-            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Supplier</label>
               <input {...register('supplier')} className={inputCls} placeholder="Manufacturer or supplier name" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">SDS Reference</label>
-              <input {...register('sds_reference')} className={inputCls} placeholder="Safety Data Sheet reference" />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Product Reference</label>
+              <input {...register('product_reference')} className={inputCls} placeholder="Product code or ref" />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">CAS Number</label>
+              <input {...register('cas_number')} className={inputCls} placeholder="e.g. 64-17-5" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Location of Use</label>
+              <input {...register('location_of_use')} className={inputCls} placeholder="e.g. Workshop, Store room" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Frequency of Use</label>
+              <input {...register('frequency_of_use')} className={inputCls} placeholder="e.g. Daily, Weekly" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Quantity Used</label>
+              <input {...register('quantity_used')} className={inputCls} placeholder="e.g. 500ml per use" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Description of Use</label>
+            <textarea {...register('description_of_use')} rows={2} className={textareaCls} placeholder="How the product is used…" />
           </div>
         </div>
 
@@ -176,34 +232,46 @@ export default function NewCoshhPage() {
           <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Hazard Information</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Hazard Classification</label>
-            <input {...register('hazard_classification')} className={inputCls} placeholder="e.g. Flammable, Irritant, Harmful" />
+            <label className="block text-sm font-medium text-slate-700 mb-2">Hazard Classifications</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                ['is_flammable', 'Flammable'],
+                ['is_oxidising', 'Oxidising'],
+                ['is_toxic', 'Toxic'],
+                ['is_corrosive', 'Corrosive'],
+                ['is_irritant', 'Irritant'],
+                ['is_harmful', 'Harmful'],
+                ['is_carcinogenic', 'Carcinogenic'],
+                ['is_sensitiser', 'Sensitiser'],
+              ] as const).map(([field, label]) => (
+                <label key={field} className={checkboxLabelCls}>
+                  <input {...register(field)} type="checkbox" className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Persons at Risk <span className="text-red-500">*</span></label>
-              <input {...register('persons_at_risk')} className={inputCls} placeholder="e.g. All staff, Contractors" />
-              {errors.persons_at_risk && <p className="mt-1 text-xs text-red-600">{errors.persons_at_risk.message}</p>}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Exposure Routes</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {([
+                ['exposure_inhalation', 'Inhalation'],
+                ['exposure_skin', 'Skin Contact'],
+                ['exposure_ingestion', 'Ingestion'],
+                ['exposure_eyes', 'Eyes'],
+              ] as const).map(([field, label]) => (
+                <label key={field} className={checkboxLabelCls}>
+                  <input {...register(field)} type="checkbox" className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500" />
+                  {label}
+                </label>
+              ))}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Exposure Route</label>
-              <select {...register('exposure_route')} className={selectCls}>
-                <option value="">Select route…</option>
-                {['Inhalation', 'Skin Contact', 'Ingestion', 'Injection', 'Multiple Routes'].map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Risk Rating</label>
-              <select {...register('risk_rating')} className={selectCls}>
-                <option value="">Select rating…</option>
-                {['Low', 'Medium', 'High', 'Very High'].map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Other Hazards</label>
+            <textarea {...register('other_hazards')} rows={2} className={textareaCls} placeholder="Any other hazard information…" />
           </div>
         </div>
 
@@ -212,9 +280,8 @@ export default function NewCoshhPage() {
           <h2 className="text-sm font-semibold text-slate-700 border-b border-slate-100 pb-3">Controls</h2>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Existing Controls <span className="text-red-500">*</span></label>
-            <textarea {...register('existing_controls')} rows={3} className={textareaCls} placeholder="Controls already in place…" />
-            {errors.existing_controls && <p className="mt-1 text-xs text-red-600">{errors.existing_controls.message}</p>}
+            <label className="block text-sm font-medium text-slate-700 mb-1">Engineering Controls</label>
+            <textarea {...register('engineering_controls')} rows={3} className={textareaCls} placeholder="Ventilation, enclosure, LEV, etc…" />
           </div>
 
           <div>
@@ -244,8 +311,8 @@ export default function NewCoshhPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Emergency Procedures</label>
-            <textarea {...register('emergency_procedures')} rows={3} className={textareaCls} placeholder="Actions in case of spill, fire, etc…" />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Spillage Procedure</label>
+            <textarea {...register('spillage_procedure')} rows={3} className={textareaCls} placeholder="Actions in case of spill…" />
           </div>
         </div>
 
@@ -255,11 +322,11 @@ export default function NewCoshhPage() {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Assessor <span className="text-red-500">*</span></label>
-            <select {...register('assessor_id')} className={selectCls}>
+            <select {...register('assessed_by')} className={selectCls}>
               <option value="">Select assessor…</option>
               {users.map((u) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
             </select>
-            {errors.assessor_id && <p className="mt-1 text-xs text-red-600">{errors.assessor_id.message}</p>}
+            {errors.assessed_by && <p className="mt-1 text-xs text-red-600">{errors.assessed_by.message}</p>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -269,9 +336,9 @@ export default function NewCoshhPage() {
               {errors.assessment_date && <p className="mt-1 text-xs text-red-600">{errors.assessment_date.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Review Date <span className="text-red-500">*</span></label>
-              <input {...register('review_date')} type="date" className={inputCls} />
-              {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
+              <label className="block text-sm font-medium text-slate-700 mb-1">Review Due Date <span className="text-red-500">*</span></label>
+              <input {...register('review_due_date')} type="date" className={inputCls} />
+              {errors.review_due_date && <p className="mt-1 text-xs text-red-600">{errors.review_due_date.message}</p>}
             </div>
           </div>
         </div>

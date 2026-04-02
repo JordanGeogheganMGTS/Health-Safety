@@ -10,12 +10,12 @@ import { createClient } from '@/lib/supabase/client'
 const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   site_id: z.string().min(1, 'Site is required'),
-  task_description: z.string().min(1, 'Task description is required'),
+  description: z.string().min(1, 'Task description is required'),
   category: z.string().optional(),
   ppe_required: z.string().optional(),
-  equipment_required: z.string().optional(),
+  plant_equipment: z.string().optional(),
   emergency_procedures: z.string().optional(),
-  review_date: z.string().optional(),
+  review_due_date: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -60,14 +60,14 @@ export default function NewMethodStatementPage() {
       .insert({
         title: values.title,
         site_id: values.site_id,
-        task_description: values.task_description,
+        description: values.description,
         category: values.category || null,
         ppe_required: values.ppe_required || null,
-        equipment_required: values.equipment_required || null,
+        plant_equipment: values.plant_equipment || null,
         emergency_procedures: values.emergency_procedures || null,
-        review_date: values.review_date || null,
+        review_due_date: values.review_due_date || null,
         status: 'Draft',
-        author_id: user.id,
+        authored_by: user.id,
       })
       .select('id')
       .single()
@@ -134,12 +134,12 @@ export default function NewMethodStatementPage() {
             Task Description <span className="text-red-500">*</span>
           </label>
           <textarea
-            {...register('task_description')}
+            {...register('description')}
             rows={4}
             className={textareaCls}
             placeholder="Describe the task to be carried out…"
           />
-          {errors.task_description && <p className="mt-1 text-xs text-red-600">{errors.task_description.message}</p>}
+          {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
         </div>
 
         <div>
@@ -162,9 +162,9 @@ export default function NewMethodStatementPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Equipment Required</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Plant &amp; Equipment</label>
           <textarea
-            {...register('equipment_required')}
+            {...register('plant_equipment')}
             rows={2}
             className={textareaCls}
             placeholder="List tools and equipment needed…"
@@ -182,9 +182,9 @@ export default function NewMethodStatementPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Review Date</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Review Due Date</label>
           <input
-            {...register('review_date')}
+            {...register('review_due_date')}
             type="date"
             className={inputCls}
           />

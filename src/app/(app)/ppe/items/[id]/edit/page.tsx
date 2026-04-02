@@ -12,7 +12,7 @@ const schema = z.object({
   description: z.string().optional(),
   has_sizes: z.boolean(),
   size_category_key: z.string().optional(),
-  recommended_replacement_months: z.coerce.number().int().min(1).optional().or(z.literal('')),
+  replacement_months: z.coerce.number().int().min(1).optional().or(z.literal('')),
   sort_order: z.coerce.number().int().min(0),
   is_active: z.boolean(),
 })
@@ -41,7 +41,7 @@ export default function EditPpeItemPage({ params }: { params: { id: string } }) 
     async function load() {
       const { data } = await supabase
         .from('ppe_items')
-        .select('id, name, description, has_sizes, size_category_key, recommended_replacement_months, sort_order, is_active')
+        .select('id, name, description, has_sizes, size_category_key, replacement_months, sort_order, is_active')
         .eq('id', params.id)
         .single()
 
@@ -51,7 +51,7 @@ export default function EditPpeItemPage({ params }: { params: { id: string } }) 
           description: data.description ?? '',
           has_sizes: data.has_sizes,
           size_category_key: data.size_category_key ?? '',
-          recommended_replacement_months: data.recommended_replacement_months ?? ('' as const),
+          replacement_months: data.replacement_months ?? ('' as const),
           sort_order: data.sort_order ?? 0,
           is_active: data.is_active,
         })
@@ -72,8 +72,8 @@ export default function EditPpeItemPage({ params }: { params: { id: string } }) 
         description: values.description || null,
         has_sizes: values.has_sizes,
         size_category_key: values.has_sizes && values.size_category_key ? values.size_category_key : null,
-        recommended_replacement_months: values.recommended_replacement_months
-          ? Number(values.recommended_replacement_months)
+        replacement_months: values.replacement_months
+          ? Number(values.replacement_months)
           : null,
         sort_order: Number(values.sort_order),
         is_active: values.is_active,
@@ -156,13 +156,13 @@ export default function EditPpeItemPage({ params }: { params: { id: string } }) 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Replacement Interval (months)</label>
           <input
-            {...register('recommended_replacement_months')}
+            {...register('replacement_months')}
             type="number"
             min="1"
             className={inputCls}
           />
-          {errors.recommended_replacement_months && (
-            <p className="mt-1 text-xs text-red-600">{errors.recommended_replacement_months.message as string}</p>
+          {errors.replacement_months && (
+            <p className="mt-1 text-xs text-red-600">{errors.replacement_months.message as string}</p>
           )}
         </div>
 

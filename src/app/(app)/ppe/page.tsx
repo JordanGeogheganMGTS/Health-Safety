@@ -1,14 +1,13 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthUser } from '@/lib/permissions'
-import { isOverdue, isDueWithin } from '@/lib/dates'
 
 interface PpeItem {
   id: string
   name: string
   has_sizes: boolean
   size_category_key: string | null
-  recommended_replacement_months: number | null
+  replacement_months: number | null
   is_active: boolean
   sort_order: number
 }
@@ -17,8 +16,6 @@ interface UserPpeRecord {
   id: string
   user_id: string
   ppe_item_id: string
-  next_review_date: string | null
-  signature_obtained: boolean
 }
 
 interface UserProfile {
@@ -39,7 +36,7 @@ export default async function PpePage() {
   const [{ data: ppeItems }, { data: activeUsers }, { data: allPpeRecords }] = await Promise.all([
     supabase
       .from('ppe_items')
-      .select('id, name, has_sizes, size_category_key, recommended_replacement_months, is_active, sort_order')
+      .select('id, name, has_sizes, size_category_key, replacement_months, is_active, sort_order')
       .order('sort_order'),
     supabase
       .from('users')
@@ -48,7 +45,7 @@ export default async function PpePage() {
       .order('first_name'),
     supabase
       .from('user_ppe_records')
-      .select('id, user_id, ppe_item_id, next_review_date, signature_obtained')
+      .select('id, user_id, ppe_item_id')
       .order('created_at', { ascending: false }),
   ])
 
@@ -56,8 +53,6 @@ export default async function PpePage() {
   const records = (allPpeRecords ?? []) as unknown as UserPpeRecord[]
   const users = (activeUsers ?? []) as unknown as UserProfile[]
   const items = (ppeItems ?? []) as unknown as PpeItem[]
-
-  const today = new Date()
 
   const complianceRows = users.map((u) => {
     const userRecords = records.filter((r) => r.user_id === u.id)
@@ -73,22 +68,9 @@ export default async function PpePage() {
     const latestRecords = Object.values(latestPerItem)
     const totalIssued = latestRecords.length
 
-    const overdueItems = latestRecords.filter(
-      (r) => r.next_review_date && isOverdue(r.next_review_date)
-    ).length
-
-    const dueSoonItems = latestRecords.filter(
-      (r) => r.next_review_date && !isOverdue(r.next_review_date) && isDueWithin(r.next_review_date, 30)
-    ).length
-
-    const missingSignatures = latestRecords.filter((r) => !r.signature_obtained).length
-
     return {
       user: u,
       totalIssued,
-      overdueItems,
-      dueSoonItems,
-      missingSignatures,
     }
   })
 
@@ -149,8 +131,8 @@ export default async function PpePage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{item.size_category_key ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {item.recommended_replacement_months
-                        ? `${item.recommended_replacement_months} month${item.recommended_replacement_months !== 1 ? 's' : ''}`
+                      {item.replacement_months
+                        ? `${item.replacement_months} month${item.replacement_months !== 1 ? 's' : ''}`
                         : '—'}
                     </td>
                     <td className="px-4 py-3">
@@ -192,13 +174,10 @@ export default async function PpePage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Staff Member</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Site</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Items Issued</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Overdue</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Soon</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Missing Signatures</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {complianceRows.map(({ user, totalIssued, overdueItems, dueSoonItems, missingSignatures }) => (
+                  {complianceRows.map(({ user, totalIssued }) => (
                     <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3">
                         <Link href={`/ppe/${user.id}`} className="text-sm font-medium text-slate-900 hover:text-orange-600 transition-colors">
@@ -209,33 +188,6 @@ export default async function PpePage() {
                         {user.sites ? (user.sites as unknown as { name: string }).name : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-700 font-medium">{totalIssued}</td>
-                      <td className="px-4 py-3">
-                        {overdueItems > 0 ? (
-                          <span className="inline-flex items-center justify-center rounded-full bg-red-100 text-red-700 text-xs font-bold min-w-[1.5rem] h-6 px-2">
-                            {overdueItems}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-sm">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {dueSoonItems > 0 ? (
-                          <span className="inline-flex items-center justify-center rounded-full bg-amber-100 text-amber-700 text-xs font-bold min-w-[1.5rem] h-6 px-2">
-                            {dueSoonItems}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-sm">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        {missingSignatures > 0 ? (
-                          <span className="inline-flex items-center justify-center rounded-full bg-orange-100 text-orange-700 text-xs font-bold min-w-[1.5rem] h-6 px-2">
-                            {missingSignatures}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-sm">—</span>
-                        )}
-                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -11,9 +11,9 @@ const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   site_id: z.string().min(1, 'Site is required'),
   category_id: z.string().min(1, 'Category is required'),
-  assessor_id: z.string().min(1, 'Assessor is required'),
+  assessed_by: z.string().min(1, 'Assessor is required'),
   assessment_date: z.string().min(1, 'Assessment date is required'),
-  review_date: z.string().min(1, 'Review date is required'),
+  review_due_date: z.string().min(1, 'Review date is required'),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -67,9 +67,9 @@ export default function NewRiskAssessmentPage() {
         title: values.title,
         site_id: values.site_id,
         category_id: values.category_id,
-        assessor_id: values.assessor_id,
+        assessed_by: values.assessed_by,
         assessment_date: values.assessment_date,
-        review_date: values.review_date,
+        review_due_date: values.review_due_date,
         status: 'Draft',
       })
       .select('id')
@@ -156,7 +156,7 @@ export default function NewRiskAssessmentPage() {
             Assessor <span className="text-red-500">*</span>
           </label>
           <select
-            {...register('assessor_id')}
+            {...register('assessed_by')}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 bg-white"
           >
             <option value="">Select assessor…</option>
@@ -164,7 +164,7 @@ export default function NewRiskAssessmentPage() {
               <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
             ))}
           </select>
-          {errors.assessor_id && <p className="mt-1 text-xs text-red-600">{errors.assessor_id.message}</p>}
+          {errors.assessed_by && <p className="mt-1 text-xs text-red-600">{errors.assessed_by.message}</p>}
         </div>
 
         {/* Dates */}
@@ -185,11 +185,11 @@ export default function NewRiskAssessmentPage() {
               Review Date <span className="text-red-500">*</span>
             </label>
             <input
-              {...register('review_date')}
+              {...register('review_due_date')}
               type="date"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
             />
-            {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
+            {errors.review_due_date && <p className="mt-1 text-xs text-red-600">{errors.review_due_date.message}</p>}
           </div>
         </div>
 

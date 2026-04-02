@@ -31,8 +31,8 @@ export default async function DocumentsPage({
       title,
       version,
       status,
-      review_date,
-      storage_key,
+      review_due_date,
+      file_path,
       sites(name),
       owner:users!documents_owner_id_fkey(first_name, last_name),
       category:lookup_values!documents_category_id_fkey(label)
@@ -117,7 +117,7 @@ export default async function DocumentsPage({
                   const owner = doc.owner as unknown as { first_name: string; last_name: string } | null
                   const site = doc.sites as unknown as { name: string } | null
                   const category = doc.category as unknown as { label: string } | null
-                  const overdue = isOverdue(doc.review_date)
+                  const overdue = isOverdue(doc.review_due_date)
 
                   return (
                     <tr key={doc.id} className="hover:bg-slate-50 transition-colors">
@@ -136,7 +136,7 @@ export default async function DocumentsPage({
                         {owner ? `${owner.first_name} ${owner.last_name}` : '—'}
                       </td>
                       <td className={`px-4 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
-                        {formatDate(doc.review_date)}
+                        {formatDate(doc.review_due_date)}
                         {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
                       </td>
                       <td className="px-4 py-3 text-right">
