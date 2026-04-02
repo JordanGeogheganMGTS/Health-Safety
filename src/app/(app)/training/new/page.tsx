@@ -12,7 +12,7 @@ import { addMonthsToDate } from '@/lib/dates'
 const schema = z.object({
   user_id: z.string().min(1, 'Staff member is required'),
   training_type_id: z.string().min(1, 'Training type is required'),
-  completed_date: z.string().min(1, 'Completed date is required'),
+  completion_date: z.string().min(1, 'Completed date is required'),
   provider: z.string().optional(),
 })
 
@@ -42,11 +42,11 @@ export default function NewTrainingRecordPage() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { completed_date: todayISO() },
+    defaultValues: { completion_date: todayISO() },
   })
 
   const watchedTypeId = useWatch({ control, name: 'training_type_id' })
-  const watchedDate = useWatch({ control, name: 'completed_date' })
+  const watchedDate = useWatch({ control, name: 'completion_date' })
 
   useEffect(() => {
     async function load() {
@@ -86,6 +86,19 @@ export default function NewTrainingRecordPage() {
       return
     }
 
+    // Get the trainee's site_id (required NOT NULL)
+    const { data: traineeProfile } = await supabase
+      .from('users')
+      .select('site_id')
+      .eq('id', values.user_id)
+      .single()
+
+    if (!traineeProfile?.site_id) {
+      setServerError('Selected user has no site assigned. Please assign them a site first.')
+      setSubmitting(false)
+      return
+    }
+
     let certKey: string | null = null
     if (certFile) {
       const { key, error: uploadError } = await uploadFile(`training/${values.user_id}`, certFile)
@@ -99,8 +112,9 @@ export default function NewTrainingRecordPage() {
 
     const { error } = await supabase.from('training_records').insert({
       user_id: values.user_id,
+      site_id: traineeProfile.site_id,
       training_type_id: values.training_type_id,
-      completed_date: values.completed_date,
+      completion_date: values.completion_date,
       expiry_date: computedExpiry,
       provider: values.provider || null,
       certificate_file_path: certKey,
@@ -167,8 +181,8 @@ export default function NewTrainingRecordPage() {
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Completed Date <span className="text-red-500">*</span>
           </label>
-          <input {...register('completed_date')} type="date" className={inputCls} />
-          {errors.completed_date && <p className="mt-1 text-xs text-red-600">{errors.completed_date.message}</p>}
+          <input {...register('completion_date')} type="date" className={inputCls} />
+          {errors.completion_date && <p className="mt-1 text-xs text-red-600">{errors.completion_date.message}</p>}
         </div>
 
         {/* Computed expiry (read-only) */}
