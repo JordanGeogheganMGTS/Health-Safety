@@ -49,9 +49,9 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
     sections.get(tmpl.section_number)!.items.push({ response: r, template: tmpl })
   }
   // Sort items within each section by sort_order
-  for (const sec of sections.values()) {
+  Array.from(sections.values()).forEach((sec) => {
     sec.items.sort((a, b) => a.template.sort_order - b.template.sort_order)
-  }
+  })
   const sortedSections = Array.from(sections.entries()).sort(([a], [b]) => a - b)
 
   const subjectUser = assessment.subject as unknown as { first_name: string; last_name: string } | null
