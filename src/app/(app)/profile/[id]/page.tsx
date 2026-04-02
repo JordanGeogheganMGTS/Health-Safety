@@ -3,6 +3,7 @@ import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import ChangePasswordForm from './ChangePasswordForm'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -185,6 +186,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           <div className="px-6 py-3 border-b border-slate-50">
             <p className="text-xs font-medium text-slate-500 mb-0.5">PPE Notes</p>
             <p className="text-sm text-slate-700">{profile.ppe_notes}</p>
+          </div>
+        )}
+        {isOwnProfile && (
+          <div className="px-6 py-4 border-t border-slate-100">
+            <ChangePasswordForm email={profile.email} />
           </div>
         )}
       </div>
