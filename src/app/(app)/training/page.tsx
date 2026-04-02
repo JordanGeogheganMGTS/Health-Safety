@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function ExpiryBadge({ expiry }: { expiry: string | null }) {
   if (!expiry) {
@@ -54,6 +55,8 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
 
   const { data: records } = await recordsQuery
 
+  const authUser = await getAuthUser()
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -61,30 +64,34 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
           <h1 className="text-2xl font-semibold text-slate-900">Training Records</h1>
           <p className="text-sm text-slate-500 mt-1">Staff training and certification management</p>
         </div>
-        <Link
-          href="/training/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Record Training
-        </Link>
+        {authUser?.can('training', 'create') && (
+          <Link
+            href="/training/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Record Training
+          </Link>
+        )}
       </div>
 
       {/* Training Types Section */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm mb-8">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-700">Training Types</h2>
-          <Link
-            href="/training/types/new"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
-          >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Add Training Type
-          </Link>
+          {authUser?.can('training', 'create') && (
+            <Link
+              href="/training/types/new"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-orange-50 px-3 py-1.5 text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors"
+            >
+              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Add Training Type
+            </Link>
+          )}
         </div>
         {!trainingTypes || trainingTypes.length === 0 ? (
           <div className="py-8 text-center text-slate-400 text-sm">

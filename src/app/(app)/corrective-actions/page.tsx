@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatDate } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,8 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   const statusOptions: CAStatus[] = ['Open', 'In Progress', 'Completed', 'Overdue', 'Closed']
   const priorityOptions: Priority[] = ['Low', 'Medium', 'High', 'Critical']
 
+  const authUser = await getAuthUser()
+
   // Build filter URL helper
   function filterUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams()
@@ -135,12 +138,14 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
             {actions.length} record{actions.length !== 1 ? 's' : ''} found
           </p>
         </div>
-        <Link
-          href="/corrective-actions/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
-        >
-          <span aria-hidden="true">+</span> Add Corrective Action
-        </Link>
+        {authUser?.can('corrective_actions', 'create') && (
+          <Link
+            href="/corrective-actions/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
+          >
+            <span aria-hidden="true">+</span> Add Corrective Action
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

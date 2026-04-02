@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -47,6 +48,8 @@ export default async function DocumentsPage({
 
   const statuses = ['Draft', 'Current', 'Under Review', 'Superseded', 'Expired']
 
+  const authUser = await getAuthUser()
+
   return (
     <div>
       {/* Page header */}
@@ -55,15 +58,17 @@ export default async function DocumentsPage({
           <h1 className="text-2xl font-semibold text-slate-900">Document Library</h1>
           <p className="text-sm text-slate-500 mt-1">Manage and track all health &amp; safety documents</p>
         </div>
-        <Link
-          href="/documents/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          Upload Document
-        </Link>
+        {authUser?.can('documents', 'create') && (
+          <Link
+            href="/documents/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Upload Document
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

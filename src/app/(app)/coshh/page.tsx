@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -45,6 +46,8 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
 
   const statusOptions = ['Draft', 'Active', 'Under Review', 'Superseded', 'Archived']
 
+  const authUser = await getAuthUser()
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -52,15 +55,17 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
           <h1 className="text-2xl font-semibold text-slate-900">COSHH Assessments</h1>
           <p className="text-sm text-slate-500 mt-1">Control of Substances Hazardous to Health</p>
         </div>
-        <Link
-          href="/coshh/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New COSHH Assessment
-        </Link>
+        {authUser?.can('coshh_assessments', 'create') && (
+          <Link
+            href="/coshh/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New COSHH Assessment
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

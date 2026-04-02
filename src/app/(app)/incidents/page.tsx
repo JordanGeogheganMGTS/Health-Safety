@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatDate } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -64,6 +65,8 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
   const incidents = (rows ?? []) as unknown as IncidentRow[]
   const statusOptions: IncidentStatus[] = ['Open', 'Under Investigation', 'Closed']
 
+  const authUser = await getAuthUser()
+
   function filterUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams()
     const base = { status, riddor, ...overrides }
@@ -84,12 +87,14 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
             {incidents.length} record{incidents.length !== 1 ? 's' : ''} found
           </p>
         </div>
-        <Link
-          href="/incidents/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
-        >
-          <span aria-hidden="true">+</span> Report Incident
-        </Link>
+        {authUser?.can('incidents', 'create') && (
+          <Link
+            href="/incidents/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
+          >
+            <span aria-hidden="true">+</span> Report Incident
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

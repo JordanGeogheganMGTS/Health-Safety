@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,8 @@ export default async function FireSafetyPage() {
   const alarmTests = (alarmTestRows ?? []) as unknown as AlarmTestRow[]
   const drills = (drillRows ?? []) as unknown as DrillRow[]
 
+  const authUser = await getAuthUser()
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -117,12 +120,14 @@ export default async function FireSafetyPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Fire Extinguishers</h2>
-          <Link
-            href="/fire-safety/extinguisher/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-          >
-            <span aria-hidden="true">+</span> Add Extinguisher
-          </Link>
+          {authUser?.can('fire_safety', 'create') && (
+            <Link
+              href="/fire-safety/extinguisher/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+            >
+              <span aria-hidden="true">+</span> Add Extinguisher
+            </Link>
+          )}
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -187,12 +192,14 @@ export default async function FireSafetyPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Fire Alarm Tests</h2>
-          <Link
-            href="/fire-safety/alarm/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-          >
-            <span aria-hidden="true">+</span> Log Alarm Test
-          </Link>
+          {authUser?.can('fire_safety', 'create') && (
+            <Link
+              href="/fire-safety/alarm/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+            >
+              <span aria-hidden="true">+</span> Log Alarm Test
+            </Link>
+          )}
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -250,12 +257,14 @@ export default async function FireSafetyPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Fire Drills</h2>
-          <Link
-            href="/fire-safety/drill/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-          >
-            <span aria-hidden="true">+</span> Log Drill
-          </Link>
+          {authUser?.can('fire_safety', 'create') && (
+            <Link
+              href="/fire-safety/drill/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+            >
+              <span aria-hidden="true">+</span> Log Drill
+            </Link>
+          )}
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -30,6 +31,8 @@ export default async function MethodStatementsPage() {
     `)
     .order('created_at', { ascending: false })
 
+  const authUser = await getAuthUser()
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -37,15 +40,17 @@ export default async function MethodStatementsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Method Statements</h1>
           <p className="text-sm text-slate-500 mt-1">Safe systems of work and task procedures</p>
         </div>
-        <Link
-          href="/method-statements/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Method Statement
-        </Link>
+        {authUser?.can('method_statements', 'create') && (
+          <Link
+            href="/method-statements/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Method Statement
+          </Link>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -49,6 +50,8 @@ export default async function RiskAssessmentsPage() {
     `)
     .order('created_at', { ascending: false })
 
+  const authUser = await getAuthUser()
+
   return (
     <div>
       {/* Page header */}
@@ -57,15 +60,17 @@ export default async function RiskAssessmentsPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Risk Assessments</h1>
           <p className="text-sm text-slate-500 mt-1">Identify and manage workplace hazards and risks</p>
         </div>
-        <Link
-          href="/risk-assessments/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Risk Assessment
-        </Link>
+        {authUser?.can('risk_assessments', 'create') && (
+          <Link
+            href="/risk-assessments/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Risk Assessment
+          </Link>
+        )}
       </div>
 
       {/* Table */}

@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 export default function ChangePasswordPage() {
-  const router = useRouter()
   const supabase = createClient()
 
   const [newPassword, setNewPassword] = useState('')
@@ -35,14 +33,11 @@ export default function ChangePasswordPage() {
       return
     }
 
-    // Clear the must_change_password flag
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      await supabase.from('users').update({ must_change_password: false }).eq('id', user.id)
-    }
+    // Clear the flag via server-side API (bypasses RLS)
+    await fetch('/api/auth/clear-password-flag', { method: 'POST' })
 
-    router.push('/dashboard')
-    router.refresh()
+    // Hard redirect so middleware re-evaluates with fresh flag
+    window.location.replace('/dashboard')
   }
 
   const inputCls = 'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
