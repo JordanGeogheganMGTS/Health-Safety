@@ -27,7 +27,9 @@ type FormValues = z.infer<typeof schema>
 
 interface AlarmSystem {
   id: string
-  system_description: string | null
+  panel_location: string | null
+  manufacturer: string | null
+  model: string | null
   sites: { id: string; name: string } | null
 }
 
@@ -98,19 +100,28 @@ export default function AlarmTestForm({ systems }: Props) {
     // If fail with faults, create a corrective action first
     if (values.outcome === 'Fail' && values.faults_found) {
       const truncatedTitle = `Fire Alarm Fault: ${values.faults_found}`.slice(0, 80)
-      const { data: caData, error: caError } = await supabase
+
+      // Look up 'High' priority UUID
+      let highPriorityId: string | null = null
+      const { data: catRow } = await supabase.from('lookup_categories').select('id').eq('key', 'ca_priority').single()
+      if (catRow) {
+        const { data: pvRow } = await supabase.from('lookup_values').select('id').ilike('label', 'High').eq('category_id', catRow.id).single()
+        highPriorityId = pvRow?.id ?? null
+      }
+
+      const { data: caData, error: caError } = highPriorityId ? await supabase
         .from('corrective_actions')
         .insert({
           title: truncatedTitle,
-          source_module: 'fire_alarm_tests',
-          priority: 'High',
+          source_table: 'fire_alarm_tests',
+          priority_id: highPriorityId,
           site_id: siteId,
           due_date: futureDateStr(7),
-          created_by_id: user.id,
+          assigned_by: user.id,
           status: 'Open',
         })
         .select('id')
-        .single()
+        .single() : { data: null, error: null }
 
       if (!caError && caData) {
         testRow.ca_id = caData.id
@@ -162,7 +173,7 @@ export default function AlarmTestForm({ systems }: Props) {
             <option value="">Select a system…</option>
             {systems.map((s) => (
               <option key={s.id} value={s.id}>
-                {s.sites?.[0]?.name ?? 'Unknown Site'}{s.system_description ? ` — ${s.system_description}` : ''}
+                {s.sites?.name ?? 'Unknown Site'}{(s.manufacturer || s.model || s.panel_location) ? ` — ${[s.manufacturer, s.model].filter(Boolean).join(' ') || s.panel_location}` : ''}
               </option>
             ))}
           </select>

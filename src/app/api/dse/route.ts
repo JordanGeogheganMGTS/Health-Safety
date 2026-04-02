@@ -17,7 +17,7 @@ interface DseRequestBody {
   assessed_by_id: string
   workstation_location: string | null
   assessment_date: string
-  additional_notes: string | null
+  overall_notes: string | null
   responses: ResponseItem[]
   user_discomfort_noted: boolean
   discomfort_detail: string | null
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     assessed_by_id,
     workstation_location,
     assessment_date,
-    additional_notes,
+    overall_notes,
     responses,
     user_discomfort_noted,
     discomfort_detail,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       discomfort_detail: user_discomfort_noted ? (discomfort_detail || null) : null,
       eye_test_recommended,
       regular_breaks_confirmed,
-      additional_notes: additional_notes || null,
+      overall_notes: overall_notes || null,
       review_date: reviewDate,
     })
     .select('id')
@@ -140,19 +140,30 @@ export async function POST(request: NextRequest) {
     (r) => r.response === 'no' && r.action_to_take
   )
 
+  // Look up 'Medium' priority UUID
+  let mediumPriorityId: string | null = null
+  if (failedResponses.length > 0) {
+    const { data: catRow } = await supabase.from('lookup_categories').select('id').eq('key', 'ca_priority').single()
+    if (catRow) {
+      const { data: pvRow } = await supabase.from('lookup_values').select('id').ilike('label', 'Medium').eq('category_id', catRow.id).single()
+      mediumPriorityId = pvRow?.id ?? null
+    }
+  }
+
   for (const resp of failedResponses) {
+    if (!mediumPriorityId) break
     const { data: ca, error: caError } = await supabase
       .from('corrective_actions')
       .insert({
         title: `DSE: ${resp.item_key}`,
         description: resp.action_to_take,
-        source_module: 'dse_assessments',
-        source_id: assessmentId,
+        source_table: 'dse_assessments',
+        source_record_id: assessmentId,
         site_id: userSiteId,
-        priority: 'Medium',
+        priority_id: mediumPriorityId,
         due_date: reviewDate,
         status: 'Open',
-        created_by: assessed_by_id,
+        assigned_by: assessed_by_id,
       })
       .select('id')
       .single()

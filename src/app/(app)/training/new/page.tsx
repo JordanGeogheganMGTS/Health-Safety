@@ -19,7 +19,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 interface User { id: string; first_name: string; last_name: string }
-interface TrainingType { id: string; name: string; validity_years: number | null }
+interface TrainingType { id: string; name: string; validity_months: number | null }
 
 function todayISO() {
   return new Date().toISOString().split('T')[0]
@@ -52,7 +52,7 @@ export default function NewTrainingRecordPage() {
     async function load() {
       const [userRes, typeRes] = await Promise.all([
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('first_name'),
-        supabase.from('training_types').select('id, name, validity_years').eq('is_active', true).order('name'),
+        supabase.from('training_types').select('id, name, validity_months').eq('is_active', true).order('name'),
       ])
       setUsers((userRes.data ?? []) as unknown as User[])
       setTrainingTypes((typeRes.data ?? []) as unknown as TrainingType[])
@@ -64,10 +64,10 @@ export default function NewTrainingRecordPage() {
 
   const computedExpiry = (() => {
     if (!selectedType) return null
-    if (!selectedType.validity_years) return null
+    if (!selectedType.validity_months) return null
     if (!watchedDate) return null
     try {
-      return addMonthsToDate(watchedDate, selectedType.validity_years * 12)
+      return addMonthsToDate(watchedDate, selectedType.validity_months)
         .toISOString()
         .split('T')[0]
     } catch {
@@ -183,8 +183,8 @@ export default function NewTrainingRecordPage() {
               : 'Select a training type first'}
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            {selectedType?.validity_years
-              ? `Calculated from completed date + ${selectedType.validity_years} year${selectedType.validity_years > 1 ? 's' : ''}`
+            {selectedType?.validity_months
+              ? `Calculated from completed date + ${selectedType.validity_months} month${selectedType.validity_months !== 1 ? 's' : ''}`
               : 'Determined by the selected training type'}
           </p>
         </div>

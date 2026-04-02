@@ -5,7 +5,9 @@ import AlarmTestForm from './AlarmTestForm'
 
 interface AlarmSystem {
   id: string
-  system_description: string | null
+  panel_location: string | null
+  manufacturer: string | null
+  model: string | null
   sites: { id: string; name: string } | null
 }
 
@@ -16,7 +18,7 @@ export default async function NewAlarmTestPage() {
 
   const { data: systemRows } = await supabase
     .from('fire_alarm_systems')
-    .select('id, system_description, sites(id, name)')
+    .select('id, panel_location, manufacturer, model, sites(id, name)')
     .order('id')
 
   const systems = (systemRows ?? []) as unknown as AlarmSystem[]

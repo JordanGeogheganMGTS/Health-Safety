@@ -105,7 +105,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
         supabase
           .from('lookup_values')
           .select('id, label, lookup_categories!inner(key)')
-          .eq('lookup_categories.key', 'risk_assessment_category')
+          .eq('lookup_categories.key', 'ra_category')
           .eq('is_active', true)
           .order('sort_order'),
         supabase.from('sites').select('id, name').order('name'),

@@ -14,7 +14,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
     .from('dse_assessments')
     .select(`
       id, assessment_date, overall_outcome, review_date,
-      workstation_location, additional_notes,
+      workstation_location, overall_notes,
       user_discomfort_noted, discomfort_detail,
       eye_test_recommended, regular_breaks_confirmed,
       further_action_required,
@@ -183,10 +183,10 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
       ))}
 
       {/* Additional Notes */}
-      {assessment.additional_notes && (
+      {assessment.overall_notes && (
         <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-slate-900 mb-2">Additional Notes</h2>
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">{assessment.additional_notes}</p>
+          <p className="text-sm text-slate-700 whitespace-pre-wrap">{assessment.overall_notes}</p>
         </div>
       )}
     </div>

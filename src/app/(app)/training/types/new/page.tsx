@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
-  validity_years: z.coerce.number().int().min(1).optional().or(z.literal('')),
+  validity_months: z.coerce.number().int().min(1).optional().or(z.literal('')),
   is_mandatory: z.boolean(),
   is_active: z.boolean(),
 })
@@ -43,7 +43,7 @@ export default function NewTrainingTypePage() {
     const { error } = await supabase.from('training_types').insert({
       name: values.name,
       description: values.description || null,
-      validity_years: values.validity_years ? Number(values.validity_years) : null,
+      validity_months: values.validity_months ? Number(values.validity_months) : null,
       is_mandatory: values.is_mandatory,
       is_active: values.is_active,
     })
@@ -92,15 +92,15 @@ export default function NewTrainingTypePage() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Validity (years)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Validity (months)</label>
           <input
-            {...register('validity_years')}
+            {...register('validity_months')}
             type="number"
             min="1"
             className={inputCls}
             placeholder="Leave blank if no expiry"
           />
-          {errors.validity_years && <p className="mt-1 text-xs text-red-600">{errors.validity_years.message as string}</p>}
+          {errors.validity_months && <p className="mt-1 text-xs text-red-600">{errors.validity_months.message as string}</p>}
           <p className="mt-1 text-xs text-slate-500">Leave blank if training does not expire</p>
         </div>
 

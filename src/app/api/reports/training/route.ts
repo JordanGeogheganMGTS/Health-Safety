@@ -16,7 +16,7 @@ export async function GET() {
     .select(
       'completed_date, expiry_date, provider, ' +
       'users(first_name, last_name), ' +
-      'training_types(name, is_mandatory, validity_years)'
+      'training_types(name, is_mandatory, validity_months)'
     )
     .order('completed_date', { ascending: false })
 

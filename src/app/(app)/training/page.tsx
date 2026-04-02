@@ -26,7 +26,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
   const [{ data: trainingTypes }, { data: allTypes }] = await Promise.all([
     supabase
       .from('training_types')
-      .select('id, name, description, validity_years, is_mandatory, is_active')
+      .select('id, name, description, validity_months, is_mandatory, is_active')
       .order('name'),
     supabase.from('training_types').select('id, name').order('name'),
   ])
@@ -115,7 +115,7 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {tt.validity_years ? `${tt.validity_years} year${tt.validity_years > 1 ? 's' : ''}` : 'No expiry'}
+                      {tt.validity_months ? `${tt.validity_months} month${tt.validity_months !== 1 ? 's' : ''}` : 'No expiry'}
                     </td>
                     <td className="px-4 py-3">
                       {tt.is_active ? (

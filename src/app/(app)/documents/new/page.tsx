@@ -48,7 +48,7 @@ export default function NewDocumentPage() {
         supabase
           .from('lookup_values')
           .select('id, label, lookup_categories!inner(key)')
-          .eq('lookup_categories.key', 'document_type')
+          .eq('lookup_categories.key', 'document_category')
           .eq('is_active', true)
           .order('sort_order'),
         supabase.from('sites').select('id, name').order('name'),

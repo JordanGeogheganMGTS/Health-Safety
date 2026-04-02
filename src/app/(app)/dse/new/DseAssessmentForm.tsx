@@ -143,7 +143,7 @@ export default function DseAssessmentForm({
       workstation_location: workstationLocation || null,
       assessment_date: assessmentDate,
       assessed_by_id: assessedById,
-      additional_notes: additionalNotes || null,
+      overall_notes: additionalNotes || null,
       user_discomfort_noted: discomfortResponse === 'yes',
       discomfort_detail: discomfortResponse === 'yes' ? discomfortDetail || null : null,
       eye_test_recommended: eyeTestResponse === 'yes',
@@ -328,11 +328,11 @@ export default function DseAssessmentForm({
 
       {/* Additional Notes */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <label htmlFor="additional_notes" className="block text-sm font-medium text-slate-700 mb-2">
+        <label htmlFor="overall_notes" className="block text-sm font-medium text-slate-700 mb-2">
           Additional Notes
         </label>
         <textarea
-          id="additional_notes"
+          id="overall_notes"
           value={additionalNotes}
           onChange={(e) => setAdditionalNotes(e.target.value)}
           rows={4}
