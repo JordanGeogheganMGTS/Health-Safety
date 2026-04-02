@@ -3,26 +3,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { addMonthsToDate } from '@/lib/dates'
 
 interface ResponseItem {
-  section_number: number
-  section_label: string
   item_key: string
-  item_text: string
-  response: 'yes' | 'no' | 'na' | null
-  action_to_take: string | null
-  sort_order: number
+  response: 'yes' | 'no' | 'n/a' | null
+  notes: string | null
 }
 
 interface DseRequestBody {
   user_id: string
   assessed_by: string
-  workstation_location: string | null
   assessment_date: string
   overall_notes: string | null
   responses: ResponseItem[]
-  user_discomfort_noted: boolean
-  discomfort_detail: string | null
-  eye_test_recommended: boolean
-  regular_breaks_confirmed: boolean
   review_interval_months?: number
 }
 
@@ -42,14 +33,9 @@ export async function POST(request: NextRequest) {
   const {
     user_id,
     assessed_by,
-    workstation_location,
     assessment_date,
     overall_notes,
     responses,
-    user_discomfort_noted,
-    discomfort_detail,
-    eye_test_recommended,
-    regular_breaks_confirmed,
     review_interval_months: bodyReviewInterval,
   } = body
 
@@ -57,7 +43,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  // Step 1: Get user's site_id
+  // Get user's site_id (required NOT NULL on dse_assessments)
   const { data: userRecord } = await supabase
     .from('users')
     .select('site_id')
@@ -65,13 +51,11 @@ export async function POST(request: NextRequest) {
     .single()
 
   const userSiteId = userRecord?.site_id ?? null
+  if (!userSiteId) {
+    return NextResponse.json({ error: 'User has no site assigned — cannot create DSE assessment' }, { status: 400 })
+  }
 
-  // Step 2: Determine overall_outcome
-  const hasFailure = (responses ?? []).some((r) => r.response === 'no')
-  const overallOutcome = hasFailure ? 'Further Action Required' : 'No Further Action Required'
-  const furtherActionRequired = hasFailure
-
-  // Step 3: Get dse_review_interval_months from system_settings (fallback to body value, then 12)
+  // Determine next_review_date
   let reviewIntervalMonths = bodyReviewInterval ?? 12
   if (!bodyReviewInterval) {
     const { data: settingRow } = await supabase
@@ -82,26 +66,21 @@ export async function POST(request: NextRequest) {
     if (settingRow?.value) reviewIntervalMonths = parseInt(settingRow.value, 10)
   }
 
-  const reviewDate = addMonthsToDate(assessment_date, reviewIntervalMonths)
+  const nextReviewDate = addMonthsToDate(assessment_date, reviewIntervalMonths)
     .toISOString()
     .split('T')[0]
 
-  // Step 4: INSERT dse_assessments
+  // INSERT dse_assessments
   const { data: assessment, error: assessmentError } = await supabase
     .from('dse_assessments')
     .insert({
       user_id,
       assessed_by,
-      workstation_location: workstation_location || null,
+      site_id: userSiteId,
       assessment_date,
-      overall_outcome: overallOutcome,
-      further_action_required: furtherActionRequired,
-      user_discomfort_noted,
-      discomfort_detail: user_discomfort_noted ? (discomfort_detail || null) : null,
-      eye_test_recommended,
-      regular_breaks_confirmed,
+      status: 'Submitted',
       overall_notes: overall_notes || null,
-      review_date: reviewDate,
+      next_review_date: nextReviewDate,
     })
     .select('id')
     .single()
@@ -112,71 +91,67 @@ export async function POST(request: NextRequest) {
 
   const assessmentId = assessment.id
 
-  // Step 5: INSERT all dse_assessment_responses
-  const responseRows = (responses ?? []).map((r) => ({
-    assessment_id: assessmentId,
-    section_number: r.section_number,
-    section_label: r.section_label,
-    item_key: r.item_key,
-    item_text: r.item_text,
-    response: r.response,
-    action_to_take: r.action_to_take || null,
-    action_completed: false,
-    ca_id: null,
-    sort_order: r.sort_order,
-  }))
+  // INSERT dse_assessment_responses
+  const responseRows = (responses ?? [])
+    .filter((r) => r.response !== null)
+    .map((r) => ({
+      assessment_id: assessmentId,
+      item_key: r.item_key,
+      // DB constraint requires 'n/a' not 'na'
+      response: r.response === 'na' ? 'n/a' : r.response,
+      notes: r.notes || null,
+    }))
 
   const { data: insertedResponses, error: responsesError } = await supabase
     .from('dse_assessment_responses')
     .insert(responseRows)
-    .select('id, item_key, action_to_take, response')
+    .select('id, item_key, notes, response')
 
   if (responsesError) {
     return NextResponse.json({ error: responsesError.message }, { status: 500 })
   }
 
-  // Step 6: For each 'no' response with action_to_take — create corrective actions
+  // Create corrective actions for 'no' responses that have notes
   const failedResponses = (insertedResponses ?? []).filter(
-    (r) => r.response === 'no' && r.action_to_take
+    (r) => r.response === 'no' && r.notes
   )
 
-  // Look up 'Medium' priority UUID
-  let mediumPriorityId: string | null = null
   if (failedResponses.length > 0) {
+    let mediumPriorityId: string | null = null
     const { data: catRow } = await supabase.from('lookup_categories').select('id').eq('key', 'ca_priority').single()
     if (catRow) {
       const { data: pvRow } = await supabase.from('lookup_values').select('id').ilike('label', 'Medium').eq('category_id', catRow.id).single()
       mediumPriorityId = pvRow?.id ?? null
     }
-  }
 
-  for (const resp of failedResponses) {
-    if (!mediumPriorityId) break
-    const { data: ca, error: caError } = await supabase
-      .from('corrective_actions')
-      .insert({
-        title: `DSE: ${resp.item_key}`,
-        description: resp.action_to_take,
-        source_table: 'dse_assessments',
-        source_record_id: assessmentId,
-        site_id: userSiteId,
-        priority_id: mediumPriorityId,
-        due_date: reviewDate,
-        status: 'Open',
-        assigned_by: assessed_by,
-      })
-      .select('id')
-      .single()
+    for (const resp of failedResponses) {
+      if (!mediumPriorityId) break
+      const { data: ca, error: caError } = await supabase
+        .from('corrective_actions')
+        .insert({
+          title: `DSE: ${resp.item_key}`,
+          description: resp.notes,
+          source_table: 'dse_assessments',
+          source_record_id: assessmentId,
+          site_id: userSiteId,
+          priority_id: mediumPriorityId,
+          due_date: nextReviewDate,
+          status: 'Open',
+          assigned_by: assessed_by,
+        })
+        .select('id')
+        .single()
 
-    if (!caError && ca) {
-      await supabase
-        .from('dse_assessment_responses')
-        .update({ ca_id: ca.id })
-        .eq('id', resp.id)
+      if (!caError && ca) {
+        await supabase
+          .from('dse_assessment_responses')
+          .update({ ca_id: ca.id })
+          .eq('id', resp.id)
+      }
     }
   }
 
-  // Step 7: UPDATE users SET dse_last_assessment_id
+  // Update users.dse_last_assessment_id
   await supabase
     .from('users')
     .update({ dse_last_assessment_id: assessmentId })

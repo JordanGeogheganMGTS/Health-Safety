@@ -28,15 +28,8 @@ interface Props {
 }
 
 interface ResponseState {
-  response: 'yes' | 'no' | 'na' | null
-  action_to_take: string
-}
-
-// Section 7 item keys that map to specific assessment fields
-const SECTION7_KEYS = {
-  discomfort: 'section7_discomfort',
-  eye_test: 'section7_eye_test',
-  breaks: 'section7_breaks',
+  response: 'yes' | 'no' | 'n/a' | null
+  notes: string
 }
 
 function groupBySection(questions: DseQuestion[]) {
@@ -63,73 +56,51 @@ export default function DseAssessmentForm({
   const today = new Date().toISOString().split('T')[0]
 
   const [userId, setUserId] = useState(preselectedUserId ?? '')
-  const [workstationLocation, setWorkstationLocation] = useState('')
   const [assessmentDate, setAssessmentDate] = useState(today)
-  const [additionalNotes, setAdditionalNotes] = useState('')
-  const [discomfortDetail, setDiscomfortDetail] = useState('')
+  const [overallNotes, setOverallNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Initialise responses map keyed by item_key
   const initialResponses: Record<string, ResponseState> = {}
   for (const q of questions) {
-    initialResponses[q.item_key] = { response: null, action_to_take: '' }
+    initialResponses[q.item_key] = { response: null, notes: '' }
   }
   const [responses, setResponses] = useState<Record<string, ResponseState>>(initialResponses)
 
-  // Reset responses when questions change (shouldn't happen, but safe)
   useEffect(() => {
     const init: Record<string, ResponseState> = {}
     for (const q of questions) {
-      init[q.item_key] = { response: null, action_to_take: '' }
+      init[q.item_key] = { response: null, notes: '' }
     }
     setResponses(init)
   }, [questions])
 
-  function setResponse(itemKey: string, value: 'yes' | 'no' | 'na') {
+  function setResponse(itemKey: string, value: 'yes' | 'no' | 'n/a') {
     setResponses((prev) => ({
       ...prev,
-      [itemKey]: { ...prev[itemKey], response: value, action_to_take: prev[itemKey]?.action_to_take ?? '' },
+      [itemKey]: { ...prev[itemKey], response: value },
     }))
   }
 
-  function setActionToTake(itemKey: string, value: string) {
+  function setNotes(itemKey: string, value: string) {
     setResponses((prev) => ({
       ...prev,
-      [itemKey]: { ...prev[itemKey], action_to_take: value },
+      [itemKey]: { ...prev[itemKey], notes: value },
     }))
   }
 
   const sections = groupBySection(questions)
-  const isSection7 = (sectionNum: number) => sectionNum === 7
-
-  // Derive section 7 booleans
-  const discomfortResponse = responses[SECTION7_KEYS.discomfort]?.response
-  const eyeTestResponse = responses[SECTION7_KEYS.eye_test]?.response
-  const breaksResponse = responses[SECTION7_KEYS.breaks]?.response
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
 
     if (!userId) {
-      setError('Please select a user')
+      setError('Please select a staff member')
       return
     }
 
-    // Build payload
-    const questionResponses = questions.map((q) => ({
-      section_number: q.section_number,
-      section_label: q.section_label,
-      item_key: q.item_key,
-      item_text: q.item_text,
-      sort_order: q.sort_order,
-      response: responses[q.item_key]?.response ?? null,
-      action_to_take: responses[q.item_key]?.action_to_take || null,
-    }))
-
-    // Validate: all non-section-7 questions must have a response
     for (const q of questions) {
-      if (!isSection7(q.section_number) && !responses[q.item_key]?.response) {
+      if (!responses[q.item_key]?.response) {
         setError(`Please answer all questions (missing: ${q.item_text.substring(0, 50)}…)`)
         return
       }
@@ -140,16 +111,15 @@ export default function DseAssessmentForm({
 
     const payload = {
       user_id: userId,
-      workstation_location: workstationLocation || null,
-      assessment_date: assessmentDate,
       assessed_by: assessedById,
-      overall_notes: additionalNotes || null,
-      user_discomfort_noted: discomfortResponse === 'yes',
-      discomfort_detail: discomfortResponse === 'yes' ? discomfortDetail || null : null,
-      eye_test_recommended: eyeTestResponse === 'yes',
-      regular_breaks_confirmed: breaksResponse === 'yes',
+      assessment_date: assessmentDate,
+      overall_notes: overallNotes || null,
       review_interval_months: reviewIntervalMonths,
-      responses: questionResponses,
+      responses: questions.map((q) => ({
+        item_key: q.item_key,
+        response: responses[q.item_key]?.response ?? null,
+        notes: responses[q.item_key]?.notes || null,
+      })),
     }
 
     try {
@@ -222,20 +192,6 @@ export default function DseAssessmentForm({
           </div>
 
           <div>
-            <label htmlFor="workstation_location" className="block text-sm font-medium text-slate-700 mb-1">
-              Workstation Location
-            </label>
-            <input
-              type="text"
-              id="workstation_location"
-              value={workstationLocation}
-              onChange={(e) => setWorkstationLocation(e.target.value)}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-              placeholder="e.g. Desk 4, 2nd Floor"
-            />
-          </div>
-
-          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Assessed By</label>
             <div className="flex items-center h-[38px] px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 text-sm text-slate-700">
               {assessedByName}
@@ -255,18 +211,12 @@ export default function DseAssessmentForm({
           <div className="divide-y divide-slate-100">
             {section.questions.map((q) => {
               const resp = responses[q.item_key]
-              const isSection7Q = isSection7(sectionNum)
-              const showDiscomfortDetail =
-                isSection7Q &&
-                q.item_key === SECTION7_KEYS.discomfort &&
-                resp?.response === 'yes'
-
               return (
                 <div key={q.id} className="px-6 py-4 space-y-3">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-sm text-slate-800 leading-relaxed flex-1">{q.item_text}</p>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {(['yes', 'no', 'na'] as const).map((val) => (
+                      {(['yes', 'no', 'n/a'] as const).map((val) => (
                         <button
                           key={val}
                           type="button"
@@ -287,35 +237,17 @@ export default function DseAssessmentForm({
                     </div>
                   </div>
 
-                  {/* Action required when 'No' is selected (non-section 7) */}
-                  {!isSection7Q && resp?.response === 'no' && (
+                  {resp?.response === 'no' && (
                     <div>
                       <label className="block text-xs font-medium text-amber-700 mb-1">
-                        Action to take <span className="text-red-500">*</span>
+                        Notes / action required
                       </label>
                       <textarea
-                        value={resp.action_to_take}
-                        onChange={(e) => setActionToTake(q.item_key, e.target.value)}
-                        required
+                        value={resp.notes}
+                        onChange={(e) => setNotes(q.item_key, e.target.value)}
                         rows={2}
                         className="block w-full rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 resize-none"
-                        placeholder="Describe the corrective action required…"
-                      />
-                    </div>
-                  )}
-
-                  {/* Discomfort detail */}
-                  {showDiscomfortDetail && (
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1">
-                        Describe discomfort
-                      </label>
-                      <textarea
-                        value={discomfortDetail}
-                        onChange={(e) => setDiscomfortDetail(e.target.value)}
-                        rows={2}
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
-                        placeholder="Describe the discomfort or symptoms…"
+                        placeholder="Describe the issue and any action required…"
                       />
                     </div>
                   )}
@@ -326,15 +258,15 @@ export default function DseAssessmentForm({
         </div>
       ))}
 
-      {/* Additional Notes */}
+      {/* Overall Notes */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <label htmlFor="overall_notes" className="block text-sm font-medium text-slate-700 mb-2">
-          Additional Notes
+          Overall Notes
         </label>
         <textarea
           id="overall_notes"
-          value={additionalNotes}
-          onChange={(e) => setAdditionalNotes(e.target.value)}
+          value={overallNotes}
+          onChange={(e) => setOverallNotes(e.target.value)}
           rows={4}
           className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
           placeholder="Any additional observations or recommendations…"
