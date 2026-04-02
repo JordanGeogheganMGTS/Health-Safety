@@ -47,10 +47,9 @@ export default function UploadDocumentForm({ contractorId, userId, docTypes }: P
       contractor_id: contractorId,
       type_id: typeId,
       title,
-      storage_key: key,
+      file_path: key,
       expiry_date: expiryDate || null,
       uploaded_by: userId,
-      uploaded_at: new Date().toISOString(),
     })
 
     if (dbErr) {
