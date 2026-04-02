@@ -211,6 +211,9 @@ export default function DseAssessmentForm({
           <div className="divide-y divide-slate-100">
             {section.questions.map((q) => {
               const resp = responses[q.item_key]
+              // For the discomfort question, "yes" is the bad answer (inverted logic)
+              const inverted = q.item_key === 'final_discomfort'
+              const showNotes = inverted ? resp?.response === 'yes' : resp?.response === 'no'
               return (
                 <div key={q.id} className="px-6 py-4 space-y-3">
                   <div className="flex items-start justify-between gap-4">
@@ -223,11 +226,11 @@ export default function DseAssessmentForm({
                           onClick={() => setResponse(q.item_key, val)}
                           className={`rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
                             resp?.response === val
-                              ? val === 'yes'
+                              ? val === 'n/a'
+                                ? 'bg-slate-500 text-white border-slate-500'
+                                : (val === 'yes') !== inverted
                                 ? 'bg-green-600 text-white border-green-600'
-                                : val === 'no'
-                                ? 'bg-red-600 text-white border-red-600'
-                                : 'bg-slate-500 text-white border-slate-500'
+                                : 'bg-red-600 text-white border-red-600'
                               : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
                           }`}
                         >
@@ -237,7 +240,7 @@ export default function DseAssessmentForm({
                     </div>
                   </div>
 
-                  {resp?.response === 'no' && (
+                  {showNotes && (
                     <div>
                       <label className="block text-xs font-medium text-amber-700 mb-1">
                         Notes / action required
