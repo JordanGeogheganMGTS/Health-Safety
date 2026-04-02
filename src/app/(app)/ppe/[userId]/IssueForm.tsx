@@ -96,29 +96,19 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
             Condition <span className="text-red-500">*</span>
           </label>
           <select name="condition" required className={selectCls}>
-            <option value="New">New</option>
-            <option value="Replacement">Replacement</option>
-            <option value="Re-issued">Re-issued</option>
+            <option value="Good">Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+            <option value="Replaced">Replaced</option>
           </select>
         </div>
       </div>
 
       {selectedItem?.replacement_months && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-          Next review will be calculated as date issued + {selectedItem.replacement_months} month{selectedItem.replacement_months !== 1 ? 's' : ''}
+          Recommended replacement interval: {selectedItem.replacement_months} month{selectedItem.replacement_months !== 1 ? 's' : ''}
         </div>
       )}
-
-      <div className="flex items-center gap-3">
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            name="signature_obtained"
-            type="checkbox"
-            className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-          />
-          <span className="text-sm text-slate-700">Signature obtained</span>
-        </label>
-      </div>
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>

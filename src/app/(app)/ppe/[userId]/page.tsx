@@ -15,22 +15,12 @@ interface PpeItem {
 interface UserPpeRecord {
   id: string
   ppe_item_id: string
-  size_value: string | null
+  size_value_id: string | null
   issued_date: string
   condition: string
   notes: string | null
-  issued_by: { first_name: string; last_name: string } | null
+  issued_by_user: { first_name: string; last_name: string } | null
   ppe_item: PpeItem | null
-}
-
-function TrafficLight({ records }: { records: UserPpeRecord[] }) {
-  if (records.length === 0) return null
-  return (
-    <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
-      <span className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
-      <span className="text-sm font-medium text-green-700">All PPE items up to date</span>
-    </div>
-  )
 }
 
 async function issuePpeAction(formData: FormData) {
@@ -44,15 +34,21 @@ async function issuePpeAction(formData: FormData) {
 
   const userId = formData.get('user_id') as string
   const ppeItemId = formData.get('ppe_item_id') as string
-  const sizeValueId = (formData.get('size_value_id') as string) || null
-  const issuedDate = formData.get('issued_date') as string
-  const condition = formData.get('condition') as string
+  const issuedDate = (formData.get('date_issued') as string) || new Date().toISOString().split('T')[0]
+  const condition = (formData.get('condition') as string) || 'Good'
   const notes = (formData.get('notes') as string) || null
+
+  // site_id is required — use the user's site_id from the users table
+  const { data: userData } = await supabase
+    .from('users')
+    .select('site_id')
+    .eq('id', userId)
+    .single()
 
   await supabase.from('user_ppe_records').insert({
     user_id: userId,
     ppe_item_id: ppeItemId,
-    size_value_id: sizeValueId,
+    site_id: userData?.site_id ?? null,
     issued_date: issuedDate,
     issued_by: user.id,
     condition,
@@ -75,17 +71,17 @@ export default async function UserPpePage({ params }: { params: { userId: string
     supabase
       .from('user_ppe_records')
       .select(`
-        id, ppe_item_id, size_value, date_issued, condition, next_review_date, signature_obtained, notes,
-        issued_by:users!user_ppe_records_issued_by_id_fkey(first_name, last_name),
-        ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(id, name, has_sizes, size_category_key, recommended_replacement_months, is_active)
+        id, ppe_item_id, size_value_id, issued_date, condition, notes,
+        issued_by_user:users!user_ppe_records_issued_by_fkey(first_name, last_name),
+        ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(id, name, has_sizes, size_category_key, replacement_months, is_active)
       `)
       .eq('user_id', params.userId)
-      .order('date_issued', { ascending: false }),
+      .order('issued_date', { ascending: false }),
     supabase
       .from('ppe_items')
-      .select('id, name, has_sizes, size_category_key, recommended_replacement_months, is_active')
+      .select('id, name, has_sizes, size_category_key, replacement_months, is_active')
       .eq('is_active', true)
-      .order('sort_order'),
+      .order('name'),
   ])
 
   if (!profile) notFound()
@@ -106,13 +102,6 @@ export default async function UserPpePage({ params }: { params: { userId: string
         <p className="text-sm text-slate-500 mt-1">PPE Issuance Record</p>
       </div>
 
-      {/* Traffic light status */}
-      {records.length > 0 && (
-        <div className="mb-6">
-          <TrafficLight records={records} />
-        </div>
-      )}
-
       {/* PPE Records Table */}
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm mb-8">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -130,50 +119,34 @@ export default async function UserPpePage({ params }: { params: { userId: string
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Size</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Issued</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Condition</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Next Review</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Signature</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Issued By</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {records.map((r) => {
-                  const overdue = r.next_review_date ? isOverdue(r.next_review_date) : false
-                  const dueSoon = r.next_review_date ? isDueWithin(r.next_review_date, 30) : false
-                  const issuedBy = r.issued_by as unknown as { first_name: string; last_name: string } | null
+                  const issuedBy = r.issued_by_user as unknown as { first_name: string; last_name: string } | null
                   const item = r.ppe_item
 
                   return (
                     <tr key={r.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{item?.name ?? '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{r.size_value ?? 'N/A'}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(r.date_issued)}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(r.issued_date)}</td>
                       <td className="px-4 py-3">
                         <span
                           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            r.condition === 'New'
+                            r.condition === 'Good'
                               ? 'bg-green-100 text-green-700'
-                              : r.condition === 'Replacement'
+                              : r.condition === 'Fair'
                               ? 'bg-amber-100 text-amber-700'
+                              : r.condition === 'Poor'
+                              ? 'bg-orange-100 text-orange-700'
                               : 'bg-slate-100 text-slate-600'
                           }`}
                         >
                           {r.condition}
-                        </span>
-                      </td>
-                      <td
-                        className={`px-4 py-3 font-medium ${
-                          overdue ? 'text-red-600' : dueSoon ? 'text-amber-600' : 'text-slate-600'
-                        }`}
-                      >
-                        {r.next_review_date ? formatDate(r.next_review_date) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`text-sm font-bold ${r.signature_obtained ? 'text-green-600' : 'text-red-500'}`}>
-                          {r.signature_obtained ? '✓' : '✗'}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-600">
