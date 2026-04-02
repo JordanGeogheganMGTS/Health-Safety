@@ -25,9 +25,9 @@ const schema = z.object({
   title: z.string().min(1, 'Title is required'),
   site_id: z.string().min(1, 'Site is required'),
   category_id: z.string().min(1, 'Category is required'),
-  assessor_id: z.string().min(1, 'Assessor is required'),
+  assessed_by: z.string().min(1, 'Assessor is required'),
   assessment_date: z.string().min(1, 'Assessment date is required'),
-  review_date: z.string().min(1, 'Review date is required'),
+  review_due_date: z.string().min(1, 'Review date is required'),
   status: z.enum(['Draft', 'Active', 'Under Review', 'Superseded']),
   overall_rating: z.string().optional(),
   hazards: z.array(hazardSchema),
@@ -94,7 +94,7 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
       const [raRes, hazardsRes, catRes, siteRes, userRes] = await Promise.all([
         supabase
           .from('risk_assessments')
-          .select('id, title, site_id, category_id, assessor_id, assessment_date, review_date, status, overall_rating')
+          .select('id, title, site_id, category_id, assessed_by, assessment_date, review_due_date, status, overall_rating')
           .eq('id', params.id)
           .single(),
         supabase
@@ -135,9 +135,9 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
           title: d.title,
           site_id: d.site_id ?? '',
           category_id: d.category_id ?? '',
-          assessor_id: d.assessor_id ?? '',
+          assessed_by: d.assessed_by ?? '',
           assessment_date: d.assessment_date ? d.assessment_date.split('T')[0] : '',
-          review_date: d.review_date ? d.review_date.split('T')[0] : '',
+          review_due_date: d.review_due_date ? d.review_due_date.split('T')[0] : '',
           status: d.status as FormValues['status'],
           overall_rating: d.overall_rating ?? '',
           hazards: hz.length ? hz : [],
@@ -159,9 +159,9 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
         title: values.title,
         site_id: values.site_id,
         category_id: values.category_id,
-        assessor_id: values.assessor_id,
+        assessed_by: values.assessed_by,
         assessment_date: values.assessment_date,
-        review_date: values.review_date,
+        review_due_date: values.review_due_date,
         status: values.status,
         overall_rating: values.overall_rating || null,
       })
@@ -283,11 +283,11 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Assessor <span className="text-red-500">*</span></label>
-              <select {...register('assessor_id')} className={selectCls}>
+              <select {...register('assessed_by')} className={selectCls}>
                 <option value="">Select assessor…</option>
                 {users.map((u) => <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>)}
               </select>
-              {errors.assessor_id && <p className="mt-1 text-xs text-red-600">{errors.assessor_id.message}</p>}
+              {errors.assessed_by && <p className="mt-1 text-xs text-red-600">{errors.assessed_by.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Status <span className="text-red-500">*</span></label>
@@ -302,8 +302,8 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Review Date <span className="text-red-500">*</span></label>
-              <input {...register('review_date')} type="date" className={inputCls} />
-              {errors.review_date && <p className="mt-1 text-xs text-red-600">{errors.review_date.message}</p>}
+              <input {...register('review_due_date')} type="date" className={inputCls} />
+              {errors.review_due_date && <p className="mt-1 text-xs text-red-600">{errors.review_due_date.message}</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Overall Rating</label>

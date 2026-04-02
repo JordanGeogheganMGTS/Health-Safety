@@ -125,11 +125,11 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
       {/* Task description */}
       <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-6">
         <h2 className="text-sm font-semibold text-slate-700 mb-3">Task Description</h2>
-        <p className="text-sm text-slate-700 whitespace-pre-wrap">{ms.task_description}</p>
+        <p className="text-sm text-slate-700 whitespace-pre-wrap">{ms.description}</p>
       </div>
 
       {/* Details */}
-      {(ms.ppe_required || ms.equipment_required || ms.emergency_procedures) && (
+      {(ms.ppe_required || ms.plant_equipment || ms.emergency_procedures) && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {ms.ppe_required && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -137,10 +137,10 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
               <p className="text-sm text-slate-700 whitespace-pre-wrap">{ms.ppe_required}</p>
             </div>
           )}
-          {ms.equipment_required && (
+          {ms.plant_equipment && (
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Equipment Required</h2>
-              <p className="text-sm text-slate-700 whitespace-pre-wrap">{ms.equipment_required}</p>
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">{ms.plant_equipment}</p>
             </div>
           )}
           {ms.emergency_procedures && (
@@ -182,10 +182,10 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
                         <p className="text-sm text-amber-900 whitespace-pre-wrap">{step.hazards}</p>
                       </div>
                     )}
-                    {step.controls && (
+                    {step.control_measures && (
                       <div className="mt-2 rounded-lg bg-green-50 border border-green-100 px-3 py-2">
                         <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-1">Controls</p>
-                        <p className="text-sm text-green-900 whitespace-pre-wrap">{step.controls}</p>
+                        <p className="text-sm text-green-900 whitespace-pre-wrap">{step.control_measures}</p>
                       </div>
                     )}
                   </div>

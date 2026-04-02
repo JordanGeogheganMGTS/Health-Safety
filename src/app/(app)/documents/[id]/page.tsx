@@ -38,7 +38,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
       version,
       status,
       review_due_date,
-      storage_key,
+      file_path,
       approved_at,
       created_at,
       updated_at,
@@ -58,8 +58,8 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
   const category = doc.category as unknown as { label: string } | null
 
   let downloadUrl: string | null = null
-  if (doc.storage_key) {
-    downloadUrl = await getDownloadUrl(doc.storage_key)
+  if (doc.file_path) {
+    downloadUrl = await getDownloadUrl(doc.file_path)
   }
 
   const fields = [
@@ -69,7 +69,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
     { label: 'Version', value: doc.version ?? '—' },
     { label: 'Status', value: <StatusBadge status={doc.status} /> },
     { label: 'Document Owner', value: owner ? `${owner.first_name} ${owner.last_name}` : '—' },
-    { label: 'Review Date', value: formatDate(doc.review_date) },
+    { label: 'Review Date', value: formatDate(doc.review_due_date) },
     { label: 'Approved By', value: approver ? `${approver.first_name} ${approver.last_name}` : '—' },
     { label: 'Approved At', value: formatDate(doc.approved_at) },
     { label: 'Created', value: formatDate(doc.created_at) },
@@ -130,10 +130,10 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
       </div>
 
       {/* Storage key info */}
-      {doc.storage_key && (
+      {doc.file_path && (
         <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
           <p className="text-xs text-slate-500">
-            <span className="font-medium">Storage key:</span> {doc.storage_key}
+            <span className="font-medium">Storage key:</span> {doc.file_path}
           </p>
         </div>
       )}

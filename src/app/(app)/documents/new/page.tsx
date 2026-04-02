@@ -87,7 +87,7 @@ export default function NewDocumentPage() {
           version: values.version || null,
           review_due_date: values.review_due_date,
           owner_id: values.owner_id,
-          storage_key: key,
+          file_path: key,
           status: 'Draft',
         })
         .select('id')
