@@ -58,7 +58,10 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
   const assessedBy = assessment.assessed_by as unknown as { first_name: string; last_name: string } | null
   const overdue = isOverdue(assessment.next_review_date)
 
-  const hasActions = (responses ?? []).some((r) => r.response === 'no')
+  // final_discomfort is inverted: 'yes' is the bad answer, 'no' is good
+  const hasActions = (responses ?? []).some((r) =>
+    r.item_key === 'final_discomfort' ? r.response === 'yes' : r.response === 'no'
+  )
 
   return (
     <div className="space-y-6">
@@ -123,21 +126,23 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
           <div className="divide-y divide-slate-100">
             {section.items.map(({ response: r, template: tmpl }) => {
               const ca = r.corrective_actions as unknown as { id: string; title: string; status: string } | null
+              const inverted = tmpl.item_key === 'final_discomfort'
+              const isBad = inverted ? r.response === 'yes' : r.response === 'no'
               return (
                 <div key={r.id} className="px-6 py-4">
                   <div className="flex items-start justify-between gap-4">
                     <p className="text-sm text-slate-800 leading-relaxed flex-1">{tmpl.item_text}</p>
                     <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 ${
-                      r.response === 'yes'
-                        ? 'bg-green-100 text-green-800'
-                        : r.response === 'no'
+                      r.response === 'n/a'
+                        ? 'bg-slate-100 text-slate-600'
+                        : isBad
                         ? 'bg-red-100 text-red-800'
-                        : 'bg-slate-100 text-slate-600'
+                        : 'bg-green-100 text-green-800'
                     }`}>
                       {r.response === 'yes' ? 'Yes' : r.response === 'no' ? 'No' : 'N/A'}
                     </span>
                   </div>
-                  {r.response === 'no' && r.notes && (
+                  {isBad && r.notes && (
                     <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
                       <p className="text-xs font-semibold text-amber-800 uppercase tracking-wide">Notes / Action Required</p>
                       <p className="text-sm text-amber-900">{r.notes}</p>
