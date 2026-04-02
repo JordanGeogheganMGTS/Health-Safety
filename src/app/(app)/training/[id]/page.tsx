@@ -30,8 +30,6 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
       completion_date,
       expiry_date,
       provider,
-      trainer_name,
-      result,
       notes,
       certificate_file_path,
       certificate_file_name,
@@ -87,6 +85,12 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
             {r.training_type?.is_mandatory && (
               <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">Required</span>
             )}
+            <Link
+              href={`/training/${id}/edit`}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
           </div>
         </div>
 
@@ -99,17 +103,6 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
             <InfoRow label="Validity Period" value={`${r.training_type.validity_months} month${r.training_type.validity_months !== 1 ? 's' : ''}`} />
           )}
           <InfoRow label="Provider" value={r.provider} />
-          <InfoRow label="Trainer" value={r.trainer_name} />
-          <InfoRow
-            label="Result"
-            value={r.result ? (
-              <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                r.result === 'Pass' ? 'bg-green-100 text-green-700' :
-                r.result === 'Fail' ? 'bg-red-100 text-red-700' :
-                'bg-slate-100 text-slate-600'
-              }`}>{r.result}</span>
-            ) : null}
-          />
           {r.notes && <InfoRow label="Notes" value={<span className="whitespace-pre-wrap">{r.notes}</span>} />}
           <InfoRow
             label="Recorded By"
