@@ -39,12 +39,12 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
       status,
       review_due_date,
       file_path,
-      approved_at,
+
       created_at,
       updated_at,
       sites(name),
       owner:users!documents_owner_id_fkey(first_name, last_name),
-      approver:users!documents_approved_by_fkey(first_name, last_name),
+
       category:lookup_values!documents_category_id_fkey(label)
     `)
     .eq('id', params.id)
@@ -53,7 +53,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
   if (!doc) notFound()
 
   const owner = doc.owner as unknown as { first_name: string; last_name: string } | null
-  const approver = doc.approver as unknown as { first_name: string; last_name: string } | null
+
   const site = doc.sites as unknown as { name: string } | null
   const category = doc.category as unknown as { label: string } | null
 
@@ -70,8 +70,6 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
     { label: 'Status', value: <StatusBadge status={doc.status} /> },
     { label: 'Document Owner', value: owner ? `${owner.first_name} ${owner.last_name}` : '—' },
     { label: 'Review Date', value: formatDate(doc.review_due_date) },
-    { label: 'Approved By', value: approver ? `${approver.first_name} ${approver.last_name}` : '—' },
-    { label: 'Approved At', value: formatDate(doc.approved_at) },
     { label: 'Created', value: formatDate(doc.created_at) },
     { label: 'Last Updated', value: formatDate(doc.updated_at) },
   ]
