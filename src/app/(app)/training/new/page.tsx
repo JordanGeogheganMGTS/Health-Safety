@@ -103,9 +103,8 @@ export default function NewTrainingRecordPage() {
       completed_date: values.completed_date,
       expiry_date: computedExpiry,
       provider: values.provider || null,
-      certificate_key: certKey,
+      certificate_file_path: certKey,
       recorded_by: user.id,
-      recorded_at: new Date().toISOString(),
     })
 
     if (error) {
