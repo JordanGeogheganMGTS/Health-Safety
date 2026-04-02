@@ -57,6 +57,7 @@ export default function DseAssessmentForm({
 
   const [userId, setUserId] = useState(preselectedUserId ?? '')
   const [assessmentDate, setAssessmentDate] = useState(today)
+  const [location, setLocation] = useState('')
   const [overallNotes, setOverallNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -113,6 +114,7 @@ export default function DseAssessmentForm({
       user_id: userId,
       assessed_by: assessedById,
       assessment_date: assessmentDate,
+      location: location || null,
       overall_notes: overallNotes || null,
       review_interval_months: reviewIntervalMonths,
       responses: questions.map((q) => ({
@@ -188,6 +190,20 @@ export default function DseAssessmentForm({
               onChange={(e) => setAssessmentDate(e.target.value)}
               required
               className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">
+              Assessment Location
+            </label>
+            <input
+              type="text"
+              id="location"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+              placeholder="e.g. Coventry Office, Redditch Office, Home"
             />
           </div>
 

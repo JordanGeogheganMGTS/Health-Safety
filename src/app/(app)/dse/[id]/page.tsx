@@ -13,7 +13,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
   const { data: assessment } = await supabase
     .from('dse_assessments')
     .select(`
-      id, assessment_date, status, next_review_date, overall_notes,
+      id, assessment_date, status, next_review_date, overall_notes, location,
       subject:users!dse_assessments_user_id_fkey(first_name, last_name),
       assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name)
     `)
@@ -94,6 +94,10 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Assessment Date</dt>
             <dd className="mt-1 text-sm font-medium text-slate-900">{formatDate(assessment.assessment_date)}</dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Location</dt>
+            <dd className="mt-1 text-sm font-medium text-slate-900">{assessment.location ?? '—'}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Assessed By</dt>

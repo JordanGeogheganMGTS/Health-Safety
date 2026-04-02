@@ -12,6 +12,7 @@ interface DseRequestBody {
   user_id: string
   assessed_by: string
   assessment_date: string
+  location: string | null
   overall_notes: string | null
   responses: ResponseItem[]
   review_interval_months?: number
@@ -34,6 +35,7 @@ export async function POST(request: NextRequest) {
     user_id,
     assessed_by,
     assessment_date,
+    location,
     overall_notes,
     responses,
     review_interval_months: bodyReviewInterval,
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest) {
       assessed_by,
       site_id: userSiteId,
       assessment_date,
+      location: location || null,
       status: 'Submitted',
       overall_notes: overall_notes || null,
       next_review_date: nextReviewDate,

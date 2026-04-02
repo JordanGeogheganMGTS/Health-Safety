@@ -9,48 +9,34 @@ export default async function DsePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch all users with DSE info
-  const { data: users } = await supabase
-    .from('users')
+  // Fetch all assessments with subject and assessor names
+  const { data: assessments } = await supabase
+    .from('dse_assessments')
     .select(`
-      id, first_name, last_name, is_active, dse_not_applicable,
-      dse_last_assessment_id,
-      roles(name), sites(name),
-      dse_assessments!users_dse_last_assessment_id_fkey(
-        id, assessment_date, overall_outcome, review_date, eye_test_recommended
-      )
+      id, assessment_date, next_review_date, status, location,
+      subject:users!dse_assessments_user_id_fkey(first_name, last_name),
+      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name)
     `)
-    .eq('is_active', true)
-    .order('last_name')
+    .order('assessment_date', { ascending: false })
 
-  // Fetch outstanding CAs count per assessment
-  const { data: caData } = await supabase
-    .from('dse_assessment_responses')
-    .select('assessment_id, action_completed')
-    .eq('action_completed', false)
-    .not('action_to_take', 'is', null)
+  // Fetch all "problem" responses so we can flag further action per assessment
+  // Rules: response='no' on any question except final_discomfort
+  //        response='yes' on final_discomfort
+  const assessmentIds = (assessments ?? []).map((a) => a.id)
+  let actionSet = new Set<string>()
 
-  const caCountMap: Record<string, number> = {}
-  for (const row of caData ?? []) {
-    if (row.assessment_id) {
-      caCountMap[row.assessment_id] = (caCountMap[row.assessment_id] ?? 0) + 1
+  if (assessmentIds.length > 0) {
+    const { data: problemResponses } = await supabase
+      .from('dse_assessment_responses')
+      .select('assessment_id, item_key, response')
+      .in('assessment_id', assessmentIds)
+
+    for (const r of problemResponses ?? []) {
+      const isBad = r.item_key === 'final_discomfort'
+        ? r.response === 'yes'
+        : r.response === 'no'
+      if (isBad) actionSet.add(r.assessment_id)
     }
-  }
-
-  function getDseStatus(u: typeof users extends (infer T)[] | null ? T : never) {
-    if (!u) return { label: 'Unknown', color: 'bg-slate-100 text-slate-600' }
-    const assessment = (u.dse_assessments as unknown as {
-      id: string
-      assessment_date: string
-      overall_outcome: string
-      review_date: string
-      eye_test_recommended: boolean
-    }[] | null)?.[0] ?? null
-
-    if (u.dse_not_applicable) return { label: 'N/A', color: 'bg-slate-100 text-slate-600' }
-    if (!assessment) return { label: 'No Assessment', color: 'bg-yellow-100 text-yellow-800' }
-    if (isOverdue(assessment.review_date)) return { label: 'Overdue', color: 'bg-red-100 text-red-800' }
-    return { label: 'Current', color: 'bg-green-100 text-green-800' }
   }
 
   return (
@@ -58,7 +44,7 @@ export default async function DsePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">DSE Assessments</h1>
-          <p className="mt-1 text-sm text-slate-500">Display Screen Equipment compliance tracking for all staff.</p>
+          <p className="mt-1 text-sm text-slate-500">Display Screen Equipment assessment records.</p>
         </div>
         <Link
           href="/dse/new"
@@ -72,93 +58,83 @@ export default async function DsePage() {
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        {!users || users.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 text-sm">No active users found.</div>
+        {!assessments || assessments.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400">
+            <svg className="h-12 w-12 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <p className="text-base font-medium">No assessments yet</p>
+            <p className="text-sm mt-1">Conduct your first DSE assessment to get started</p>
+          </div>
         ) : (
-          <table className="min-w-full divide-y divide-slate-200">
-            <thead className="bg-slate-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Site</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">DSE Status</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Last Assessment</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Outcome</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Review Date</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Flags</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Outstanding CAs</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              {users.map((u) => {
-                const role = (u.roles as unknown as { name: string } | null)?.name
-                const site = (u.sites as unknown as { name: string } | null)?.name
-                const assessment = (u.dse_assessments as unknown as {
-                  id: string
-                  assessment_date: string
-                  overall_outcome: string
-                  review_date: string
-                  eye_test_recommended: boolean
-                }[] | null)?.[0] ?? null
-                const status = getDseStatus(u)
-                const outstandingCAs = assessment ? (caCountMap[assessment.id] ?? 0) : 0
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-200">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Staff Member</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Location</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Date</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Assessed By</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Outcome</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Next Review</th>
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
+                  <th className="px-5 py-3"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {assessments.map((a) => {
+                  const subject = a.subject as unknown as { first_name: string; last_name: string } | null
+                  const assessedBy = a.assessed_by as unknown as { first_name: string; last_name: string } | null
+                  const furtherAction = actionSet.has(a.id)
+                  const overdue = isOverdue(a.next_review_date)
 
-                return (
-                  <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                      <Link href={`/settings/users/${u.id}`} className="hover:text-orange-600">
-                        {u.first_name} {u.last_name}
-                      </Link>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{role ?? '—'}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{site ?? 'All sites'}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${status.color}`}>
-                        {status.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">
-                      {assessment ? (
-                        <Link href={`/dse/${assessment.id}`} className="text-orange-600 hover:text-orange-700">
-                          {formatDate(assessment.assessment_date)}
-                        </Link>
-                      ) : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {assessment ? (
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          assessment.overall_outcome === 'No Further Action Required'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-amber-100 text-amber-800'
+                  return (
+                    <tr key={a.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-5 py-3 text-sm font-medium text-slate-900">
+                        {subject ? `${subject.first_name} ${subject.last_name}` : '—'}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-600">
+                        {a.location ?? '—'}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-600">
+                        {formatDate(a.assessment_date)}
+                      </td>
+                      <td className="px-5 py-3 text-sm text-slate-600">
+                        {assessedBy ? `${assessedBy.first_name} ${assessedBy.last_name}` : '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          furtherAction ? 'bg-amber-100 text-amber-800' : 'bg-green-100 text-green-800'
                         }`}>
-                          {assessment.overall_outcome === 'No Further Action Required' ? 'No Action' : 'Action Reqd'}
+                          {furtherAction ? 'Action Required' : 'No Action'}
                         </span>
-                      ) : '—'}
-                    </td>
-                    <td className={`px-6 py-4 text-sm font-medium ${
-                      assessment && isOverdue(assessment.review_date) ? 'text-red-600' : 'text-slate-600'
-                    }`}>
-                      {assessment ? formatDate(assessment.review_date) : '—'}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {assessment?.eye_test_recommended && (
-                        <span title="Eye test recommended" className="text-amber-500">⚠</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      {outstandingCAs > 0 ? (
-                        <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                          {outstandingCAs}
+                      </td>
+                      <td className={`px-5 py-3 text-sm font-medium ${overdue ? 'text-red-600' : 'text-slate-600'}`}>
+                        {a.next_review_date ? formatDate(a.next_review_date) : '—'}
+                        {overdue && <span className="ml-1 text-xs">(Overdue)</span>}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-600">
+                          {a.status}
                         </span>
-                      ) : (
-                        <span className="text-slate-400">0</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-5 py-3 text-right">
+                        <Link
+                          href={`/dse/${a.id}`}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+                        >
+                          View
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                          </svg>
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
