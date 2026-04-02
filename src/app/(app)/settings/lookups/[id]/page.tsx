@@ -3,6 +3,9 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import Link from 'next/link'
 import AddLookupValueForm from './AddLookupValueForm'
+import EditLookupValueRow from './EditLookupValueRow'
+
+// ─── Server Actions ────────────────────────────────────────────────────────────
 
 async function toggleValueActive(valueId: string, current: boolean, categoryId: string) {
   'use server'
@@ -17,12 +20,28 @@ async function toggleValueActive(valueId: string, current: boolean, categoryId: 
 async function setDefaultValue(valueId: string, categoryId: string) {
   'use server'
   const supabase = await createClient()
-  // Clear existing default
   await supabase.from('lookup_values').update({ is_default: false }).eq('category_id', categoryId)
-  // Set new default
   await supabase.from('lookup_values').update({ is_default: true }).eq('id', valueId)
   revalidatePath(`/settings/lookups/${categoryId}`)
 }
+
+async function updateValue(
+  valueId: string,
+  label: string,
+  value: string,
+  sortOrder: number,
+  categoryId: string,
+) {
+  'use server'
+  const supabase = await createClient()
+  await supabase
+    .from('lookup_values')
+    .update({ label, value, sort_order: sortOrder })
+    .eq('id', valueId)
+  revalidatePath(`/settings/lookups/${categoryId}`)
+}
+
+// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function LookupCategoryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -72,6 +91,22 @@ export default async function LookupCategoryPage({ params }: { params: Promise<{
     revalidatePath(`/settings/lookups/${id}`)
   }
 
+  // Bind category id into each action so the client component doesn't need it
+  async function boundToggleActive(valueId: string, current: boolean) {
+    'use server'
+    await toggleValueActive(valueId, current, id)
+  }
+
+  async function boundSetDefault(valueId: string) {
+    'use server'
+    await setDefaultValue(valueId, id)
+  }
+
+  async function boundUpdateValue(valueId: string, label: string, value: string, sortOrder: number) {
+    'use server'
+    await updateValue(valueId, label, value, sortOrder, id)
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -108,52 +143,20 @@ export default async function LookupCategoryPage({ params }: { params: Promise<{
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Value</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Sort Order</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Default</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Active</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
               {values.map((val) => (
-                <tr key={val.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-slate-900">{val.label}</td>
-                  <td className="px-6 py-4 text-sm font-mono text-slate-600">{val.value}</td>
-                  <td className="px-6 py-4 text-sm text-slate-600">{val.sort_order}</td>
-                  <td className="px-6 py-4 text-sm">
-                    {val.is_default ? (
-                      <span className="text-green-600 font-medium">✓</span>
-                    ) : (
-                      <form
-                        action={async () => {
-                          'use server'
-                          await setDefaultValue(val.id, id)
-                        }}
-                      >
-                        <button type="submit" className="text-xs text-slate-400 hover:text-slate-600 underline">
-                          Set default
-                        </button>
-                      </form>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    <form
-                      action={async () => {
-                        'use server'
-                        await toggleValueActive(val.id, val.is_active, id)
-                      }}
-                    >
-                      <button type="submit" className="inline-flex cursor-pointer">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                          val.is_active
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        } transition-colors`}>
-                          {val.is_active ? '✓' : '✗'}
-                        </span>
-                      </button>
-                    </form>
-                  </td>
-                  <td className="px-6 py-4 text-right text-sm text-slate-400">—</td>
-                </tr>
+                <EditLookupValueRow
+                  key={val.id}
+                  val={val}
+                  categoryId={id}
+                  updateValue={boundUpdateValue}
+                  toggleActive={boundToggleActive}
+                  setDefault={boundSetDefault}
+                />
               ))}
             </tbody>
           </table>
