@@ -13,9 +13,10 @@ export default async function DsePage() {
   const { data: assessments } = await supabase
     .from('dse_assessments')
     .select(`
-      id, assessment_date, next_review_date, status, location,
+      id, assessment_date, next_review_date, status,
       subject:users!dse_assessments_user_id_fkey(first_name, last_name),
-      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name)
+      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name),
+      site:sites!dse_assessments_site_id_fkey(name)
     `)
     .order('assessment_date', { ascending: false })
 
@@ -85,6 +86,7 @@ export default async function DsePage() {
                 {assessments.map((a) => {
                   const subject = a.subject as unknown as { first_name: string; last_name: string } | null
                   const assessedBy = a.assessed_by as unknown as { first_name: string; last_name: string } | null
+                  const site = a.site as unknown as { name: string } | null
                   const furtherAction = actionSet.has(a.id)
                   const overdue = isOverdue(a.next_review_date)
 
@@ -94,7 +96,7 @@ export default async function DsePage() {
                         {subject ? `${subject.first_name} ${subject.last_name}` : '—'}
                       </td>
                       <td className="px-5 py-3 text-sm text-slate-600">
-                        {a.location ?? '—'}
+                        {site?.name ?? '—'}
                       </td>
                       <td className="px-5 py-3 text-sm text-slate-600">
                         {formatDate(a.assessment_date)}

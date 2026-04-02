@@ -12,7 +12,7 @@ interface DseRequestBody {
   user_id: string
   assessed_by: string
   assessment_date: string
-  location: string | null
+  site_id: string
   overall_notes: string | null
   responses: ResponseItem[]
   review_interval_months?: number
@@ -35,26 +35,14 @@ export async function POST(request: NextRequest) {
     user_id,
     assessed_by,
     assessment_date,
-    location,
+    site_id,
     overall_notes,
     responses,
     review_interval_months: bodyReviewInterval,
   } = body
 
-  if (!user_id || !assessed_by || !assessment_date) {
+  if (!user_id || !assessed_by || !assessment_date || !site_id) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
-
-  // Get user's site_id (required NOT NULL on dse_assessments)
-  const { data: userRecord } = await supabase
-    .from('users')
-    .select('site_id')
-    .eq('id', user_id)
-    .single()
-
-  const userSiteId = userRecord?.site_id ?? null
-  if (!userSiteId) {
-    return NextResponse.json({ error: 'User has no site assigned — cannot create DSE assessment' }, { status: 400 })
   }
 
   // Determine next_review_date
@@ -78,9 +66,8 @@ export async function POST(request: NextRequest) {
     .insert({
       user_id,
       assessed_by,
-      site_id: userSiteId,
+      site_id,
       assessment_date,
-      location: location || null,
       status: 'Submitted',
       overall_notes: overall_notes || null,
       next_review_date: nextReviewDate,
@@ -135,7 +122,7 @@ export async function POST(request: NextRequest) {
           description: resp.notes,
           source_table: 'dse_assessments',
           source_record_id: assessmentId,
-          site_id: userSiteId,
+          site_id,
           priority_id: mediumPriorityId,
           due_date: nextReviewDate,
           status: 'Open',

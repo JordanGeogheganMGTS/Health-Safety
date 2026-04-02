@@ -16,20 +16,24 @@ export default async function NewDseAssessmentPage({
 
   const { data: currentProfile } = await supabase
     .from('users')
-    .select('id, first_name, last_name')
+    .select('id, first_name, last_name, site_id')
     .eq('id', user.id)
     .single()
 
-  const [{ data: questions }, { data: users }, reviewIntervalRaw] = await Promise.all([
+  const [{ data: questions }, { data: users }, { data: sites }, reviewIntervalRaw] = await Promise.all([
     supabase
       .from('dse_question_templates')
       .select('id, section_number, section_label, item_key, item_text, sort_order')
       .order('sort_order'),
     supabase
       .from('users')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, site_id')
       .eq('is_active', true)
       .order('last_name'),
+    supabase
+      .from('sites')
+      .select('id, name')
+      .order('name'),
     getSetting('dse_review_interval_months'),
   ])
 
@@ -47,6 +51,7 @@ export default async function NewDseAssessmentPage({
       <DseAssessmentForm
         questions={questions ?? []}
         users={users ?? []}
+        sites={sites ?? []}
         reviewIntervalMonths={reviewIntervalMonths}
         preselectedUserId={userId ?? null}
         assessedById={currentProfile?.id ?? user.id}

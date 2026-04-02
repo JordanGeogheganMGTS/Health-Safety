@@ -13,9 +13,10 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
   const { data: assessment } = await supabase
     .from('dse_assessments')
     .select(`
-      id, assessment_date, status, next_review_date, overall_notes, location,
+      id, assessment_date, status, next_review_date, overall_notes,
       subject:users!dse_assessments_user_id_fkey(first_name, last_name),
-      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name)
+      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name),
+      site:sites!dse_assessments_site_id_fkey(name)
     `)
     .eq('id', id)
     .single()
@@ -56,6 +57,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
 
   const subjectUser = assessment.subject as unknown as { first_name: string; last_name: string } | null
   const assessedBy = assessment.assessed_by as unknown as { first_name: string; last_name: string } | null
+  const site = assessment.site as unknown as { name: string } | null
   const overdue = isOverdue(assessment.next_review_date)
 
   // final_discomfort is inverted: 'yes' is the bad answer, 'no' is good
@@ -97,7 +99,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Location</dt>
-            <dd className="mt-1 text-sm font-medium text-slate-900">{assessment.location ?? '—'}</dd>
+            <dd className="mt-1 text-sm font-medium text-slate-900">{site?.name ?? '—'}</dd>
           </div>
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wide">Assessed By</dt>

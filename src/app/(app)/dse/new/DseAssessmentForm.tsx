@@ -16,11 +16,18 @@ interface User {
   id: string
   first_name: string
   last_name: string
+  site_id: string | null
+}
+
+interface Site {
+  id: string
+  name: string
 }
 
 interface Props {
   questions: DseQuestion[]
   users: User[]
+  sites: Site[]
   reviewIntervalMonths: number
   preselectedUserId: string | null
   assessedById: string
@@ -46,6 +53,7 @@ function groupBySection(questions: DseQuestion[]) {
 export default function DseAssessmentForm({
   questions,
   users,
+  sites,
   reviewIntervalMonths,
   preselectedUserId,
   assessedById,
@@ -55,9 +63,13 @@ export default function DseAssessmentForm({
 
   const today = new Date().toISOString().split('T')[0]
 
+  const defaultSiteId = preselectedUserId
+    ? (users.find((u) => u.id === preselectedUserId)?.site_id ?? '')
+    : ''
+
   const [userId, setUserId] = useState(preselectedUserId ?? '')
+  const [siteId, setSiteId] = useState(defaultSiteId)
   const [assessmentDate, setAssessmentDate] = useState(today)
-  const [location, setLocation] = useState('')
   const [overallNotes, setOverallNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -75,6 +87,12 @@ export default function DseAssessmentForm({
     }
     setResponses(init)
   }, [questions])
+
+  // When the selected user changes, default the site to their registered site
+  useEffect(() => {
+    const selectedUser = users.find((u) => u.id === userId)
+    setSiteId(selectedUser?.site_id ?? '')
+  }, [userId, users])
 
   function setResponse(itemKey: string, value: 'yes' | 'no' | 'n/a') {
     setResponses((prev) => ({
@@ -110,11 +128,17 @@ export default function DseAssessmentForm({
     setSubmitting(true)
     setError(null)
 
+    if (!siteId) {
+      setError('Please select an assessment location')
+      setSubmitting(false)
+      return
+    }
+
     const payload = {
       user_id: userId,
       assessed_by: assessedById,
       assessment_date: assessmentDate,
-      location: location || null,
+      site_id: siteId,
       overall_notes: overallNotes || null,
       review_interval_months: reviewIntervalMonths,
       responses: questions.map((q) => ({
@@ -194,17 +218,21 @@ export default function DseAssessmentForm({
           </div>
 
           <div>
-            <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">
-              Assessment Location
+            <label htmlFor="site_id" className="block text-sm font-medium text-slate-700 mb-1">
+              Assessment Location <span className="text-red-500">*</span>
             </label>
-            <input
-              type="text"
-              id="location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+            <select
+              id="site_id"
+              value={siteId}
+              onChange={(e) => setSiteId(e.target.value)}
+              required
               className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-              placeholder="e.g. Coventry Office, Redditch Office, Home"
-            />
+            >
+              <option value="">Select location…</option>
+              {sites.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
 
           <div>
