@@ -19,7 +19,7 @@ export default async function DseAssessmentDetailPage({ params }: { params: Prom
       eye_test_recommended, regular_breaks_confirmed,
       further_action_required,
       users!dse_assessments_user_id_fkey(first_name, last_name),
-      assessed_by:users!dse_assessments_assessed_by_id_fkey(first_name, last_name)
+      assessed_by:users!dse_assessments_assessed_by_fkey(first_name, last_name)
     `)
     .eq('id', id)
     .single()

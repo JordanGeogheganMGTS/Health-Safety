@@ -14,7 +14,7 @@ interface ResponseItem {
 
 interface DseRequestBody {
   user_id: string
-  assessed_by_id: string
+  assessed_by: string
   workstation_location: string | null
   assessment_date: string
   overall_notes: string | null
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   const {
     user_id,
-    assessed_by_id,
+    assessed_by,
     workstation_location,
     assessment_date,
     overall_notes,
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     review_interval_months: bodyReviewInterval,
   } = body
 
-  if (!user_id || !assessed_by_id || !assessment_date) {
+  if (!user_id || !assessed_by || !assessment_date) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     .from('dse_assessments')
     .insert({
       user_id,
-      assessed_by_id,
+      assessed_by,
       workstation_location: workstation_location || null,
       assessment_date,
       overall_outcome: overallOutcome,
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         priority_id: mediumPriorityId,
         due_date: reviewDate,
         status: 'Open',
-        assigned_by: assessed_by_id,
+        assigned_by: assessed_by,
       })
       .select('id')
       .single()

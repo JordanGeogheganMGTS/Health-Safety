@@ -142,7 +142,7 @@ export default function DseAssessmentForm({
       user_id: userId,
       workstation_location: workstationLocation || null,
       assessment_date: assessmentDate,
-      assessed_by_id: assessedById,
+      assessed_by: assessedById,
       overall_notes: additionalNotes || null,
       user_discomfort_noted: discomfortResponse === 'yes',
       discomfort_detail: discomfortResponse === 'yes' ? discomfortDetail || null : null,
