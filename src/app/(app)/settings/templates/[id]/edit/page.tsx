@@ -31,7 +31,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
       .eq('template_id', id)
       .order('sort_order'),
     supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
-    supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').single(),
+    supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').maybeSingle(),
   ])
 
   const typesRes = catRes.data?.id

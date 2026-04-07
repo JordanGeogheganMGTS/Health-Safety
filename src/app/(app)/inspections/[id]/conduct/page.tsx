@@ -139,7 +139,7 @@ export default function ConductInspectionPage() {
         .from('lookup_categories')
         .select('id')
         .eq('key', 'finding_severity')
-        .single()
+        .maybeSingle()
 
       if (catRow?.id) {
         const { data: sevRows } = await supabase

@@ -61,7 +61,7 @@ export default function NewInspectionPage() {
       ] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
-        supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').single(),
+        supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').maybeSingle(),
         supabase.from('inspection_templates').select('id, name, site_id').eq('is_active', true).order('name'),
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
       ])
