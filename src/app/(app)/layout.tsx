@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .single(),
     supabase
       .from('sites')
-      .select('id, name')
+      .select('id, name, is_all_sites')
       .eq('is_active', true)
       .order('name'),
     supabase
