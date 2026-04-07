@@ -11,16 +11,20 @@ interface IncidentDetail {
   id: string
   incident_date: string
   incident_time: string | null
+  title: string
   type: { label: string } | null
   location: string
   description: string
+  injured_person_name: string | null
+  injured_person_type: string | null
+  injured_person_dept: string | null
   witnesses: string | null
   immediate_causes: string | null
   is_riddor_reportable: boolean
   riddor_reference: string | null
   riddor_report_date: string | null
   status: IncidentStatus
-  investigation_summary: string | null
+  root_causes: string | null
   closed_at: string | null
   created_at: string
   sites: { name: string } | null
@@ -51,9 +55,10 @@ export default async function IncidentDetailPage({ params }: PageProps) {
   const { data, error } = await supabase
     .from('incidents')
     .select(
-      `id, incident_date, incident_time, location, is_riddor_reportable, description,
+      `id, incident_date, incident_time, title, location, is_riddor_reportable, description,
+       injured_person_name, injured_person_type, injured_person_dept,
        witnesses, immediate_causes, riddor_reference,
-       riddor_report_date, status, investigation_summary, closed_at, created_at,
+       riddor_report_date, status, root_causes, closed_at, created_at,
        type:lookup_values!type_id(label),
        sites(name),
        reported_by:users!reported_by(first_name, last_name),
@@ -163,6 +168,26 @@ export default async function IncidentDetailPage({ params }: PageProps) {
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm space-y-4">
             <h2 className="text-sm font-semibold text-slate-700">Persons &amp; Response</h2>
 
+            {(incident.injured_person_name || incident.injured_person_type || incident.injured_person_dept) && (
+              <div className="rounded-lg border border-orange-100 bg-orange-50 p-4 space-y-3">
+                <p className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Injured / Affected Person</p>
+                <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3 text-sm">
+                  <div>
+                    <dt className="text-xs font-medium text-orange-600">Name</dt>
+                    <dd className="mt-0.5 text-orange-900">{incident.injured_person_name ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium text-orange-600">Person Type</dt>
+                    <dd className="mt-0.5 text-orange-900">{incident.injured_person_type ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-medium text-orange-600">Department</dt>
+                    <dd className="mt-0.5 text-orange-900">{incident.injured_person_dept ?? '—'}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+
             <div>
               <dt className="text-xs font-medium text-slate-500">Witnesses</dt>
               <dd className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">
@@ -222,9 +247,9 @@ export default async function IncidentDetailPage({ params }: PageProps) {
             </dl>
 
             <div>
-              <dt className="text-xs font-medium text-slate-500">Investigation Summary</dt>
+              <dt className="text-xs font-medium text-slate-500">Root Causes</dt>
               <dd className="mt-1 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {incident.investigation_summary ?? <span className="text-slate-400 italic">No summary recorded yet.</span>}
+                {incident.root_causes ?? <span className="text-slate-400 italic">No root causes recorded yet.</span>}
               </dd>
             </div>
           </div>

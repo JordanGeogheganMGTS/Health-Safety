@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
 import FilterBar from '@/components/ui/FilterBar'
+import SortLink from '@/components/ui/SortLink'
 
 function ExpiryBadge({ expiry }: { expiry: string | null }) {
   if (!expiry) {
@@ -18,18 +19,22 @@ function ExpiryBadge({ expiry }: { expiry: string | null }) {
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">Valid to {formatDate(expiry)}</span>
 }
 
-export default async function TrainingPage({ searchParams: spPromise }: { searchParams: Promise<{ type?: string; expired?: string; tab?: string }> }) {
+export default async function TrainingPage({ searchParams: spPromise }: { searchParams: Promise<{ type?: string; expired?: string; tab?: string; user_id?: string; sort?: string; dir?: string }> }) {
   const sp = await spPromise
   const activeTab = sp.tab === 'types' ? 'types' : 'records'
+  const sortCol = sp.sort === 'expiry_date' ? 'expiry_date' : 'completion_date'
+  const dir = sp.dir === 'asc' ? 'asc' : 'desc'
+  const asc = dir === 'asc'
 
   const supabase = await createClient()
 
-  const [{ data: trainingTypes }, { data: allTypes }] = await Promise.all([
+  const [{ data: trainingTypes }, { data: allTypes }, { data: allUsers }] = await Promise.all([
     supabase
       .from('training_types')
       .select('id, name, description, validity_months, is_mandatory, is_active')
       .order('name'),
     supabase.from('training_types').select('id, name').order('name'),
+    supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
   ])
 
   let records = null
@@ -45,9 +50,10 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
         user:users!training_records_user_id_fkey(id, first_name, last_name),
         training_type:training_types!training_records_training_type_id_fkey(id, name, is_mandatory)
       `)
-      .order('completion_date', { ascending: false })
+      .order(sortCol, { ascending: asc })
 
     if (sp.type) recordsQuery = recordsQuery.eq('training_type_id', sp.type)
+    if (sp.user_id) recordsQuery = recordsQuery.eq('user_id', sp.user_id)
     if (sp.expired === 'true') {
       const today = new Date().toISOString().split('T')[0]
       recordsQuery = recordsQuery.lt('expiry_date', today)
@@ -58,6 +64,12 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
   }
 
   const authUser = await getAuthUser()
+
+  const baseParams = Object.fromEntries(
+    Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])
+  )
+
+  const users = (allUsers ?? []) as { id: string; first_name: string; last_name: string }[]
 
   return (
     <div className="space-y-6">
@@ -124,6 +136,12 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
           <Suspense fallback={<div className="h-10" />}>
             <FilterBar filters={[
               {
+                param: 'user_id',
+                label: 'Staff Member',
+                multi: false,
+                options: users.map((u) => ({ value: u.id, label: `${u.first_name} ${u.last_name}` })),
+              },
+              {
                 param: 'type',
                 label: 'Training Type',
                 multi: false,
@@ -155,8 +173,12 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Staff Member</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Training Type</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mandatory</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Completed</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Expiry</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <SortLink column="completion_date" label="Completed" sort={sortCol} dir={dir} params={baseParams} />
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                        <SortLink column="expiry_date" label="Expiry" sort={sortCol} dir={dir} params={baseParams} />
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Provider</th>
                       <th className="px-4 py-3" />
                     </tr>

@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
 import FilterBar from '@/components/ui/FilterBar'
+import SortLink from '@/components/ui/SortLink'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -66,14 +67,18 @@ function parseFilter(value: string | undefined): string[] {
 }
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; priority?: string; site_id?: string }>
+  searchParams: Promise<{ status?: string; priority?: string; site_id?: string; sort?: string; dir?: string }>
 }
 
 export default async function CorrectiveActionsPage({ searchParams }: PageProps) {
-  const { status: statusParam, priority: priorityParam, site_id: siteParam } = await searchParams
+  const { status: statusParam, priority: priorityParam, site_id: siteParam, sort = 'due_date', dir = 'asc' } = await searchParams
   const statusFilters = parseFilter(statusParam)
   const priorityFilters = parseFilter(priorityParam)
   const siteFilters = parseFilter(siteParam)
+  const asc = dir === 'asc'
+  const validSortCols = ['due_date', 'title', 'status', 'created_at'] as const
+  type SortCol = typeof validSortCols[number]
+  const sortCol: SortCol = validSortCols.includes(sort as SortCol) ? (sort as SortCol) : 'due_date'
 
   const supabase = await createClient()
 
@@ -107,7 +112,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
        sites(name),
        assigned:users!assigned_to(first_name, last_name)`
     )
-    .order('due_date', { ascending: true, nullsFirst: false })
+    .order(sortCol, { ascending: asc, nullsFirst: false })
 
   if (statusFilters.length > 0) query = query.in('status', statusFilters)
   if (selectedPriorityIds.length > 0) query = query.in('priority_id', selectedPriorityIds)
@@ -125,6 +130,11 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
 
   const actions = (rows ?? []) as unknown as CorrectiveActionRow[]
   const authUser = await getAuthUser()
+
+  const sp = await searchParams
+  const baseParams = Object.fromEntries(
+    Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])
+  )
 
   return (
     <div className="space-y-6">
@@ -186,7 +196,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
               <thead>
                 <tr className="bg-slate-50">
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Title
+                    <SortLink column="title" label="Title" sort={sortCol} dir={dir} params={baseParams} />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Source
@@ -201,10 +211,10 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
                     Assigned To
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Due Date
+                    <SortLink column="due_date" label="Due Date" sort={sortCol} dir={dir} params={baseParams} />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Status
+                    <SortLink column="status" label="Status" sort={sortCol} dir={dir} params={baseParams} />
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                     Actions

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import SortLink from '@/components/ui/SortLink'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -32,7 +33,18 @@ function RatingBadge({ rating }: { rating: string | null }) {
   )
 }
 
-export default async function RiskAssessmentsPage() {
+interface PageProps {
+  searchParams: Promise<{ sort?: string; dir?: string }>
+}
+
+export default async function RiskAssessmentsPage({ searchParams }: PageProps) {
+  const sp = await searchParams
+  const validSortCols = ['title', 'assessment_date', 'review_due_date', 'status'] as const
+  type SortCol = typeof validSortCols[number]
+  const sortCol: SortCol = validSortCols.includes(sp.sort as SortCol) ? (sp.sort as SortCol) : 'assessment_date'
+  const dir = sp.dir === 'desc' ? 'desc' : 'asc'
+  const asc = dir === 'asc'
+
   const supabase = await createClient()
 
   const { data: assessments } = await supabase
@@ -48,9 +60,13 @@ export default async function RiskAssessmentsPage() {
       assessor:users!risk_assessments_assessed_by_fkey(first_name, last_name),
       category:lookup_values!risk_assessments_category_id_fkey(label)
     `)
-    .order('created_at', { ascending: false })
+    .order(sortCol, { ascending: asc })
 
   const authUser = await getAuthUser()
+
+  const baseParams = Object.fromEntries(
+    Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])
+  )
 
   return (
     <div>
@@ -88,12 +104,20 @@ export default async function RiskAssessmentsPage() {
             <table className="min-w-full divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <SortLink column="title" label="Title" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Site</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assessment Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Review Date</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <SortLink column="assessment_date" label="Assessment Date" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <SortLink column="review_due_date" label="Review Date" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    <SortLink column="status" label="Status" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Overall Rating</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>

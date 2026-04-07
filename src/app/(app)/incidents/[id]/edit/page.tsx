@@ -10,20 +10,24 @@ import { createClient } from '@/lib/supabase/client'
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
+  title: z.string().min(1, 'Title is required').max(255),
   incident_date: z.string().min(1, 'Incident date is required'),
   incident_time: z.string().optional(),
-  type: z.string().min(1, 'Please select an incident type'),
+  type_id: z.string().uuid('Please select an incident type'),
   site_id: z.string().uuid('Please select a site'),
-  location_description: z.string().min(1, 'Location is required'),
+  location: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
-  persons_involved: z.string().optional(),
-  immediate_actions: z.string().optional(),
-  riddor_reportable: z.boolean(),
+  injured_person_name: z.string().optional(),
+  injured_person_type: z.enum(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other', '']).optional(),
+  injured_person_dept: z.string().optional(),
+  witnesses: z.string().optional(),
+  immediate_causes: z.string().optional(),
+  is_riddor_reportable: z.boolean(),
   riddor_reference: z.string().optional(),
-  riddor_reported_date: z.string().optional(),
-  investigated_by_id: z.string().optional(),
-  investigation_summary: z.string().optional(),
+  riddor_report_date: z.string().optional(),
   status: z.enum(['Open', 'Under Investigation', 'Closed']),
+  investigated_by: z.string().optional(),
+  root_causes: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -32,17 +36,7 @@ type FormValues = z.infer<typeof schema>
 
 interface Site { id: string; name: string }
 interface UserOption { id: string; first_name: string; last_name: string }
-
-const INCIDENT_TYPES = [
-  'Near Miss',
-  'First Aid',
-  'RIDDOR Reportable',
-  'Property Damage',
-  'Environmental',
-  'Fire',
-  'Theft',
-  'Violence',
-]
+interface IncidentType { id: string; label: string }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -59,6 +53,7 @@ export default function EditIncidentPage({ params }: PageProps) {
   const [incidentId, setIncidentId] = useState<string | null>(null)
   const [sites, setSites] = useState<Site[]>([])
   const [users, setUsers] = useState<UserOption[]>([])
+  const [incidentTypes, setIncidentTypes] = useState<IncidentType[]>([])
   const [loading, setLoading] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -72,7 +67,7 @@ export default function EditIncidentPage({ params }: PageProps) {
     resolver: zodResolver(schema),
   })
 
-  const riddorWatched = useWatch({ control, name: 'riddor_reportable' })
+  const riddorWatched = useWatch({ control, name: 'is_riddor_reportable' })
   const statusWatched = useWatch({ control, name: 'status' })
 
   useEffect(() => {
@@ -80,35 +75,50 @@ export default function EditIncidentPage({ params }: PageProps) {
       const { id } = await params
       setIncidentId(id)
 
-      const [{ data: inc }, { data: sitesData }, { data: usersData }] = await Promise.all([
-        supabase.from('incidents').select('*').eq('id', id).single(),
-        supabase.from('sites').select('id, name').order('name'),
-        supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
-      ])
+      // Fetch lookup category for incident types
+      const { data: catData } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'incident_type')
+        .single()
+
+      const [{ data: inc }, { data: sitesData }, { data: usersData }, { data: typesData }] =
+        await Promise.all([
+          supabase.from('incidents').select('*').eq('id', id).single(),
+          supabase.from('sites').select('id, name').order('name'),
+          supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
+          catData
+            ? supabase.from('lookup_values').select('id, label').eq('category_id', catData.id).order('sort_order')
+            : Promise.resolve({ data: [] }),
+        ])
 
       setSites(sitesData ?? [])
       setUsers(usersData ?? [])
+      setIncidentTypes((typesData ?? []) as IncidentType[])
 
       if (inc) {
-        // Determine status override from ?action param
         let overrideStatus = inc.status
         if (action === 'investigate') overrideStatus = 'Under Investigation'
         if (action === 'close') overrideStatus = 'Closed'
 
         reset({
+          title: inc.title ?? '',
           incident_date: inc.incident_date ?? '',
           incident_time: inc.incident_time ?? '',
-          type: inc.type ?? '',
+          type_id: inc.type_id ?? '',
           site_id: inc.site_id ?? '',
-          location_description: inc.location_description ?? '',
+          location: inc.location ?? '',
           description: inc.description ?? '',
-          persons_involved: inc.persons_involved ?? '',
-          immediate_actions: inc.immediate_actions ?? '',
-          riddor_reportable: inc.riddor_reportable ?? false,
+          injured_person_name: inc.injured_person_name ?? '',
+          injured_person_type: inc.injured_person_type ?? '',
+          injured_person_dept: inc.injured_person_dept ?? '',
+          witnesses: inc.witnesses ?? '',
+          immediate_causes: inc.immediate_causes ?? '',
+          is_riddor_reportable: inc.is_riddor_reportable ?? false,
           riddor_reference: inc.riddor_reference ?? '',
-          riddor_reported_date: inc.riddor_reported_date ?? '',
-          investigated_by_id: inc.investigated_by_id ?? '',
-          investigation_summary: inc.investigation_summary ?? '',
+          riddor_report_date: inc.riddor_report_date ?? '',
+          investigated_by: inc.investigated_by ?? '',
+          root_causes: inc.root_causes ?? '',
           status: overrideStatus,
         })
       }
@@ -124,23 +134,26 @@ export default function EditIncidentPage({ params }: PageProps) {
     setServerError(null)
 
     const updatePayload: Record<string, unknown> = {
+      title: values.title,
       incident_date: values.incident_date,
       incident_time: values.incident_time || null,
-      type: values.type,
+      type_id: values.type_id,
       site_id: values.site_id,
-      location_description: values.location_description,
+      location: values.location || null,
       description: values.description,
-      persons_involved: values.persons_involved || null,
-      immediate_actions: values.immediate_actions || null,
-      riddor_reportable: values.riddor_reportable,
-      riddor_reference: values.riddor_reportable ? (values.riddor_reference || null) : null,
-      riddor_reported_date: values.riddor_reportable ? (values.riddor_reported_date || null) : null,
-      investigated_by_id: values.investigated_by_id || null,
-      investigation_summary: values.investigation_summary || null,
+      injured_person_name: values.injured_person_name || null,
+      injured_person_type: values.injured_person_type || null,
+      injured_person_dept: values.injured_person_dept || null,
+      witnesses: values.witnesses || null,
+      immediate_causes: values.immediate_causes || null,
+      is_riddor_reportable: values.is_riddor_reportable,
+      riddor_reference: values.is_riddor_reportable ? (values.riddor_reference || null) : null,
+      riddor_report_date: values.is_riddor_reportable ? (values.riddor_report_date || null) : null,
+      investigated_by: values.investigated_by || null,
+      root_causes: values.root_causes || null,
       status: values.status,
     }
 
-    // Auto-set closed_at when closing
     if (values.status === 'Closed') {
       updatePayload.closed_at = new Date().toISOString()
     }
@@ -199,6 +212,15 @@ export default function EditIncidentPage({ params }: PageProps) {
             </div>
           )}
 
+          {/* Title */}
+          <div className="space-y-1">
+            <label htmlFor="title" className={labelClass}>
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input id="title" type="text" {...register('title')} className={inputClass} placeholder="Brief summary of the incident" />
+            {errors.title && <p className={errorClass}>{errors.title.message}</p>}
+          </div>
+
           {/* Date & Time */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -216,16 +238,16 @@ export default function EditIncidentPage({ params }: PageProps) {
 
           {/* Type */}
           <div className="space-y-1">
-            <label htmlFor="type" className={labelClass}>
+            <label htmlFor="type_id" className={labelClass}>
               Incident Type <span className="text-red-500">*</span>
             </label>
-            <select id="type" {...register('type')} className={selectClass}>
+            <select id="type_id" {...register('type_id')} disabled={loading} className={selectClass}>
               <option value="">Select a type…</option>
-              {INCIDENT_TYPES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+              {incidentTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
               ))}
             </select>
-            {errors.type && <p className={errorClass}>{errors.type.message}</p>}
+            {errors.type_id && <p className={errorClass}>{errors.type_id.message}</p>}
           </div>
 
           {/* Site */}
@@ -244,11 +266,8 @@ export default function EditIncidentPage({ params }: PageProps) {
 
           {/* Location */}
           <div className="space-y-1">
-            <label htmlFor="location_description" className={labelClass}>
-              Location Description <span className="text-red-500">*</span>
-            </label>
-            <input id="location_description" type="text" {...register('location_description')} className={inputClass} />
-            {errors.location_description && <p className={errorClass}>{errors.location_description.message}</p>}
+            <label htmlFor="location" className={labelClass}>Location</label>
+            <input id="location" type="text" {...register('location')} className={inputClass} placeholder="e.g. Warehouse, loading bay 3" />
           </div>
 
           {/* Description */}
@@ -260,28 +279,52 @@ export default function EditIncidentPage({ params }: PageProps) {
             {errors.description && <p className={errorClass}>{errors.description.message}</p>}
           </div>
 
-          {/* Persons Involved */}
-          <div className="space-y-1">
-            <label htmlFor="persons_involved" className={labelClass}>Persons Involved</label>
-            <textarea id="persons_involved" {...register('persons_involved')} rows={3} className={inputClass} />
+          {/* Injured Person */}
+          <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Injured / Affected Person</p>
+            <div className="space-y-1">
+              <label htmlFor="injured_person_name" className={labelClass}>Name</label>
+              <input id="injured_person_name" type="text" {...register('injured_person_name')} className={inputClass} placeholder="Full name of the injured person" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="injured_person_type" className={labelClass}>Person Type</label>
+                <select id="injured_person_type" {...register('injured_person_type')} className={selectClass}>
+                  <option value="">Select type…</option>
+                  {(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other'] as const).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="injured_person_dept" className={labelClass}>Department</label>
+                <input id="injured_person_dept" type="text" {...register('injured_person_dept')} className={inputClass} placeholder="e.g. Warehouse, Admin" />
+              </div>
+            </div>
           </div>
 
-          {/* Immediate Actions */}
+          {/* Witnesses */}
           <div className="space-y-1">
-            <label htmlFor="immediate_actions" className={labelClass}>Immediate Actions Taken</label>
-            <textarea id="immediate_actions" {...register('immediate_actions')} rows={3} className={inputClass} />
+            <label htmlFor="witnesses" className={labelClass}>Witnesses / Persons Involved</label>
+            <textarea id="witnesses" {...register('witnesses')} rows={3} className={inputClass} />
+          </div>
+
+          {/* Immediate Causes */}
+          <div className="space-y-1">
+            <label htmlFor="immediate_causes" className={labelClass}>Immediate Actions Taken</label>
+            <textarea id="immediate_causes" {...register('immediate_causes')} rows={3} className={inputClass} />
           </div>
 
           {/* RIDDOR */}
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <input
-                id="riddor_reportable"
+                id="is_riddor_reportable"
                 type="checkbox"
-                {...register('riddor_reportable')}
+                {...register('is_riddor_reportable')}
                 className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
               />
-              <label htmlFor="riddor_reportable" className="text-sm font-medium text-slate-700">
+              <label htmlFor="is_riddor_reportable" className="text-sm font-medium text-slate-700">
                 RIDDOR Reportable
               </label>
             </div>
@@ -294,8 +337,8 @@ export default function EditIncidentPage({ params }: PageProps) {
                   <input id="riddor_reference" type="text" {...register('riddor_reference')} className={inputClass} />
                 </div>
                 <div className="space-y-1">
-                  <label htmlFor="riddor_reported_date" className={labelClass}>Date Reported to HSE</label>
-                  <input id="riddor_reported_date" type="date" {...register('riddor_reported_date')} className={inputClass} />
+                  <label htmlFor="riddor_report_date" className={labelClass}>Date Reported to HSE</label>
+                  <input id="riddor_report_date" type="date" {...register('riddor_report_date')} className={inputClass} />
                 </div>
               </div>
             )}
@@ -305,7 +348,6 @@ export default function EditIncidentPage({ params }: PageProps) {
           <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Investigation</p>
 
-            {/* Status */}
             <div className="space-y-1">
               <label htmlFor="status" className={labelClass}>
                 Status <span className="text-red-500">*</span>
@@ -323,10 +365,9 @@ export default function EditIncidentPage({ params }: PageProps) {
               )}
             </div>
 
-            {/* Investigated By */}
             <div className="space-y-1">
-              <label htmlFor="investigated_by_id" className={labelClass}>Investigated By</label>
-              <select id="investigated_by_id" {...register('investigated_by_id')} className={selectClass}>
+              <label htmlFor="investigated_by" className={labelClass}>Investigated By</label>
+              <select id="investigated_by" {...register('investigated_by')} className={selectClass}>
                 <option value="">Select a user…</option>
                 {users.map((u) => (
                   <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
@@ -334,12 +375,11 @@ export default function EditIncidentPage({ params }: PageProps) {
               </select>
             </div>
 
-            {/* Investigation Summary */}
             <div className="space-y-1">
-              <label htmlFor="investigation_summary" className={labelClass}>Investigation Summary</label>
+              <label htmlFor="root_causes" className={labelClass}>Root Causes / Investigation Summary</label>
               <textarea
-                id="investigation_summary"
-                {...register('investigation_summary')}
+                id="root_causes"
+                {...register('root_causes')}
                 rows={5}
                 className={inputClass}
                 placeholder="Summarise the findings of the investigation…"
