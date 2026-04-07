@@ -22,6 +22,7 @@ interface UserPpeRecord {
   notes: string | null
   issued_by_user: { first_name: string; last_name: string } | null
   ppe_item: PpeItem | null
+  size_value: { label: string } | null
 }
 
 async function issuePpeAction(formData: FormData): Promise<{ error?: string } | void> {
@@ -38,8 +39,8 @@ async function issuePpeAction(formData: FormData): Promise<{ error?: string } | 
   const issuedDate = (formData.get('date_issued') as string) || new Date().toISOString().split('T')[0]
   const condition = (formData.get('condition') as string) || 'Good'
   const notes = (formData.get('notes') as string) || null
+  const sizeValueId = (formData.get('size_value_id') as string) || null
 
-  // Get the subject user's site_id for RLS filtering (nullable — admins may have no site)
   const { data: userData } = await supabase
     .from('users')
     .select('site_id')
@@ -54,6 +55,7 @@ async function issuePpeAction(formData: FormData): Promise<{ error?: string } | 
     issued_by: user.id,
     condition,
     notes,
+    size_value_id: sizeValueId || null,
   })
 
   if (error) {
@@ -74,7 +76,7 @@ export default async function UserPpePage({ params }: PageProps) {
   const { userId } = await params
   const supabase = await createClient()
 
-  const [{ data: profile }, { data: ppeRecords }, { data: ppeItems }] = await Promise.all([
+  const [{ data: profile }, { data: ppeRecords }, { data: ppeItemsData }] = await Promise.all([
     supabase
       .from('users')
       .select('id, first_name, last_name')
@@ -85,7 +87,8 @@ export default async function UserPpePage({ params }: PageProps) {
       .select(`
         id, ppe_item_id, size_value_id, issued_date, returned_date, condition, notes,
         issued_by_user:users!user_ppe_records_issued_by_fkey(first_name, last_name),
-        ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(id, name, has_sizes, size_category_key, replacement_months, is_active)
+        ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(id, name, has_sizes, size_category_key, replacement_months, is_active),
+        size_value:lookup_values!user_ppe_records_size_value_id_fkey(label)
       `)
       .eq('user_id', userId)
       .order('issued_date', { ascending: false }),
@@ -98,8 +101,34 @@ export default async function UserPpePage({ params }: PageProps) {
 
   if (!profile) notFound()
 
+  const items = (ppeItemsData ?? []) as unknown as PpeItem[]
   const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
-  const items = (ppeItems ?? []) as unknown as PpeItem[]
+
+  // Fetch size lookup options for any PPE items that have sizes
+  const sizeCategoryKeys = [...new Set(
+    items.filter((i) => i.has_sizes && i.size_category_key).map((i) => i.size_category_key!)
+  )]
+
+  const sizeOptions: Record<string, { id: string; label: string }[]> = {}
+  const sizeLabels: Record<string, string> = {}
+
+  if (sizeCategoryKeys.length > 0) {
+    const { data: sizeData } = await supabase
+      .from('lookup_values')
+      .select('id, label, lookup_categories!inner(key, name)')
+      .in('lookup_categories.key', sizeCategoryKeys)
+      .eq('is_active', true)
+      .order('sort_order')
+
+    for (const row of (sizeData ?? []) as unknown as { id: string; label: string; lookup_categories: { key: string; name: string } }[]) {
+      const key = row.lookup_categories.key
+      if (!sizeOptions[key]) {
+        sizeOptions[key] = []
+        sizeLabels[key] = row.lookup_categories.name
+      }
+      sizeOptions[key].push({ id: row.id, label: row.label })
+    }
+  }
 
   // Split into active (not returned) and returned
   const activeRecords = records.filter((r) => !r.returned_date)
@@ -145,6 +174,7 @@ export default async function UserPpePage({ params }: PageProps) {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Item</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Size</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Issued</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Replace By</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Condition</th>
@@ -162,6 +192,9 @@ export default async function UserPpePage({ params }: PageProps) {
                   return (
                     <tr key={r.id} className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{item?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-slate-600">
+                        {r.size_value?.label ?? <span className="text-slate-400">—</span>}
+                      </td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(r.issued_date)}</td>
                       <td className="px-4 py-3">
                         {replaceDue ? (
@@ -201,14 +234,20 @@ export default async function UserPpePage({ params }: PageProps) {
         <div className="px-6 py-4 border-b border-slate-100">
           <h2 className="text-sm font-semibold text-slate-700">Issue / Re-issue PPE</h2>
         </div>
-        <IssueForm userId={userId} items={items} action={issuePpeAction} />
+        <IssueForm
+          userId={userId}
+          items={items}
+          sizeOptions={sizeOptions}
+          sizeLabels={sizeLabels}
+          action={issuePpeAction}
+        />
       </div>
 
       {/* Previously Returned PPE */}
       {returnedRecords.length > 0 && (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
           <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-slate-700 text-slate-400">Previously Returned</h2>
+            <h2 className="text-sm font-semibold text-slate-400">Previously Returned</h2>
             <span className="text-xs text-slate-400">{returnedRecords.length} record{returnedRecords.length !== 1 ? 's' : ''}</span>
           </div>
           <div className="overflow-x-auto">
@@ -216,6 +255,7 @@ export default async function UserPpePage({ params }: PageProps) {
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Item</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Size</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Issued</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Returned</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Condition</th>
@@ -226,6 +266,7 @@ export default async function UserPpePage({ params }: PageProps) {
                 {returnedRecords.map((r) => (
                   <tr key={r.id} className="opacity-60">
                     <td className="px-4 py-3 text-slate-600">{r.ppe_item?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-500">{r.size_value?.label ?? '—'}</td>
                     <td className="px-4 py-3 text-slate-500">{formatDate(r.issued_date)}</td>
                     <td className="px-4 py-3 text-slate-500">{formatDate(r.returned_date)}</td>
                     <td className="px-4 py-3 text-slate-500">{r.condition}</td>

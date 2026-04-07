@@ -14,6 +14,8 @@ interface PpeItem {
 interface IssueFormProps {
   userId: string
   items: PpeItem[]
+  sizeOptions: Record<string, { id: string; label: string }[]>
+  sizeLabels: Record<string, string>
   action: (formData: FormData) => Promise<{ error?: string } | void>
 }
 
@@ -21,13 +23,15 @@ function todayISO() {
   return new Date().toISOString().split('T')[0]
 }
 
-export default function IssueForm({ userId, items, action }: IssueFormProps) {
+export default function IssueForm({ userId, items, sizeOptions, sizeLabels, action }: IssueFormProps) {
   const [selectedItemId, setSelectedItemId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const selectedItem = items.find((i) => i.id === selectedItemId)
-  const showSizeField = selectedItem?.has_sizes === true
+  const sizeCategoryKey = selectedItem?.has_sizes ? selectedItem.size_category_key : null
+  const sizeChoices = sizeCategoryKey ? (sizeOptions[sizeCategoryKey] ?? []) : []
+  const sizeLabel = sizeCategoryKey ? (sizeLabels[sizeCategoryKey] ?? 'Size') : 'Size'
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true)
@@ -37,7 +41,6 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
       setError(result.error)
       setSubmitting(false)
     }
-    // On success, action calls redirect() so this component unmounts — no need to reset
   }
 
   const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
@@ -72,20 +75,23 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
           </select>
         </div>
 
-        {showSizeField && (
+        {sizeCategoryKey && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Size
-              {selectedItem?.size_category_key && (
-                <span className="ml-1 text-xs text-slate-400 font-normal">({selectedItem.size_category_key})</span>
-              )}
+              {sizeLabel}
             </label>
-            <input
-              name="size_value"
-              type="text"
-              className={inputCls}
-              placeholder="e.g. M, L, 9, 10"
-            />
+            {sizeChoices.length > 0 ? (
+              <select name="size_value_id" className={selectCls}>
+                <option value="">Select size…</option>
+                {sizeChoices.map((s) => (
+                  <option key={s.id} value={s.id}>{s.label}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-slate-400 mt-1">
+                No sizes configured for this item. Add them in Lookup Management.
+              </p>
+            )}
           </div>
         )}
 
@@ -117,7 +123,7 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
 
       {selectedItem?.replacement_months && (
         <div className="rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs text-slate-600">
-          Recommended replacement interval: {selectedItem.replacement_months} month{selectedItem.replacement_months !== 1 ? 's' : ''}
+          Replacement interval: every {selectedItem.replacement_months} month{selectedItem.replacement_months !== 1 ? 's' : ''}
         </div>
       )}
 
