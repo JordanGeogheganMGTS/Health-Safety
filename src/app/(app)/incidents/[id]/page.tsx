@@ -14,11 +14,11 @@ interface IncidentDetail {
   type: { label: string } | null
   location: string
   description: string
-  persons_involved: string | null
-  immediate_actions: string | null
+  witnesses: string | null
+  immediate_causes: string | null
   is_riddor_reportable: boolean
   riddor_reference: string | null
-  riddor_reported_date: string | null
+  riddor_report_date: string | null
   status: IncidentStatus
   investigation_summary: string | null
   closed_at: string | null
@@ -52,12 +52,12 @@ export default async function IncidentDetailPage({ params }: PageProps) {
     .from('incidents')
     .select(
       `id, incident_date, incident_time, location, is_riddor_reportable, description,
-       persons_involved, immediate_actions, riddor_reference,
-       riddor_reported_date, status, investigation_summary, closed_at, created_at,
+       witnesses, immediate_causes, riddor_reference,
+       riddor_report_date, status, investigation_summary, closed_at, created_at,
        type:lookup_values!type_id(label),
        sites(name),
        reported_by:users!reported_by(first_name, last_name),
-       investigated_by:users!investigated_by_id(first_name, last_name)`
+       investigated_by:users!investigated_by(first_name, last_name)`
     )
     .eq('id', id)
     .single()
@@ -73,7 +73,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
         <Link href="/incidents" className="hover:text-slate-700 hover:underline">Incident Log</Link>
         <span>/</span>
         <span className="font-medium text-slate-800 truncate max-w-xs">
-          {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? 'Incident'} — {formatDate(incident.incident_date)}
+          {incident.type?.label ?? 'Incident'} — {formatDate(incident.incident_date)}
         </span>
       </nav>
 
@@ -81,7 +81,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-slate-900">
-            {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? 'Incident'}
+            {incident.type?.label ?? 'Incident'}
           </h1>
           <div className="flex flex-wrap items-center gap-2">
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(incident.status)}`}>
@@ -141,12 +141,12 @@ export default async function IncidentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">Type</dt>
                 <dd className="mt-0.5 text-slate-800">
-                  {(incident.type as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
+                  {incident.type?.label ?? '—'}
                 </dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
-                <dd className="mt-0.5 text-slate-800">{incident.sites?.[0]?.name ?? '—'}</dd>
+                <dd className="mt-0.5 text-slate-800">{(incident.sites as unknown as { name: string } | null)?.name ?? '—'}</dd>
               </div>
               <div className="sm:col-span-2">
                 <dt className="text-xs font-medium text-slate-500">Location</dt>
@@ -164,16 +164,16 @@ export default async function IncidentDetailPage({ params }: PageProps) {
             <h2 className="text-sm font-semibold text-slate-700">Persons &amp; Response</h2>
 
             <div>
-              <dt className="text-xs font-medium text-slate-500">Persons Involved</dt>
+              <dt className="text-xs font-medium text-slate-500">Witnesses</dt>
               <dd className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">
-                {incident.persons_involved ?? <span className="text-slate-400 italic">None recorded.</span>}
+                {incident.witnesses ?? <span className="text-slate-400 italic">None recorded.</span>}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-medium text-slate-500">Immediate Actions Taken</dt>
+              <dt className="text-xs font-medium text-slate-500">Immediate Causes</dt>
               <dd className="mt-1 text-sm text-slate-700 whitespace-pre-wrap">
-                {incident.immediate_actions ?? <span className="text-slate-400 italic">None recorded.</span>}
+                {incident.immediate_causes ?? <span className="text-slate-400 italic">None recorded.</span>}
               </dd>
             </div>
 
@@ -187,7 +187,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                   </div>
                   <div>
                     <dt className="text-xs font-medium text-red-600">Date Reported to HSE</dt>
-                    <dd className="mt-0.5 text-red-800">{formatDate(incident.riddor_reported_date)}</dd>
+                    <dd className="mt-0.5 text-red-800">{formatDate(incident.riddor_report_date)}</dd>
                   </div>
                 </dl>
               </div>
@@ -208,7 +208,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                 <dt className="text-xs font-medium text-slate-500">Investigated By</dt>
                 <dd className="mt-0.5 text-slate-800">
                   {(() => {
-                    const ib = (incident.investigated_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    const ib = incident.investigated_by as unknown as { first_name: string; last_name: string } | null
                     return ib ? `${ib.first_name} ${ib.last_name}` : <span className="text-slate-400">—</span>
                   })()}
                 </dd>
@@ -239,7 +239,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
                 <dt className="text-xs font-medium text-slate-500">Reported By</dt>
                 <dd className="mt-0.5 text-slate-800">
                   {(() => {
-                    const rb = (incident.reported_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    const rb = incident.reported_by as unknown as { first_name: string; last_name: string } | null
                     return rb ? `${rb.first_name} ${rb.last_name}` : '—'
                   })()}
                 </dd>

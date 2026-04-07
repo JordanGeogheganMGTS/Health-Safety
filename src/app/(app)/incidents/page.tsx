@@ -140,9 +140,9 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3 text-sm text-slate-700">{formatDate(inc.incident_date)}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{inc.incident_time ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-700">
-                      {(inc.type as unknown as { label: string }[] | null)?.[0]?.label ?? '—'}
+                      {inc.type?.label ?? '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{inc.sites?.[0]?.name ?? '—'}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{(inc.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[160px] truncate">
                       {inc.location}
                     </td>
@@ -162,7 +162,7 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {(() => {
-                        const rb = (inc.reported_by as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        const rb = inc.reported_by as unknown as { first_name: string; last_name: string } | null
                         return rb ? `${rb.first_name} ${rb.last_name}` : '—'
                       })()}
                     </td>
