@@ -304,11 +304,11 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
                       {formatSourceTable(ca.source_table)}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {ca.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
+                      {ca.sites?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3">
                       {(() => {
-                        const p = (ca.priority as unknown as { label: Priority }[] | null)?.[0]?.label
+                        const p = ca.priority?.label
                         return p ? (
                           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${priorityBadgeClass(p)}`}>
                             {p}
@@ -318,7 +318,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {(() => {
-                        const a = (ca.assigned as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        const a = ca.assigned
                         return a ? `${a.first_name} ${a.last_name}` : <span className="text-slate-400">Unassigned</span>
                       })()}
                     </td>
