@@ -42,6 +42,15 @@ interface DrillRow {
   sites: { name: string } | null
 }
 
+interface EmergencyLightTestRow {
+  id: string
+  test_date: string
+  test_type: string
+  overall_result: 'Pass' | 'Fail' | null
+  sites: { name: string } | null
+  tested_by_user: { first_name: string; last_name: string } | null
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function extStatusBadgeClass(label: string): string {
@@ -74,6 +83,7 @@ export default async function FireSafetyPage() {
     { data: extRows },
     { data: alarmTestRows },
     { data: drillRows },
+    { data: elTestRows },
   ] = await Promise.all([
     supabase
       .from('fire_extinguishers')
@@ -95,11 +105,17 @@ export default async function FireSafetyPage() {
       .select('id, drill_date, drill_time, evacuation_time_secs, number_evacuated, issues_identified, notes, sites!site_id(name)')
       .order('drill_date', { ascending: false })
       .limit(50),
+    supabase
+      .from('emergency_light_tests')
+      .select('id, test_date, test_type, overall_result, sites!site_id(name), tested_by_user:users!tested_by(first_name, last_name)')
+      .order('test_date', { ascending: false })
+      .limit(50),
   ])
 
   const extinguishers = (extRows ?? []) as unknown as ExtinguisherRow[]
   const alarmTests = (alarmTestRows ?? []) as unknown as AlarmTestRow[]
   const drills = (drillRows ?? []) as unknown as DrillRow[]
+  const elTests = (elTestRows ?? []) as unknown as EmergencyLightTestRow[]
 
   const authUser = await getAuthUser()
 
@@ -315,6 +331,71 @@ export default async function FireSafetyPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Link href={`/fire-safety/drill/${d.id}`} className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">View</Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Card 4: Emergency Lighting Tests ──────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-slate-900">Emergency Lighting Tests</h2>
+          {authUser?.can('fire_safety', 'create') && (
+            <Link
+              href="/fire-safety/emergency-lighting/new"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+            >
+              <span aria-hidden="true">+</span> Log Test
+            </Link>
+          )}
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          {elTests.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm font-medium text-slate-500">No emergency lighting tests recorded.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                <Link href="/fire-safety/emergency-lighting/new" className="text-orange-600 hover:underline">
+                  Log the first test
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-slate-100">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Site</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Test Type</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Overall Result</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Tested By</th>
+                    <th className="px-4 py-3"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {elTests.map((t) => (
+                    <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-4 py-3 text-sm text-slate-700">{(t.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{formatDate(t.test_date)}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{t.test_type}</td>
+                      <td className="px-4 py-3">
+                        {t.overall_result ? (
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${t.overall_result === 'Pass' ? 'bg-green-100 text-green-700 ring-green-200' : 'bg-red-100 text-red-700 ring-red-200'}`}>
+                            {t.overall_result}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600">
+                        {t.tested_by_user ? `${(t.tested_by_user as unknown as { first_name: string; last_name: string }).first_name} ${(t.tested_by_user as unknown as { first_name: string; last_name: string }).last_name}` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/fire-safety/emergency-lighting/${t.id}`} className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">View</Link>
                       </td>
                     </tr>
                   ))}
