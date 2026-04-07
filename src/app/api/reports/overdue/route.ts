@@ -58,7 +58,7 @@ export async function GET() {
 
     supabase
       .from('training_records')
-      .select('expiry_date, users!user_id(first_name, last_name), training_types(name), sites(name)')
+      .select('expiry_date, user:users!training_records_user_id_fkey(first_name, last_name), training_type:training_types!training_records_training_type_id_fkey(name)')
       .not('expiry_date', 'is', null)
       .lt('expiry_date', todayStr)
       .order('expiry_date', { ascending: true }),
@@ -73,6 +73,7 @@ export async function GET() {
   const buffer = buildWorkbook([
     {
       name: 'Corrective Actions',
+      headers: ['Title', 'Site', 'Priority', 'Assigned To', 'Due Date', 'Status', 'Days Overdue'],
       data: (correctiveActions ?? []).map(r => {
         const row = r as any
         const assigned = row.assigned ?? null
@@ -90,6 +91,7 @@ export async function GET() {
     },
     {
       name: 'Documents',
+      headers: ['Title', 'Site', 'Status', 'Review Due Date', 'Days Overdue'],
       data: (documents ?? []).map(r => {
         const row = r as any
         return {
@@ -103,6 +105,7 @@ export async function GET() {
     },
     {
       name: 'Risk Assessments',
+      headers: ['Title', 'Site', 'Status', 'Review Due Date', 'Days Overdue'],
       data: (riskAssessments ?? []).map(r => {
         const row = r as any
         return {
@@ -116,6 +119,7 @@ export async function GET() {
     },
     {
       name: 'Equipment',
+      headers: ['Name', 'Site', 'Next Inspection Date', 'Days Overdue'],
       data: (equipment ?? []).map(r => {
         const row = r as any
         return {
@@ -128,6 +132,7 @@ export async function GET() {
     },
     {
       name: 'Fire Extinguishers',
+      headers: ['Location', 'Site', 'Next Inspection Date', 'Days Overdue'],
       data: (fireExtinguishers ?? []).map(r => {
         const row = r as any
         return {
@@ -140,15 +145,15 @@ export async function GET() {
     },
     {
       name: 'Training',
+      headers: ['Staff Member', 'Training Type', 'Expiry Date', 'Days Overdue'],
       data: (trainingRecords ?? []).map(r => {
         const row = r as any
-        const u = row['users!user_id'] ?? row.users ?? null
-        const tt = row.training_types ?? null
+        const u = row.user ?? null
+        const tt = row.training_type ?? null
         const staffName = u ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : ''
         return {
           'Staff Member': staffName,
           'Training Type': tt?.name ?? '',
-          'Site': row.sites?.name ?? '',
           'Expiry Date': row.expiry_date ?? '',
           'Days Overdue': calcDaysOverdue(row.expiry_date),
         }

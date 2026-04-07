@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildWorkbook } from '@/lib/export'
 
+const HEADERS = ['Name', 'Email', 'Role', 'Site', 'DSE Status', 'Assessment Date', 'Outcome', 'Review Date', 'Eye Test Required', 'Further Action Required']
+
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -8,46 +10,56 @@ export async function GET() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  const { data: rows } = await supabase
-    .from('users')
-    .select(
-      'first_name, last_name, email, dse_not_applicable, ' +
-      'roles(name), ' +
-      'sites(name), ' +
-      'dse_assessments!users_dse_last_assessment_id_fkey(assessment_date, overall_outcome, review_date, eye_test_recommended, further_action_required)'
-    )
-    .order('last_name', { ascending: true })
+  // Two queries — users don't have a direct FK to dse_assessments
+  const [{ data: users }, { data: assessments }] = await Promise.all([
+    supabase
+      .from('users')
+      .select('id, first_name, last_name, email, dse_not_applicable, roles(name), sites(name)')
+      .order('last_name'),
+    supabase
+      .from('dse_assessments')
+      .select('user_id, assessment_date, next_review_date, status, overall_outcome, eye_test_recommended, further_action_required')
+      .order('assessment_date', { ascending: false }),
+  ])
+
+  // Latest assessment per user
+  const latestByUser: Record<string, Record<string, unknown>> = {}
+  for (const a of assessments ?? []) {
+    const row = a as Record<string, unknown>
+    const uid = row.user_id as string
+    if (!latestByUser[uid]) latestByUser[uid] = row
+  }
 
   const buffer = buildWorkbook([{
     name: 'DSE Compliance',
-    data: (rows ?? []).map(r => {
-      const row = r as any
-      const assessment = row['dse_assessments!users_dse_last_assessment_id_fkey'] ?? null
-      const role = row.roles ?? null
-      const site = row.sites ?? null
+    headers: HEADERS,
+    data: (users ?? []).map(u => {
+      const row = u as Record<string, unknown>
+      const assessment = latestByUser[row.id as string] ?? null
+      const role = row.roles as { name: string } | null
+      const site = row.sites as { name: string } | null
+      const fullName = `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim()
 
       let dseStatus: string
       if (row.dse_not_applicable === true) {
         dseStatus = 'Not Applicable'
       } else if (!assessment) {
         dseStatus = 'No Assessment'
-      } else if (assessment.review_date && assessment.review_date < today) {
+      } else if (assessment.next_review_date && (assessment.next_review_date as string) < today) {
         dseStatus = 'Overdue'
       } else {
         dseStatus = 'Current'
       }
 
-      const fullName = `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim()
-
       return {
         'Name': fullName,
-        'Email': row.email ?? '',
+        'Email': (row.email as string) ?? '',
         'Role': role?.name ?? '',
         'Site': site?.name ?? '',
         'DSE Status': dseStatus,
-        'Last Assessment Date': assessment?.assessment_date ?? '',
-        'Outcome': assessment?.overall_outcome ?? '',
-        'Review Date': assessment?.review_date ?? '',
+        'Assessment Date': (assessment?.assessment_date as string) ?? '',
+        'Outcome': (assessment?.overall_outcome as string) ?? '',
+        'Review Date': (assessment?.next_review_date as string) ?? '',
         'Eye Test Required': assessment?.eye_test_recommended === true ? 'Yes' : assessment?.eye_test_recommended === false ? 'No' : '',
         'Further Action Required': assessment?.further_action_required === true ? 'Yes' : assessment?.further_action_required === false ? 'No' : '',
       }

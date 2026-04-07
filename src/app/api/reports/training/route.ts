@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildWorkbook } from '@/lib/export'
 
+const HEADERS = ['Staff Member', 'Training Type', 'Mandatory', 'Completed Date', 'Expiry Date', 'Status', 'Provider']
+
 export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -14,29 +16,28 @@ export async function GET() {
   const { data: rows } = await supabase
     .from('training_records')
     .select(
-      'completed_date, expiry_date, provider, ' +
-      'users(first_name, last_name), ' +
-      'training_types(name, is_mandatory, validity_months)'
+      `completion_date, expiry_date, provider,
+       user:users!training_records_user_id_fkey(first_name, last_name),
+       training_type:training_types!training_records_training_type_id_fkey(name, is_mandatory)`
     )
-    .order('completed_date', { ascending: false })
+    .order('completion_date', { ascending: false })
 
   const buffer = buildWorkbook([{
     name: 'Training Records',
+    headers: HEADERS,
     data: (rows ?? []).map(r => {
-      const row = r as any
-      const user = row.users ?? null
-      const trainingType = row.training_types ?? null
-
-      const staffName = user
-        ? `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim()
-        : ''
+      const row = r as Record<string, unknown>
+      const u = row.user as { first_name: string; last_name: string } | null
+      const tt = row.training_type as { name: string; is_mandatory: boolean } | null
+      const staffName = u ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : ''
+      const expiry = row.expiry_date as string | null
 
       let status: string
-      if (!row.expiry_date) {
+      if (!expiry) {
         status = 'No Expiry'
-      } else if (row.expiry_date < today) {
+      } else if (expiry < today) {
         status = 'Expired'
-      } else if (row.expiry_date <= soonDateStr) {
+      } else if (expiry <= soonDateStr) {
         status = 'Expiring Soon'
       } else {
         status = 'Valid'
@@ -44,12 +45,12 @@ export async function GET() {
 
       return {
         'Staff Member': staffName,
-        'Training Type': trainingType?.name ?? '',
-        'Mandatory': trainingType?.is_mandatory === true ? 'Yes' : trainingType?.is_mandatory === false ? 'No' : '',
-        'Completed Date': row.completed_date ?? '',
-        'Expiry Date': row.expiry_date ?? '',
+        'Training Type': tt?.name ?? '',
+        'Mandatory': tt?.is_mandatory === true ? 'Yes' : tt?.is_mandatory === false ? 'No' : '',
+        'Completed Date': (row.completion_date as string) ?? '',
+        'Expiry Date': expiry ?? '',
         'Status': status,
-        'Provider': row.provider ?? '',
+        'Provider': (row.provider as string) ?? '',
       }
     }),
   }])

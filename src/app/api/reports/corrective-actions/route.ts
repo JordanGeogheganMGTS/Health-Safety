@@ -18,6 +18,7 @@ export async function GET() {
 
   const buffer = buildWorkbook([{
     name: 'Corrective Actions',
+    headers: ['Title', 'Description', 'Source', 'Site', 'Priority', 'Assigned To', 'Due Date', 'Status', 'Completed Date', 'Created Date'],
     data: (rows ?? []).map(r => {
       const row = r as any
       const assignedUser = row.assigned ?? null

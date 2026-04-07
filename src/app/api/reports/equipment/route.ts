@@ -21,6 +21,7 @@ export async function GET() {
 
   const buffer = buildWorkbook([{
     name: 'Equipment Service',
+    headers: ['Name', 'Site', 'Asset Tag', 'Serial Number', 'Manufacturer', 'Model', 'Purchase Date', 'Next Inspection Date', 'Days Overdue', 'Status', 'Notes'],
     data: (rows ?? []).map(r => {
       const row = r as any
       const site = row.sites ?? null
