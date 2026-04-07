@@ -105,9 +105,9 @@ export default async function UserPpePage({ params }: PageProps) {
   const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
 
   // Fetch size lookup options for any PPE items that have sizes
-  const sizeCategoryKeys = [...new Set(
+  const sizeCategoryKeys = Array.from(new Set(
     items.filter((i) => i.has_sizes && i.size_category_key).map((i) => i.size_category_key!)
-  )]
+  ))
 
   const sizeOptions: Record<string, { id: string; label: string }[]> = {}
   const sizeLabels: Record<string, string> = {}
