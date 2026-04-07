@@ -70,7 +70,6 @@ const PERMISSIONS: Record<RoleName, Record<string, string[]>> = {
     training: ['view'],
     ppe: ['view'],
     dse: ['view'],
-    dashboard: ['view'],
   },
   'Read-Only': {
     documents: ['view'],

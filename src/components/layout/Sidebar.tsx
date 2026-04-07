@@ -41,7 +41,7 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',          href: '/dashboard',          icon: LayoutDashboard, roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
+  { label: 'Dashboard',          href: '/dashboard',          icon: LayoutDashboard, roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
   { label: 'Documents',          href: '/documents',          icon: FileText,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'Risk Assessments',   href: '/risk-assessments',   icon: AlertTriangle,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'Method Statements',  href: '/method-statements',  icon: ClipboardList,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },

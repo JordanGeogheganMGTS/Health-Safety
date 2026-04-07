@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
 
     // ── TDA / Staff: restrict to allowed sections only ─────────────────────────
     const TDA_ALLOWED = [
-      '/dashboard', '/documents', '/risk-assessments', '/method-statements',
+      '/documents', '/risk-assessments', '/method-statements',
       '/coshh', '/equipment', '/training', '/ppe', '/dse', '/profile', '/change-password',
     ]
     if (role === 'TDA / Staff') {
