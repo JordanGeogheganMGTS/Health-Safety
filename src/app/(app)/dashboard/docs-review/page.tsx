@@ -36,7 +36,7 @@ export default async function DocsReviewPage({
   const siteId = searchParams.site?.trim() || null
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function withSite<T extends { eq: (col: string, val: string) => T }>(q: T): T {
+  function withSite(q: any): any {
     return siteId ? q.eq('site_id', siteId) : q
   }
 

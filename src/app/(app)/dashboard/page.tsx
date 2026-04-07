@@ -72,7 +72,7 @@ export default async function DashboardPage({
 
   // Helper to apply optional site filter
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  function withSite<T extends { eq: (col: string, val: string) => T }>(q: T): T {
+  function withSite(q: any): any {
     return siteId ? q.eq('site_id', siteId) : q
   }
 
