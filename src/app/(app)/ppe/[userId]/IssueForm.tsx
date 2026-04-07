@@ -33,7 +33,7 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
     setSubmitting(true)
     setError(null)
     const result = await action(formData)
-    if (result?.error) {
+    if (result && 'error' in result && result.error) {
       setError(result.error)
       setSubmitting(false)
     }
