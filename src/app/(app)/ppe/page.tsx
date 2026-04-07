@@ -39,17 +39,24 @@ export default async function PpePage({
   ])
 
   const isAdmin = authUser?.role === 'System Admin'
+  const isTdaStaff = authUser?.role === 'TDA / Staff'
 
   const [{ data: ppeItems }, { data: activeUsers }, { data: allPpeRecords }] = await Promise.all([
     supabase
       .from('ppe_items')
       .select('id, name, has_sizes, size_category_key, replacement_months, is_active, sort_order')
       .order('sort_order'),
-    supabase
-      .from('users')
-      .select('id, first_name, last_name, sites(name)')
-      .eq('is_active', true)
-      .order('last_name'),
+    // TDA/Staff: only show themselves in the staff tab
+    isTdaStaff && authUser
+      ? supabase
+          .from('users')
+          .select('id, first_name, last_name, sites(name)')
+          .eq('id', authUser.id)
+      : supabase
+          .from('users')
+          .select('id, first_name, last_name, sites(name)')
+          .eq('is_active', true)
+          .order('last_name'),
     supabase
       .from('user_ppe_records')
       .select('id, user_id, ppe_item_id')

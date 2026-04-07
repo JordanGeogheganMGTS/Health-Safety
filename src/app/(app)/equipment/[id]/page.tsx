@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -89,6 +90,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .order('service_date', { ascending: false })
 
   const records = (serviceRows ?? []) as unknown as ServiceRecord[]
+  const authUser = await getAuthUser()
 
   return (
     <div className="space-y-6">
@@ -110,12 +112,14 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
           )}
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link
-            href={`/equipment/${eq.id}/edit`}
-            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-          >
-            Edit
-          </Link>
+          {authUser?.can('equipment', 'edit') && (
+            <Link
+              href={`/equipment/${eq.id}/edit`}
+              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
+          )}
         </div>
       </div>
 
@@ -203,12 +207,14 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-slate-900">Service Records</h2>
-          <Link
-            href={`/equipment/${eq.id}/service/new`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-          >
-            <span aria-hidden="true">+</span> Log Service Record
-          </Link>
+          {authUser?.can('equipment', 'edit') && (
+            <Link
+              href={`/equipment/${eq.id}/service/new`}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+            >
+              <span aria-hidden="true">+</span> Log Service Record
+            </Link>
+          )}
         </div>
 
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

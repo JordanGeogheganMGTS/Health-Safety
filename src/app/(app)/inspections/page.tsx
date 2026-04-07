@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
 import FilterBar from '@/components/ui/FilterBar'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
   const { status: statusParam } = await searchParams
   const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
+  const authUser = await getAuthUser()
 
   let query = supabase
     .from('inspections')
@@ -73,12 +75,14 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
             {inspections.length} record{inspections.length !== 1 ? 's' : ''} found
           </p>
         </div>
-        <Link
-          href="/inspections/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
-        >
-          <span aria-hidden="true">+</span> Schedule Inspection
-        </Link>
+        {authUser?.can('inspections', 'create') && (
+          <Link
+            href="/inspections/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
+          >
+            <span aria-hidden="true">+</span> Schedule Inspection
+          </Link>
+        )}
       </div>
 
       {/* Filters */}

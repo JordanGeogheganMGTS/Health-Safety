@@ -28,13 +28,19 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
 
   const supabase = await createClient()
 
+  const authUser = await getAuthUser()
+  const isTdaStaff = authUser?.role === 'TDA / Staff'
+
   const [{ data: trainingTypes }, { data: allTypes }, { data: allUsers }] = await Promise.all([
     supabase
       .from('training_types')
       .select('id, name, description, validity_months, is_mandatory, is_active')
       .order('name'),
     supabase.from('training_types').select('id, name').order('name'),
-    supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
+    // TDA/Staff only see their own records so the user filter dropdown is not needed
+    isTdaStaff
+      ? Promise.resolve({ data: [] })
+      : supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
   ])
 
   let records = null
@@ -52,8 +58,14 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
       `)
       .order(sortCol, { ascending: asc })
 
+    // TDA/Staff: always filter to own records only
+    if (isTdaStaff && authUser) {
+      recordsQuery = recordsQuery.eq('user_id', authUser.id)
+    } else {
+      if (sp.user_id) recordsQuery = recordsQuery.eq('user_id', sp.user_id)
+    }
+
     if (sp.type) recordsQuery = recordsQuery.eq('training_type_id', sp.type)
-    if (sp.user_id) recordsQuery = recordsQuery.eq('user_id', sp.user_id)
     if (sp.expired === 'true') {
       const today = new Date().toISOString().split('T')[0]
       recordsQuery = recordsQuery.lt('expiry_date', today)
@@ -62,8 +74,6 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
     const { data } = await recordsQuery
     records = data
   }
-
-  const authUser = await getAuthUser()
 
   const baseParams = Object.fromEntries(
     Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])

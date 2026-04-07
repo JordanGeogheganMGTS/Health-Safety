@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
   if (error || !data) notFound()
 
   const incident = data as unknown as IncidentDetail
+  const authUser = await getAuthUser()
 
   return (
     <div className="space-y-6">
@@ -101,28 +103,32 @@ export default async function IncidentDetailPage({ params }: PageProps) {
         </div>
 
         <div className="flex shrink-0 flex-wrap gap-2">
-          {incident.status === 'Open' && (
-            <Link
-              href={`/incidents/${incident.id}/edit?action=investigate`}
-              className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
-            >
-              Start Investigation
-            </Link>
+          {authUser?.can('incidents', 'edit') && (
+            <>
+              {incident.status === 'Open' && (
+                <Link
+                  href={`/incidents/${incident.id}/edit?action=investigate`}
+                  className="inline-flex items-center rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
+                >
+                  Start Investigation
+                </Link>
+              )}
+              {incident.status === 'Under Investigation' && (
+                <Link
+                  href={`/incidents/${incident.id}/edit?action=close`}
+                  className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors"
+                >
+                  Close Incident
+                </Link>
+              )}
+              <Link
+                href={`/incidents/${incident.id}/edit`}
+                className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+              >
+                Edit
+              </Link>
+            </>
           )}
-          {incident.status === 'Under Investigation' && (
-            <Link
-              href={`/incidents/${incident.id}/edit?action=close`}
-              className="inline-flex items-center rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors"
-            >
-              Close Incident
-            </Link>
-          )}
-          <Link
-            href={`/incidents/${incident.id}/edit`}
-            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-          >
-            Edit
-          </Link>
         </div>
       </div>
 

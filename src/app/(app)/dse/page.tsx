@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 export default async function DsePage() {
   const supabase = await createClient()
@@ -9,8 +10,11 @@ export default async function DsePage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Fetch all assessments with subject and assessor names
-  const { data: assessments } = await supabase
+  const authUser = await getAuthUser()
+  const isTdaStaff = authUser?.role === 'TDA / Staff'
+
+  // TDA/Staff: only see their own assessments
+  let assessmentsQuery = supabase
     .from('dse_assessments')
     .select(`
       id, assessment_date, next_review_date, status,
@@ -19,6 +23,12 @@ export default async function DsePage() {
       site:sites!dse_assessments_site_id_fkey(name)
     `)
     .order('assessment_date', { ascending: false })
+
+  if (isTdaStaff && authUser) {
+    assessmentsQuery = assessmentsQuery.eq('user_id', authUser.id)
+  }
+
+  const { data: assessments } = await assessmentsQuery
 
   // Fetch all "problem" responses so we can flag further action per assessment
   // Rules: response='no' on any question except final_discomfort
@@ -47,15 +57,17 @@ export default async function DsePage() {
           <h1 className="text-2xl font-semibold text-slate-900">DSE Assessments</h1>
           <p className="mt-1 text-sm text-slate-500">Display Screen Equipment assessment records.</p>
         </div>
-        <Link
-          href="/dse/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
-        >
-          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Conduct Assessment
-        </Link>
+        {authUser?.can('dse', 'create') && (
+          <Link
+            href="/dse/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Conduct Assessment
+          </Link>
+        )}
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { getAuthUser } from '@/lib/permissions'
 
 function ExpiryBadge({ expiry }: { expiry: string | null }) {
   if (!expiry) return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-500">No expiry</span>
@@ -49,6 +50,8 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
     recorded_by_user: { first_name: string; last_name: string } | null
   }
 
+  const authUser = await getAuthUser()
+
   // Generate signed URL for certificate if one exists
   let certificateUrl: string | null = null
   if (r.certificate_file_path) {
@@ -85,12 +88,14 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
             {r.training_type?.is_mandatory && (
               <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">Required</span>
             )}
-            <Link
-              href={`/training/${id}/edit`}
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-            >
-              Edit
-            </Link>
+            {authUser?.can('training', 'edit') && (
+              <Link
+                href={`/training/${id}/edit`}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Edit
+              </Link>
+            )}
           </div>
         </div>
 

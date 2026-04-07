@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import FilterBar from '@/components/ui/FilterBar'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +47,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   const { site_id: siteParam } = await searchParams
   const siteFilters = siteParam ? siteParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
+  const authUser = await getAuthUser()
 
   let query = supabase
     .from('equipment')
@@ -82,12 +84,14 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
             {equipment.length} record{equipment.length !== 1 ? 's' : ''} found
           </p>
         </div>
-        <Link
-          href="/equipment/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
-        >
-          <span aria-hidden="true">+</span> Add Equipment
-        </Link>
+        {authUser?.can('equipment', 'create') && (
+          <Link
+            href="/equipment/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-orange-600 transition-colors"
+          >
+            <span aria-hidden="true">+</span> Add Equipment
+          </Link>
+        )}
       </div>
 
       {/* Filters */}
@@ -106,13 +110,15 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
         {equipment.length === 0 ? (
           <div className="px-6 py-16 text-center">
             <p className="text-sm font-medium text-slate-500">No equipment records found.</p>
-            <p className="mt-1 text-xs text-slate-400">
-              Try adjusting your filters or{' '}
-              <Link href="/equipment/new" className="text-orange-600 hover:underline">
-                add new equipment
-              </Link>
-              .
-            </p>
+            {authUser?.can('equipment', 'create') && (
+              <p className="mt-1 text-xs text-slate-400">
+                Try adjusting your filters or{' '}
+                <Link href="/equipment/new" className="text-orange-600 hover:underline">
+                  add new equipment
+                </Link>
+                .
+              </p>
+            )}
           </div>
         ) : (
           <div className="overflow-x-auto">

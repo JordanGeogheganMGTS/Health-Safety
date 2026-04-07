@@ -44,11 +44,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Force password change: check flag for authenticated users not already on change-password
+  // Fetch profile for permission checks (must_change_password + role)
   if (user && !pathname.startsWith('/change-password')) {
     const { data: profile } = await supabase
       .from('users')
-      .select('must_change_password')
+      .select('must_change_password, roles(name)')
       .eq('id', user.id)
       .single()
 
@@ -59,6 +59,59 @@ export async function middleware(request: NextRequest) {
       supabaseResponse.cookies.getAll().forEach((c) =>
         redirectRes.cookies.set(c.name, c.value)
       )
+      return redirectRes
+    }
+
+    const role = (profile?.roles as unknown as { name: string } | null)?.name ?? ''
+
+    // ── TDA / Staff: restrict to allowed sections only ─────────────────────────
+    const TDA_ALLOWED = [
+      '/dashboard', '/documents', '/risk-assessments', '/method-statements',
+      '/coshh', '/equipment', '/training', '/ppe', '/dse', '/profile', '/change-password',
+    ]
+    if (role === 'TDA / Staff') {
+      const allowed = TDA_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + '/'))
+      if (!allowed) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/documents'
+        const redirectRes = NextResponse.redirect(url)
+        supabaseResponse.cookies.getAll().forEach((c) => redirectRes.cookies.set(c.name, c.value))
+        return redirectRes
+      }
+    }
+
+    // ── Read-only roles: block all write routes ─────────────────────────────────
+    const READ_ONLY_ROLES = ['Read-Only', 'Site Manager', 'TDA / Staff']
+    if (READ_ONLY_ROLES.includes(role)) {
+      const isWriteRoute =
+        pathname.endsWith('/new') ||
+        pathname.endsWith('/edit') ||
+        /\/edit(\/|$)/.test(pathname) ||
+        /\/new(\/|$)/.test(pathname)
+
+      if (isWriteRoute) {
+        // Redirect to the nearest parent view page
+        let redirectPath = '/dashboard'
+        if (pathname.endsWith('/new')) {
+          redirectPath = pathname.slice(0, -4) || '/dashboard'
+        } else {
+          // /foo/[id]/edit → /foo/[id]
+          redirectPath = pathname.replace(/\/edit(\/.*)?$/, '') || '/dashboard'
+        }
+        const url = request.nextUrl.clone()
+        url.pathname = redirectPath
+        const redirectRes = NextResponse.redirect(url)
+        supabaseResponse.cookies.getAll().forEach((c) => redirectRes.cookies.set(c.name, c.value))
+        return redirectRes
+      }
+    }
+
+    // ── Block /settings for non-System-Admin ───────────────────────────────────
+    if (pathname.startsWith('/settings') && role !== 'System Admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      const redirectRes = NextResponse.redirect(url)
+      supabaseResponse.cookies.getAll().forEach((c) => redirectRes.cookies.set(c.name, c.value))
       return redirectRes
     }
   }

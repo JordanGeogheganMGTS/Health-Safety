@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -105,6 +106,7 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
   }
 
   const ca = data as unknown as CorrectiveActionDetail
+  const authUser = await getAuthUser()
 
   const sourceHref = sourceTableHref(ca.source_table, ca.source_record_id)
   const priorityLabel = (ca.priority as unknown as { label: Priority }[] | null)?.[0]?.label ?? null
@@ -147,13 +149,15 @@ export default async function CorrectiveActionDetailPage({ params }: PageProps) 
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link
-            href={`/corrective-actions/${ca.id}/edit`}
-            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
-          >
-            Edit
-          </Link>
-          {ca.status !== 'Closed' && (
+          {authUser?.can('corrective_actions', 'edit') && (
+            <Link
+              href={`/corrective-actions/${ca.id}/edit`}
+              className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+            >
+              Edit
+            </Link>
+          )}
+          {authUser?.can('corrective_actions', 'edit') && ca.status !== 'Closed' && (
             <Link
               href={`/corrective-actions/${ca.id}/edit?action=close`}
               className="inline-flex items-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-700 transition-colors"
