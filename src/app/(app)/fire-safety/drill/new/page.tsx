@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
@@ -16,10 +16,9 @@ const schema = z.object({
   drill_date: z.string().min(1, 'Drill date is required'),
   drill_time: z.string().optional(),
   evacuation_time_secs: z.coerce.number().int().min(0).optional().or(z.literal('')),
-  total_occupants: z.coerce.number().int().min(0).optional().or(z.literal('')),
-  all_accounted_for: z.boolean(),
-  issues_found: z.string().optional(),
-  actions_arising: z.string().optional(),
+  number_evacuated: z.coerce.number().int().min(0).optional().or(z.literal('')),
+  issues_identified: z.string().optional(),
+  notes: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -27,12 +26,6 @@ type FormValues = z.infer<typeof schema>
 interface Site { id: string; name: string }
 
 // ─── Helper ───────────────────────────────────────────────────────────────────
-
-function futureDateStr(daysFromNow: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + daysFromNow)
-  return d.toISOString().split('T')[0]
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -53,7 +46,6 @@ export default function NewDrillPage() {
     resolver: zodResolver(schema),
     defaultValues: {
       drill_date: today,
-      all_accounted_for: true,
     },
   })
 
@@ -76,9 +68,6 @@ export default function NewDrillPage() {
       return
     }
 
-    const selectedSite = sites.find((s) => s.id === values.site_id)
-    const siteName = selectedSite?.name ?? 'Unknown Site'
-
     // Build drill row
     const drillRow: Record<string, unknown> = {
       site_id: values.site_id,
@@ -87,34 +76,12 @@ export default function NewDrillPage() {
       evacuation_time_secs: values.evacuation_time_secs !== '' && values.evacuation_time_secs != null
         ? Number(values.evacuation_time_secs)
         : null,
-      total_occupants: values.total_occupants !== '' && values.total_occupants != null
-        ? Number(values.total_occupants)
+      number_evacuated: values.number_evacuated !== '' && values.number_evacuated != null
+        ? Number(values.number_evacuated)
         : null,
-      all_accounted_for: values.all_accounted_for,
-      issues_found: values.issues_found || null,
-      actions_arising: values.actions_arising || null,
-      conducted_by_id: user.id,
-    }
-
-    // If issues found, create a corrective action
-    if (values.issues_found) {
-      const { data: caData, error: caError } = await supabase
-        .from('corrective_actions')
-        .insert({
-          title: `Fire Drill Issues: ${siteName}`,
-          source_module: 'fire_drills',
-          priority: 'Medium',
-          site_id: values.site_id,
-          due_date: futureDateStr(14),
-          created_by_id: user.id,
-          status: 'Open',
-        })
-        .select('id')
-        .single()
-
-      if (!caError && caData) {
-        drillRow.ca_id = caData.id
-      }
+      issues_identified: values.issues_identified || null,
+      notes: values.notes || null,
+      coordinated_by: user.id,
     }
 
     const { error: insertError } = await supabase.from('fire_drills').insert(drillRow)
@@ -201,37 +168,24 @@ export default function NewDrillPage() {
               />
             </div>
             <div className="space-y-1">
-              <label htmlFor="total_occupants" className={labelClass}>Total Occupants</label>
+              <label htmlFor="number_evacuated" className={labelClass}>Number Evacuated</label>
               <input
-                id="total_occupants"
+                id="number_evacuated"
                 type="number"
                 min={0}
-                {...register('total_occupants')}
+                {...register('number_evacuated')}
                 className={inputClass}
                 placeholder="e.g. 45"
               />
             </div>
           </div>
 
-          {/* All Accounted For */}
-          <div className="flex items-center gap-3">
-            <input
-              id="all_accounted_for"
-              type="checkbox"
-              {...register('all_accounted_for')}
-              className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
-            />
-            <label htmlFor="all_accounted_for" className="text-sm font-medium text-slate-700">
-              All occupants accounted for
-            </label>
-          </div>
-
-          {/* Issues Found */}
+          {/* Issues Identified */}
           <div className="space-y-1">
-            <label htmlFor="issues_found" className={labelClass}>Issues Found</label>
+            <label htmlFor="issues_identified" className={labelClass}>Issues Identified</label>
             <textarea
-              id="issues_found"
-              {...register('issues_found')}
+              id="issues_identified"
+              {...register('issues_identified')}
               rows={3}
               className={inputClass}
               placeholder="Describe any issues identified during the drill…"
@@ -239,15 +193,15 @@ export default function NewDrillPage() {
             <p className="text-xs text-slate-400">If issues are noted, a corrective action will be automatically created.</p>
           </div>
 
-          {/* Actions Arising */}
+          {/* Notes */}
           <div className="space-y-1">
-            <label htmlFor="actions_arising" className={labelClass}>Actions Arising</label>
+            <label htmlFor="notes" className={labelClass}>Notes</label>
             <textarea
-              id="actions_arising"
-              {...register('actions_arising')}
+              id="notes"
+              {...register('notes')}
               rows={3}
               className={inputClass}
-              placeholder="Actions to be taken following this drill…"
+              placeholder="Any additional notes or actions arising from this drill…"
             />
           </div>
 
