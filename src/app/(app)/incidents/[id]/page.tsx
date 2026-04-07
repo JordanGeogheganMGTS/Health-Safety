@@ -20,7 +20,7 @@ interface IncidentDetail {
   riddor_reference: string | null
   riddor_report_date: string | null
   status: IncidentStatus
-  investigation_summary: string | null
+  root_causes: string | null
   closed_at: string | null
   created_at: string
   sites: { name: string } | null
@@ -53,7 +53,7 @@ export default async function IncidentDetailPage({ params }: PageProps) {
     .select(
       `id, incident_date, incident_time, location, is_riddor_reportable, description,
        witnesses, immediate_causes, riddor_reference,
-       riddor_report_date, status, investigation_summary, closed_at, created_at,
+       riddor_report_date, status, root_causes, closed_at, created_at,
        type:lookup_values!type_id(label),
        sites(name),
        reported_by:users!reported_by(first_name, last_name),
@@ -222,9 +222,9 @@ export default async function IncidentDetailPage({ params }: PageProps) {
             </dl>
 
             <div>
-              <dt className="text-xs font-medium text-slate-500">Investigation Summary</dt>
+              <dt className="text-xs font-medium text-slate-500">Root Causes</dt>
               <dd className="mt-1 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed">
-                {incident.investigation_summary ?? <span className="text-slate-400 italic">No summary recorded yet.</span>}
+                {incident.root_causes ?? <span className="text-slate-400 italic">No root causes recorded yet.</span>}
               </dd>
             </div>
           </div>

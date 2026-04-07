@@ -146,13 +146,11 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3 text-sm text-slate-600 max-w-[160px] truncate">
                       {inc.location}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-sm">
                       {inc.is_riddor_reportable ? (
-                        <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700 ring-1 ring-inset ring-red-200">
-                          RIDDOR
-                        </span>
+                        <span className="font-semibold text-red-700">Yes</span>
                       ) : (
-                        <span className="text-slate-400 text-sm">—</span>
+                        <span className="text-slate-500">No</span>
                       )}
                     </td>
                     <td className="px-4 py-3">
