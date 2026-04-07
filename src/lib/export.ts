@@ -24,8 +24,9 @@ export function buildWorkbook(sheets: Array<{ name: string; data: Record<string,
   }
 
   const u8 = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Uint8Array
-  // Slice to ensure a plain ArrayBuffer (valid BodyInit) rather than a shared ArrayBufferLike
-  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
+  const out = new ArrayBuffer(u8.byteLength)
+  new Uint8Array(out).set(u8)
+  return out
 }
 
 export function exportToExcel<T extends Record<string, unknown>>(
