@@ -92,6 +92,8 @@ export default async function DashboardPage() {
     { data: upDoc },
     { data: upEquip },
     { data: upFireExt },
+    // ── PPE replacement: fetch all active (not returned) with replacement interval ─
+    { data: ppeRows },
   ] = await Promise.all([
     // Overdue
     supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
@@ -158,14 +160,33 @@ export default async function DashboardPage() {
       .select('id, location, next_inspection_date')
       .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30)
       .eq('is_active', true).order('next_inspection_date').limit(20),
+    // PPE active records (not returned) where item has a replacement interval
+    supabase.from('user_ppe_records')
+      .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+      .is('returned_date', null),
   ])
+
+  // ── PPE replacement counts (computed from issued_date + months) ───────────────
+  function addMonths(dateStr: string, months: number): string {
+    const d = new Date(dateStr)
+    d.setMonth(d.getMonth() + months)
+    return d.toISOString().split('T')[0]
+  }
+
+  type PpeRow = { id: string; user_id: string; issued_date: string; ppe_item: { name: string; replacement_months: number | null } | null; person: { first_name: string; last_name: string } | null; sites: { name: string } | null }
+  const ppeActive = ((ppeRows ?? []) as unknown as PpeRow[]).filter((r) => r.ppe_item?.replacement_months)
+  const ovPPE = ppeActive.filter((r) => addMonths(r.issued_date, r.ppe_item!.replacement_months!) < todayIso).length
+  const d30PPE = ppeActive.filter((r) => {
+    const due = addMonths(r.issued_date, r.ppe_item!.replacement_months!)
+    return due >= todayIso && due <= in30
+  }).length
 
   // ── Totals ────────────────────────────────────────────────────────────────────
   const totalOverdue = (ovCA ?? 0) + (ovDoc ?? 0) + (ovRA ?? 0) + (ovCOSHH ?? 0) +
-    (ovEquip ?? 0) + (ovFireExt ?? 0) + (ovFireAlarm ?? 0)
+    (ovEquip ?? 0) + (ovFireExt ?? 0) + (ovFireAlarm ?? 0) + ovPPE
 
   const totalDue30 = (d30CA ?? 0) + (d30Doc ?? 0) + (d30RA ?? 0) + (d30COSHH ?? 0) +
-    (d30Equip ?? 0) + (d30FireExt ?? 0) + (d30FireAlarm ?? 0)
+    (d30Equip ?? 0) + (d30FireExt ?? 0) + (d30FireAlarm ?? 0) + d30PPE
 
   const totalDocsReview = (revDoc ?? 0) + (revRA ?? 0) + (revCOSHH ?? 0)
 
@@ -187,6 +208,17 @@ export default async function DashboardPage() {
       const f = r as unknown as { id: string; location: string; next_inspection_date: string }
       return { id: f.id, title: f.location, due_date: f.next_inspection_date, type: 'Fire Extinguisher', href: `/fire-safety` }
     }),
+    // PPE replacements due within 30 days
+    ...ppeActive.filter((r) => {
+      const due = addMonths(r.issued_date, r.ppe_item!.replacement_months!)
+      return due >= todayIso && due <= in30
+    }).map((r) => ({
+      id: r.id,
+      title: `${r.ppe_item!.name}${r.person ? ` — ${r.person.first_name} ${r.person.last_name}` : ''}`,
+      due_date: addMonths(r.issued_date, r.ppe_item!.replacement_months!),
+      type: 'PPE Replacement',
+      href: `/ppe/${r.user_id}`,
+    })),
   ].sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
 
   const openCAs = (openCARows ?? []) as unknown as OpenCA[]

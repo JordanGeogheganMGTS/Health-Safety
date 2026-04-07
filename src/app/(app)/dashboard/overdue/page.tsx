@@ -14,6 +14,7 @@ type ItemType =
   | 'Fire Extinguisher'
   | 'Fire Alarm System'
   | 'Training Record'
+  | 'PPE Replacement'
 
 interface DashItem {
   id: string
@@ -34,6 +35,7 @@ const TYPE_COLOURS: Record<ItemType, string> = {
   'Fire Extinguisher':  'bg-red-100 text-red-700',
   'Fire Alarm System':  'bg-red-100 text-red-700',
   'Training Record':    'bg-green-100 text-green-700',
+  'PPE Replacement':    'bg-teal-100 text-teal-700',
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -54,6 +56,7 @@ export default async function OverduePage() {
     { data: fireExt },
     { data: fireAlarm },
     { data: training },
+    { data: ppeRows },
   ] = await Promise.all([
     supabase.from('corrective_actions')
       .select('id, title, due_date, status, sites(name), priority:lookup_values!priority_id(label)')
@@ -100,7 +103,19 @@ export default async function OverduePage() {
       .not('expiry_date', 'is', null)
       .lt('expiry_date', today)
       .order('expiry_date'),
+    // PPE active (not returned) with replacement interval
+    supabase.from('user_ppe_records')
+      .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+      .is('returned_date', null),
   ])
+
+  function addMonths(dateStr: string, months: number): string {
+    const d = new Date(dateStr); d.setMonth(d.getMonth() + months); return d.toISOString().split('T')[0]
+  }
+  type PpeRow = { id: string; user_id: string; issued_date: string; ppe_item: { name: string; replacement_months: number | null } | null; person: { first_name: string; last_name: string } | null; sites: { name: string } | null }
+  const ppeOverdue = ((ppeRows ?? []) as unknown as PpeRow[]).filter(
+    (r) => r.ppe_item?.replacement_months && addMonths(r.issued_date, r.ppe_item.replacement_months) < today
+  )
 
   const items: DashItem[] = [
     ...(cas ?? []).map((r) => {
@@ -136,6 +151,12 @@ export default async function OverduePage() {
       const person = row.users ? `${row.users.first_name} ${row.users.last_name}` : null
       const title = [row.training_types?.name, person].filter(Boolean).join(' — ')
       return { id: row.id, type: 'Training Record' as ItemType, title: title || 'Training Record', site: row.sites?.name ?? null, date: row.expiry_date, extra: 'Expired', href: `/training/${row.id}` }
+    }),
+    ...ppeOverdue.map((r) => {
+      const due = addMonths(r.issued_date, r.ppe_item!.replacement_months!)
+      const person = r.person ? `${r.person.first_name} ${r.person.last_name}` : null
+      const title = [r.ppe_item!.name, person].filter(Boolean).join(' — ')
+      return { id: r.id, type: 'PPE Replacement' as ItemType, title, site: r.sites?.name ?? null, date: due, extra: 'Overdue', href: `/ppe/${r.user_id}` }
     }),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 

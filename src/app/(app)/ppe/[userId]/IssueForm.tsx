@@ -14,7 +14,7 @@ interface PpeItem {
 interface IssueFormProps {
   userId: string
   items: PpeItem[]
-  action: (formData: FormData) => Promise<void>
+  action: (formData: FormData) => Promise<{ error?: string } | void>
 }
 
 function todayISO() {
@@ -24,15 +24,20 @@ function todayISO() {
 export default function IssueForm({ userId, items, action }: IssueFormProps) {
   const [selectedItemId, setSelectedItemId] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const selectedItem = items.find((i) => i.id === selectedItemId)
   const showSizeField = selectedItem?.has_sizes === true
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true)
-    await action(formData)
-    setSubmitting(false)
-    setSelectedItemId('')
+    setError(null)
+    const result = await action(formData)
+    if (result?.error) {
+      setError(result.error)
+      setSubmitting(false)
+    }
+    // On success, action calls redirect() so this component unmounts — no need to reset
   }
 
   const inputCls = 'w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
@@ -41,6 +46,12 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
   return (
     <form action={handleSubmit} className="p-6 space-y-4">
       <input type="hidden" name="user_id" value={userId} />
+
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
