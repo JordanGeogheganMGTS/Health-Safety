@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -21,8 +23,10 @@ function StatusBadge({ status }: { status: string }) {
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: { status?: string }
+  searchParams: Promise<{ status?: string }>
 }) {
+  const { status: statusParam } = await searchParams
+  const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
 
   let query = supabase
@@ -40,9 +44,7 @@ export default async function DocumentsPage({
     `)
     .order('created_at', { ascending: false })
 
-  if (searchParams.status) {
-    query = query.eq('status', searchParams.status)
-  }
+  if (statusFilters.length > 0) query = query.in('status', statusFilters)
 
   const { data: documents } = await query
 
@@ -72,22 +74,16 @@ export default async function DocumentsPage({
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Link
-          href="/documents"
-          className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${!searchParams.status ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-        >
-          All
-        </Link>
-        {statuses.map((s) => (
-          <Link
-            key={s}
-            href={`/documents?status=${encodeURIComponent(s)}`}
-            className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${searchParams.status === s ? 'bg-orange-500 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'}`}
-          >
-            {s}
-          </Link>
-        ))}
+      <div className="mb-4">
+        <Suspense fallback={<div className="h-10" />}>
+          <FilterBar filters={[
+            {
+              param: 'status',
+              label: 'Status',
+              options: statuses.map((s) => ({ value: s, label: s })),
+            },
+          ]} />
+        </Suspense>
       </div>
 
       {/* Table */}
@@ -99,7 +95,7 @@ export default async function DocumentsPage({
             </svg>
             <p className="text-base font-medium">No documents found</p>
             <p className="text-sm mt-1">
-              {searchParams.status ? `No documents with status "${searchParams.status}"` : 'Upload your first document to get started'}
+              {statusFilters.length > 0 ? `No documents match the selected filters` : 'Upload your first document to get started'}
             </p>
           </div>
         ) : (

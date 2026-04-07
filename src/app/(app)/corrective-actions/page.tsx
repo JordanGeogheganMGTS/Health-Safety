@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -59,12 +61,20 @@ function priorityBadgeClass(priority: Priority): string {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+function parseFilter(value: string | undefined): string[] {
+  return value ? value.split(',').filter(Boolean) : []
+}
+
 interface PageProps {
   searchParams: Promise<{ status?: string; priority?: string; site_id?: string }>
 }
 
 export default async function CorrectiveActionsPage({ searchParams }: PageProps) {
-  const { status: statusFilter, priority: priorityFilter, site_id: siteFilter } = await searchParams
+  const { status: statusParam, priority: priorityParam, site_id: siteParam } = await searchParams
+  const statusFilters = parseFilter(statusParam)
+  const priorityFilters = parseFilter(priorityParam)
+  const siteFilters = parseFilter(siteParam)
+
   const supabase = await createClient()
 
   // Fetch reference data in parallel
@@ -79,16 +89,13 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   ])
 
   const allSites = sitesRes.data ?? []
-  const allSiteRecord = allSites.find((s) => (s as unknown as { is_all_sites: boolean }).is_all_sites)
-  // Sites shown as filter pills (exclude the "All Sites" record — it acts as the unfiltered state)
   const filterableSites = allSites.filter((s) => !(s as unknown as { is_all_sites: boolean }).is_all_sites)
-
   const priorityLookups = (prioritiesRes.data ?? []) as { id: string; label: string }[]
 
-  // Map priority label → id for DB filtering
-  const selectedPriorityId = priorityFilter
-    ? (priorityLookups.find((p) => p.label === priorityFilter)?.id ?? null)
-    : null
+  // Map priority labels → UUIDs for DB filtering
+  const selectedPriorityIds = priorityFilters
+    .map((label) => priorityLookups.find((p) => p.label === label)?.id)
+    .filter(Boolean) as string[]
 
   // Build query
   let query = supabase
@@ -102,16 +109,9 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
     )
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (statusFilter) {
-    query = query.eq('status', statusFilter)
-  }
-  if (selectedPriorityId) {
-    query = query.eq('priority_id', selectedPriorityId)
-  }
-  // "All Sites" record = show all; specific site = filter to that site_id
-  if (siteFilter && siteFilter !== allSiteRecord?.id) {
-    query = query.eq('site_id', siteFilter)
-  }
+  if (statusFilters.length > 0) query = query.in('status', statusFilters)
+  if (selectedPriorityIds.length > 0) query = query.in('priority_id', selectedPriorityIds)
+  if (siteFilters.length > 0) query = query.in('site_id', siteFilters)
 
   const { data: rows, error } = await query
 
@@ -124,29 +124,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   }
 
   const actions = (rows ?? []) as unknown as CorrectiveActionRow[]
-
-  const statusOptions: CAStatus[] = ['Open', 'In Progress', 'Completed', 'Overdue', 'Closed']
-
   const authUser = await getAuthUser()
-
-  // Build filter URL helper
-  function filterUrl(overrides: Record<string, string | undefined>): string {
-    const params = new URLSearchParams()
-    const base = {
-      status: statusFilter,
-      priority: priorityFilter,
-      site_id: siteFilter,
-      ...overrides,
-    }
-    for (const [k, v] of Object.entries(base)) {
-      if (v) params.set(k, v)
-    }
-    const str = params.toString()
-    return `/corrective-actions${str ? `?${str}` : ''}`
-  }
-
-  // Active site: no filter or "All Sites" ID selected = show all
-  const activeSiteId = siteFilter && siteFilter !== allSiteRecord?.id ? siteFilter : null
 
   return (
     <div className="space-y-6">
@@ -169,96 +147,25 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        {/* Status filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Status:</span>
-          <Link
-            href={filterUrl({ status: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !statusFilter
-                ? 'bg-slate-800 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </Link>
-          {statusOptions.map((s) => (
-            <Link
-              key={s}
-              href={filterUrl({ status: s })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                statusFilter === s
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {s}
-            </Link>
-          ))}
-        </div>
-
-        {/* Priority filter */}
-        {priorityLookups.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-500">Priority:</span>
-            <Link
-              href={filterUrl({ priority: undefined })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                !priorityFilter
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All
-            </Link>
-            {priorityLookups.map((p) => (
-              <Link
-                key={p.id}
-                href={filterUrl({ priority: p.label })}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  priorityFilter === p.label
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {p.label}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Site filter — "All Sites" acts as the unfiltered state */}
-        {filterableSites.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-500">Site:</span>
-            {/* All Sites pill = clear site filter */}
-            <Link
-              href={filterUrl({ site_id: undefined })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                !activeSiteId
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All Sites
-            </Link>
-            {filterableSites.map((site) => (
-              <Link
-                key={site.id}
-                href={filterUrl({ site_id: site.id })}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  activeSiteId === site.id
-                    ? 'bg-slate-800 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {site.name}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar filters={[
+          {
+            param: 'status',
+            label: 'Status',
+            options: (['Open', 'In Progress', 'Completed', 'Overdue', 'Closed'] as const).map((s) => ({ value: s, label: s })),
+          },
+          ...(priorityLookups.length > 0 ? [{
+            param: 'priority',
+            label: 'Priority',
+            options: priorityLookups.map((p) => ({ value: p.label, label: p.label })),
+          }] : []),
+          ...(filterableSites.length > 0 ? [{
+            param: 'site_id',
+            label: 'Site',
+            options: filterableSites.map((s) => ({ value: s.id, label: s.name })),
+          }] : []),
+        ]} />
+      </Suspense>
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

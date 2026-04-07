@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,7 +38,8 @@ interface PageProps {
 }
 
 export default async function IncidentsPage({ searchParams }: PageProps) {
-  const { status, riddor } = await searchParams
+  const { status: statusParam, riddor } = await searchParams
+  const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
 
   let query = supabase
@@ -49,7 +52,7 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
     )
     .order('incident_date', { ascending: false })
 
-  if (status) query = query.eq('status', status)
+  if (statusFilters.length > 0) query = query.in('status', statusFilters)
   if (riddor === 'true') query = query.eq('is_riddor_reportable', true)
 
   const { data: rows, error } = await query
@@ -63,19 +66,7 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
   }
 
   const incidents = (rows ?? []) as unknown as IncidentRow[]
-  const statusOptions: IncidentStatus[] = ['Open', 'Under Investigation', 'Closed']
-
   const authUser = await getAuthUser()
-
-  function filterUrl(overrides: Record<string, string | undefined>): string {
-    const params = new URLSearchParams()
-    const base = { status, riddor, ...overrides }
-    for (const [k, v] of Object.entries(base)) {
-      if (v) params.set(k, v)
-    }
-    const str = params.toString()
-    return `/incidents${str ? `?${str}` : ''}`
-  }
 
   return (
     <div className="space-y-6">
@@ -98,52 +89,21 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        {/* Status filter */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Status:</span>
-          <Link
-            href={filterUrl({ status: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !status ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </Link>
-          {statusOptions.map((s) => (
-            <Link
-              key={s}
-              href={filterUrl({ status: s })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                status === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {s}
-            </Link>
-          ))}
-        </div>
-
-        {/* RIDDOR filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">RIDDOR:</span>
-          <Link
-            href={filterUrl({ riddor: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !riddor ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </Link>
-          <Link
-            href={filterUrl({ riddor: 'true' })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              riddor === 'true' ? 'bg-red-700 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'
-            }`}
-          >
-            RIDDOR Only
-          </Link>
-        </div>
-      </div>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar filters={[
+          {
+            param: 'status',
+            label: 'Status',
+            options: (['Open', 'Under Investigation', 'Closed'] as const).map((s) => ({ value: s, label: s })),
+          },
+          {
+            param: 'riddor',
+            label: 'RIDDOR',
+            multi: false,
+            options: [{ value: 'true', label: 'RIDDOR Only' }],
+          },
+        ]} />
+      </Suspense>
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

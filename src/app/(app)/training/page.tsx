@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 function ExpiryBadge({ expiry }: { expiry: string | null }) {
   if (!expiry) {
@@ -16,12 +18,8 @@ function ExpiryBadge({ expiry }: { expiry: string | null }) {
   return <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-700">Valid to {formatDate(expiry)}</span>
 }
 
-interface SearchParams {
-  type?: string
-  expired?: string
-}
-
-export default async function TrainingPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function TrainingPage({ searchParams: spPromise }: { searchParams: Promise<{ type?: string; expired?: string }> }) {
+  const sp = await spPromise
   const supabase = await createClient()
 
   const [{ data: trainingTypes }, { data: allTypes }] = await Promise.all([
@@ -45,10 +43,10 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
     `)
     .order('completion_date', { ascending: false })
 
-  if (searchParams.type) {
-    recordsQuery = recordsQuery.eq('training_type_id', searchParams.type)
+  if (sp.type) {
+    recordsQuery = recordsQuery.eq('training_type_id', sp.type)
   }
-  if (searchParams.expired === 'true') {
+  if (sp.expired === 'true') {
     const today = new Date().toISOString().split('T')[0]
     recordsQuery = recordsQuery.lt('expiry_date', today)
   }
@@ -144,36 +142,22 @@ export default async function TrainingPage({ searchParams }: { searchParams: Sea
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold text-slate-900">Training Records</h2>
-          <div className="flex flex-wrap gap-2 items-center">
-            {/* Type filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-500">Type:</span>
-              <div className="flex gap-1">
-                <Link
-                  href={`/training${searchParams.expired === 'true' ? '?expired=true' : ''}`}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.type ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                >
-                  All
-                </Link>
-                {(allTypes ?? []).map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/training?type=${t.id}${searchParams.expired === 'true' ? '&expired=true' : ''}`}
-                    className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.type === t.id ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-                  >
-                    {t.name}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {/* Expired filter */}
-            <Link
-              href={`/training${searchParams.expired === 'true' ? '' : '?expired=true'}${searchParams.type ? `${searchParams.expired === 'true' ? '?' : '&'}type=${searchParams.type}` : ''}`}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.expired === 'true' ? 'bg-red-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              Expired only
-            </Link>
-          </div>
+          <Suspense fallback={<div className="h-10" />}>
+            <FilterBar filters={[
+              {
+                param: 'type',
+                label: 'Training Type',
+                multi: false,
+                options: (allTypes ?? []).map((t) => ({ value: t.id, label: t.name })),
+              },
+              {
+                param: 'expired',
+                label: 'Expiry',
+                multi: false,
+                options: [{ value: 'true', label: 'Expired Only' }],
+              },
+            ]} />
+          </Suspense>
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">

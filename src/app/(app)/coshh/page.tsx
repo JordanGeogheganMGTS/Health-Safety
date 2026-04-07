@@ -1,7 +1,9 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -18,11 +20,9 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-interface SearchParams {
-  status?: string
-}
-
-export default async function CoshhPage({ searchParams }: { searchParams: SearchParams }) {
+export default async function CoshhPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const { status: statusParam } = await searchParams
+  const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
 
   let query = supabase
@@ -38,9 +38,7 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
     `)
     .order('created_at', { ascending: false })
 
-  if (searchParams.status) {
-    query = query.eq('status', searchParams.status)
-  }
+  if (statusFilters.length > 0) query = query.in('status', statusFilters)
 
   const { data: assessments } = await query
 
@@ -69,27 +67,16 @@ export default async function CoshhPage({ searchParams }: { searchParams: Search
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-slate-500">Status:</span>
-          <div className="flex gap-1">
-            <Link
-              href="/coshh"
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${!searchParams.status ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-              All
-            </Link>
-            {statusOptions.map((s) => (
-              <Link
-                key={s}
-                href={`/coshh?status=${encodeURIComponent(s)}`}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${searchParams.status === s ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-              >
-                {s}
-              </Link>
-            ))}
-          </div>
-        </div>
+      <div className="mb-4">
+        <Suspense fallback={<div className="h-10" />}>
+          <FilterBar filters={[
+            {
+              param: 'status',
+              label: 'Status',
+              options: statusOptions.map((s) => ({ value: s, label: s })),
+            },
+          ]} />
+        </Suspense>
       </div>
 
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">

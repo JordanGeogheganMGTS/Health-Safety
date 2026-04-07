@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/dates'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { getAuthUser } from '@/lib/permissions'
+import FilterBar from '@/components/ui/FilterBar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,27 +104,19 @@ export default async function ContractorsPage({
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-slate-500 font-medium">Filter:</span>
-        <Link
-          href="/contractors"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${!params.approved ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-        >
-          All
-        </Link>
-        <Link
-          href="/contractors?approved=true"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'true' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-        >
-          Approved
-        </Link>
-        <Link
-          href="/contractors?approved=false"
-          className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${params.approved === 'false' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-        >
-          Not Approved
-        </Link>
-      </div>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar filters={[
+          {
+            param: 'approved',
+            label: 'Approval',
+            multi: false,
+            options: [
+              { value: 'true', label: 'Approved' },
+              { value: 'false', label: 'Not Approved' },
+            ],
+          },
+        ]} />
+      </Suspense>
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
+import FilterBar from '@/components/ui/FilterBar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -33,7 +35,8 @@ interface PageProps {
 }
 
 export default async function InspectionsPage({ searchParams }: PageProps) {
-  const { status: statusFilter } = await searchParams
+  const { status: statusParam } = await searchParams
+  const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
 
   let query = supabase
@@ -46,9 +49,7 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
     )
     .order('inspection_date', { ascending: false })
 
-  if (statusFilter) {
-    query = query.eq('status', statusFilter)
-  }
+  if (statusFilters.length > 0) query = query.in('status', statusFilters)
 
   const { data: rows, error } = await query
 
@@ -61,17 +62,6 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
   }
 
   const inspections = (rows ?? []) as unknown as InspectionRow[]
-  const statusOptions: InspectionStatus[] = ['Draft', 'Submitted', 'Closed']
-
-  function filterUrl(overrides: Record<string, string | undefined>): string {
-    const params = new URLSearchParams()
-    const base = { status: statusFilter, ...overrides }
-    for (const [k, v] of Object.entries(base)) {
-      if (v) params.set(k, v)
-    }
-    const str = params.toString()
-    return `/inspections${str ? `?${str}` : ''}`
-  }
 
   return (
     <div className="space-y-6">
@@ -92,28 +82,15 @@ export default async function InspectionsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs font-medium text-slate-500">Status:</span>
-        <Link
-          href={filterUrl({ status: undefined })}
-          className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-            !statusFilter ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-          }`}
-        >
-          All
-        </Link>
-        {statusOptions.map((s) => (
-          <Link
-            key={s}
-            href={filterUrl({ status: s })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              statusFilter === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            {s}
-          </Link>
-        ))}
-      </div>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar filters={[
+          {
+            param: 'status',
+            label: 'Status',
+            options: (['Draft', 'Submitted', 'Closed'] as const).map((s) => ({ value: s, label: s })),
+          },
+        ]} />
+      </Suspense>
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

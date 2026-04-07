@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
+import FilterBar from '@/components/ui/FilterBar'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +43,8 @@ interface PageProps {
 }
 
 export default async function EquipmentPage({ searchParams }: PageProps) {
-  const { site_id, status } = await searchParams
+  const { site_id: siteParam } = await searchParams
+  const siteFilters = siteParam ? siteParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
 
   let query = supabase
@@ -54,9 +57,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
     )
     .order('name')
 
-  if (site_id) query = query.eq('site_id', site_id)
-  // status filter removed — cannot filter directly on a joined column (status_id FK)
-  // if (status) query = query.eq('status', status)
+  if (siteFilters.length > 0) query = query.in('site_id', siteFilters)
 
   const { data: rows, error } = await query
   const { data: sites } = await supabase.from('sites').select('id, name').order('name')
@@ -70,17 +71,6 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   }
 
   const equipment = (rows ?? []) as unknown as EquipmentRow[]
-  const statusOptions: EquipmentStatus[] = ['Operational', 'Out of Service', 'Awaiting Service', 'Decommissioned']
-
-  function filterUrl(overrides: Record<string, string | undefined>): string {
-    const params = new URLSearchParams()
-    const base = { site_id, status, ...overrides }
-    for (const [k, v] of Object.entries(base)) {
-      if (v) params.set(k, v)
-    }
-    const str = params.toString()
-    return `/equipment${str ? `?${str}` : ''}`
-  }
 
   return (
     <div className="space-y-6">
@@ -101,57 +91,15 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4">
-        {/* Site filter */}
-        {sites && sites.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-500">Site:</span>
-            <Link
-              href={filterUrl({ site_id: undefined })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                !site_id ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              All
-            </Link>
-            {sites.map((s) => (
-              <Link
-                key={s.id}
-                href={filterUrl({ site_id: s.id })}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  site_id === s.id ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                {s.name}
-              </Link>
-            ))}
-          </div>
-        )}
-
-        {/* Status filter */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Status:</span>
-          <Link
-            href={filterUrl({ status: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !status ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </Link>
-          {statusOptions.map((s) => (
-            <Link
-              key={s}
-              href={filterUrl({ status: s })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                status === s ? 'bg-slate-800 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {s}
-            </Link>
-          ))}
-        </div>
-      </div>
+      <Suspense fallback={<div className="h-10" />}>
+        <FilterBar filters={[
+          ...(sites && sites.length > 0 ? [{
+            param: 'site_id',
+            label: 'Site',
+            options: sites.map((s) => ({ value: s.id, label: s.name })),
+          }] : []),
+        ]} />
+      </Suspense>
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
