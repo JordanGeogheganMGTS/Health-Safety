@@ -17,6 +17,9 @@ const schema = z.object({
   site_id: z.string().uuid('Please select a site'),
   location: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
+  injured_person_name: z.string().optional(),
+  injured_person_type: z.enum(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other', '']).optional(),
+  injured_person_dept: z.string().optional(),
   witnesses: z.string().optional(),
   immediate_causes: z.string().optional(),
   is_riddor_reportable: z.boolean(),
@@ -106,6 +109,9 @@ export default function EditIncidentPage({ params }: PageProps) {
           site_id: inc.site_id ?? '',
           location: inc.location ?? '',
           description: inc.description ?? '',
+          injured_person_name: inc.injured_person_name ?? '',
+          injured_person_type: inc.injured_person_type ?? '',
+          injured_person_dept: inc.injured_person_dept ?? '',
           witnesses: inc.witnesses ?? '',
           immediate_causes: inc.immediate_causes ?? '',
           is_riddor_reportable: inc.is_riddor_reportable ?? false,
@@ -135,6 +141,9 @@ export default function EditIncidentPage({ params }: PageProps) {
       site_id: values.site_id,
       location: values.location || null,
       description: values.description,
+      injured_person_name: values.injured_person_name || null,
+      injured_person_type: values.injured_person_type || null,
+      injured_person_dept: values.injured_person_dept || null,
       witnesses: values.witnesses || null,
       immediate_causes: values.immediate_causes || null,
       is_riddor_reportable: values.is_riddor_reportable,
@@ -268,6 +277,30 @@ export default function EditIncidentPage({ params }: PageProps) {
             </label>
             <textarea id="description" {...register('description')} rows={5} className={inputClass} />
             {errors.description && <p className={errorClass}>{errors.description.message}</p>}
+          </div>
+
+          {/* Injured Person */}
+          <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Injured / Affected Person</p>
+            <div className="space-y-1">
+              <label htmlFor="injured_person_name" className={labelClass}>Name</label>
+              <input id="injured_person_name" type="text" {...register('injured_person_name')} className={inputClass} placeholder="Full name of the injured person" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label htmlFor="injured_person_type" className={labelClass}>Person Type</label>
+                <select id="injured_person_type" {...register('injured_person_type')} className={selectClass}>
+                  <option value="">Select type…</option>
+                  {(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other'] as const).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label htmlFor="injured_person_dept" className={labelClass}>Department</label>
+                <input id="injured_person_dept" type="text" {...register('injured_person_dept')} className={inputClass} placeholder="e.g. Warehouse, Admin" />
+              </div>
+            </div>
           </div>
 
           {/* Witnesses */}

@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { formatDate } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
 import FilterBar from '@/components/ui/FilterBar'
+import SortLink from '@/components/ui/SortLink'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,8 @@ interface IncidentRow {
   id: string
   incident_date: string
   incident_time: string | null
+  title: string
+  injured_person_name: string | null
   type: { label: string } | null
   location: string
   is_riddor_reportable: boolean
@@ -34,23 +37,28 @@ function statusBadgeClass(status: IncidentStatus): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface PageProps {
-  searchParams: Promise<{ status?: string; riddor?: string }>
+  searchParams: Promise<{ status?: string; riddor?: string; sort?: string; dir?: string }>
 }
 
 export default async function IncidentsPage({ searchParams }: PageProps) {
-  const { status: statusParam, riddor } = await searchParams
+  const { status: statusParam, riddor, sort = 'incident_date', dir = 'desc' } = await searchParams
   const statusFilters = statusParam ? statusParam.split(',').filter(Boolean) : []
+  const asc = dir === 'asc'
   const supabase = await createClient()
+
+  const validSortCols = ['incident_date', 'status', 'injured_person_name'] as const
+  type SortCol = typeof validSortCols[number]
+  const sortCol: SortCol = validSortCols.includes(sort as SortCol) ? (sort as SortCol) : 'incident_date'
 
   let query = supabase
     .from('incidents')
     .select(
-      `id, incident_date, incident_time, location, is_riddor_reportable, status,
+      `id, incident_date, incident_time, title, injured_person_name, location, is_riddor_reportable, status,
        type:lookup_values!type_id(label),
        sites(name),
        reported_by:users!reported_by(first_name, last_name)`
     )
-    .order('incident_date', { ascending: false })
+    .order(sortCol, { ascending: asc })
 
   if (statusFilters.length > 0) query = query.in('status', statusFilters)
   if (riddor === 'true') query = query.eq('is_riddor_reportable', true)
@@ -67,6 +75,11 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
 
   const incidents = (rows ?? []) as unknown as IncidentRow[]
   const authUser = await getAuthUser()
+
+  const sp = await searchParams
+  const baseParams = Object.fromEntries(
+    Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])
+  )
 
   return (
     <div className="space-y-6">
@@ -123,13 +136,20 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
             <table className="min-w-full divide-y divide-slate-100">
               <thead>
                 <tr className="bg-slate-50">
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <SortLink column="incident_date" label="Date" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Time</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <SortLink column="injured_person_name" label="Person" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Site</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Location</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">RIDDOR</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <SortLink column="status" label="Status" sort={sortCol} dir={dir} params={baseParams} />
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Reported By</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
                 </tr>
@@ -142,8 +162,11 @@ export default async function IncidentsPage({ searchParams }: PageProps) {
                     <td className="px-4 py-3 text-sm text-slate-700">
                       {inc.type?.label ?? '—'}
                     </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {inc.injured_person_name ?? <span className="text-slate-400">—</span>}
+                    </td>
                     <td className="px-4 py-3 text-sm text-slate-600">{(inc.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[160px] truncate">
+                    <td className="px-4 py-3 text-sm text-slate-600 max-w-[140px] truncate">
                       {inc.location}
                     </td>
                     <td className="px-4 py-3 text-sm">
