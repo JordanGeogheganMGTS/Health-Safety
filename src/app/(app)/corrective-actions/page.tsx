@@ -60,13 +60,37 @@ function priorityBadgeClass(priority: Priority): string {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface PageProps {
-  searchParams: { status?: string; priority?: string; site_id?: string }
+  searchParams: Promise<{ status?: string; priority?: string; site_id?: string }>
 }
 
 export default async function CorrectiveActionsPage({ searchParams }: PageProps) {
+  const { status: statusFilter, priority: priorityFilter, site_id: siteFilter } = await searchParams
   const supabase = await createClient()
 
-  // Build query with optional filters
+  // Fetch reference data in parallel
+  const [sitesRes, prioritiesRes] = await Promise.all([
+    supabase.from('sites').select('id, name, is_all_sites').order('name'),
+    supabase
+      .from('lookup_values')
+      .select('id, label, lookup_categories!inner(key)')
+      .eq('lookup_categories.key', 'ca_priority')
+      .eq('is_active', true)
+      .order('sort_order'),
+  ])
+
+  const allSites = sitesRes.data ?? []
+  const allSiteRecord = allSites.find((s) => (s as unknown as { is_all_sites: boolean }).is_all_sites)
+  // Sites shown as filter pills (exclude the "All Sites" record — it acts as the unfiltered state)
+  const filterableSites = allSites.filter((s) => !(s as unknown as { is_all_sites: boolean }).is_all_sites)
+
+  const priorityLookups = (prioritiesRes.data ?? []) as { id: string; label: string }[]
+
+  // Map priority label → id for DB filtering
+  const selectedPriorityId = priorityFilter
+    ? (priorityLookups.find((p) => p.label === priorityFilter)?.id ?? null)
+    : null
+
+  // Build query
   let query = supabase
     .from('corrective_actions')
     .select(
@@ -78,24 +102,18 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
     )
     .order('due_date', { ascending: true, nullsFirst: false })
 
-  if (searchParams.status) {
-    query = query.eq('status', searchParams.status)
+  if (statusFilter) {
+    query = query.eq('status', statusFilter)
   }
-  // priority filter removed — cannot filter directly on a joined column (priority_id FK)
-  // if (searchParams.priority) {
-  //   query = query.eq('priority', searchParams.priority)
-  // }
-  if (searchParams.site_id) {
-    query = query.eq('site_id', searchParams.site_id)
+  if (selectedPriorityId) {
+    query = query.eq('priority_id', selectedPriorityId)
+  }
+  // "All Sites" record = show all; specific site = filter to that site_id
+  if (siteFilter && siteFilter !== allSiteRecord?.id) {
+    query = query.eq('site_id', siteFilter)
   }
 
   const { data: rows, error } = await query
-
-  // Fetch sites for the filter dropdown
-  const { data: sites } = await supabase
-    .from('sites')
-    .select('id, name')
-    .order('name')
 
   if (error) {
     return (
@@ -108,7 +126,6 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   const actions = (rows ?? []) as unknown as CorrectiveActionRow[]
 
   const statusOptions: CAStatus[] = ['Open', 'In Progress', 'Completed', 'Overdue', 'Closed']
-  const priorityOptions: Priority[] = ['Low', 'Medium', 'High', 'Critical']
 
   const authUser = await getAuthUser()
 
@@ -116,9 +133,9 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
   function filterUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams()
     const base = {
-      status: searchParams.status,
-      priority: searchParams.priority,
-      site_id: searchParams.site_id,
+      status: statusFilter,
+      priority: priorityFilter,
+      site_id: siteFilter,
       ...overrides,
     }
     for (const [k, v] of Object.entries(base)) {
@@ -127,6 +144,9 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
     const str = params.toString()
     return `/corrective-actions${str ? `?${str}` : ''}`
   }
+
+  // Active site: no filter or "All Sites" ID selected = show all
+  const activeSiteId = siteFilter && siteFilter !== allSiteRecord?.id ? siteFilter : null
 
   return (
     <div className="space-y-6">
@@ -156,7 +176,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
           <Link
             href={filterUrl({ status: undefined })}
             className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !searchParams.status
+              !statusFilter
                 ? 'bg-slate-800 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
@@ -168,7 +188,7 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
               key={s}
               href={filterUrl({ status: s })}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                searchParams.status === s
+                statusFilter === s
                   ? 'bg-slate-800 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
@@ -179,53 +199,56 @@ export default async function CorrectiveActionsPage({ searchParams }: PageProps)
         </div>
 
         {/* Priority filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-slate-500">Priority:</span>
-          <Link
-            href={filterUrl({ priority: undefined })}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              !searchParams.priority
-                ? 'bg-slate-800 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            All
-          </Link>
-          {priorityOptions.map((p) => (
-            <Link
-              key={p}
-              href={filterUrl({ priority: p })}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                searchParams.priority === p
-                  ? 'bg-slate-800 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {p}
-            </Link>
-          ))}
-        </div>
-
-        {/* Site filter */}
-        {sites && sites.length > 0 && (
+        {priorityLookups.length > 0 && (
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-medium text-slate-500">Site:</span>
+            <span className="text-xs font-medium text-slate-500">Priority:</span>
             <Link
-              href={filterUrl({ site_id: undefined })}
+              href={filterUrl({ priority: undefined })}
               className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                !searchParams.site_id
+                !priorityFilter
                   ? 'bg-slate-800 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               All
             </Link>
-            {sites.map((site) => (
+            {priorityLookups.map((p) => (
+              <Link
+                key={p.id}
+                href={filterUrl({ priority: p.label })}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  priorityFilter === p.label
+                    ? 'bg-slate-800 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {p.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Site filter — "All Sites" acts as the unfiltered state */}
+        {filterableSites.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium text-slate-500">Site:</span>
+            {/* All Sites pill = clear site filter */}
+            <Link
+              href={filterUrl({ site_id: undefined })}
+              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                !activeSiteId
+                  ? 'bg-slate-800 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              All Sites
+            </Link>
+            {filterableSites.map((site) => (
               <Link
                 key={site.id}
                 href={filterUrl({ site_id: site.id })}
                 className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  searchParams.site_id === site.id
+                  activeSiteId === site.id
                     ? 'bg-slate-800 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
