@@ -88,7 +88,7 @@ export default function EditAlarmTestPage({ params }: PageProps) {
             : Promise.resolve({ data: [] }),
         ])
 
-      setSystems((systemsData ?? []) as AlarmSystem[])
+      setSystems((systemsData ?? []) as unknown as AlarmSystem[])
       setTestTypes((testTypesData ?? []) as LookupOption[])
       setOutcomes((outcomesData ?? []) as LookupOption[])
 
