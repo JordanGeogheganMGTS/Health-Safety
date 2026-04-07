@@ -68,9 +68,17 @@ export default async function AlarmTestDetailPage({ params }: PageProps) {
           <h1 className="text-2xl font-semibold text-slate-900">Fire Alarm Test</h1>
           <p className="mt-1 text-sm text-slate-500">{siteName} · {formatDate(test.test_date)}</p>
         </div>
-        <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${outcomeBadge}`}>
-          {outcomeLabel}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-semibold ring-1 ring-inset ${outcomeBadge}`}>
+            {outcomeLabel}
+          </span>
+          <Link
+            href={`/fire-safety/alarm/${test.id}/edit`}
+            className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors"
+          >
+            Edit
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
