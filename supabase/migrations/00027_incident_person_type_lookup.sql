@@ -9,12 +9,11 @@ ALTER TABLE incidents
   DROP CONSTRAINT IF EXISTS incidents_injured_person_type_check;
 
 -- 2. Add the lookup category
-INSERT INTO lookup_categories (key, label, description, is_system, is_active)
+INSERT INTO lookup_categories (key, label, description, is_active)
 VALUES (
   'incident_person_type',
   'Incident — Person Type',
   'Types of person involved in an incident (injured / affected person)',
-  false,
   true
 )
 ON CONFLICT (key) DO NOTHING;
