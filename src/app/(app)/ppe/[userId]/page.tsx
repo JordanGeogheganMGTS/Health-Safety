@@ -104,6 +104,47 @@ export default async function UserPpePage({ params }: PageProps) {
   const items = (ppeItemsData ?? []) as unknown as PpeItem[]
   const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
 
+  // Build size options server-side for items that have sizes
+  const sizeCategoryKeys = Array.from(
+    new Set(items.filter((i) => i.has_sizes && i.size_category_key).map((i) => i.size_category_key!))
+  )
+
+  const sizeOptions: Record<string, { id: string; label: string }[]> = {}
+  const sizeLabels: Record<string, string> = {}
+
+  if (sizeCategoryKeys.length > 0) {
+    const { data: cats } = await supabase
+      .from('lookup_categories')
+      .select('id, key, label')
+      .in('key', sizeCategoryKeys)
+      .eq('is_active', true)
+
+    if (cats && cats.length > 0) {
+      for (const cat of cats) {
+        sizeLabels[cat.key] = cat.label
+      }
+
+      const catIds = cats.map((c) => c.id)
+      const catIdToKey: Record<string, string> = {}
+      for (const cat of cats) catIdToKey[cat.id] = cat.key
+
+      const { data: vals } = await supabase
+        .from('lookup_values')
+        .select('id, label, category_id')
+        .in('category_id', catIds)
+        .eq('is_active', true)
+        .order('sort_order')
+
+      for (const v of vals ?? []) {
+        const key = catIdToKey[v.category_id]
+        if (key) {
+          if (!sizeOptions[key]) sizeOptions[key] = []
+          sizeOptions[key].push({ id: v.id, label: v.label })
+        }
+      }
+    }
+  }
+
   // Split into active (not returned) and returned
   const activeRecords = records.filter((r) => !r.returned_date)
   const returnedRecords = records.filter((r) => r.returned_date)
@@ -211,6 +252,8 @@ export default async function UserPpePage({ params }: PageProps) {
         <IssueForm
           userId={userId}
           items={items}
+          sizeOptions={sizeOptions}
+          sizeLabels={sizeLabels}
           action={issuePpeAction}
         />
       </div>

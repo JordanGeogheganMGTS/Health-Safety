@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
 
 interface PpeItem {
   id: string
@@ -20,6 +19,8 @@ interface SizeOption {
 interface IssueFormProps {
   userId: string
   items: PpeItem[]
+  sizeOptions: Record<string, SizeOption[]>
+  sizeLabels: Record<string, string>
   action: (formData: FormData) => Promise<{ error?: string } | void>
 }
 
@@ -27,55 +28,15 @@ function todayISO() {
   return new Date().toISOString().split('T')[0]
 }
 
-export default function IssueForm({ userId, items, action }: IssueFormProps) {
+export default function IssueForm({ userId, items, sizeOptions, sizeLabels, action }: IssueFormProps) {
   const [selectedItemId, setSelectedItemId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [sizeChoices, setSizeChoices] = useState<SizeOption[]>([])
-  const [sizeLabel, setSizeLabel] = useState('Size')
-  const [sizesLoading, setSizesLoading] = useState(false)
 
   const selectedItem = items.find((i) => i.id === selectedItemId)
   const sizeCategoryKey = selectedItem?.has_sizes ? selectedItem.size_category_key : null
-
-  // Fetch size options from lookup values whenever the selected item changes
-  useEffect(() => {
-    if (!sizeCategoryKey) {
-      setSizeChoices([])
-      setSizeLabel('Size')
-      return
-    }
-
-    setSizesLoading(true)
-    setSizeChoices([])
-
-    const supabase = createClient()
-
-    supabase
-      .from('lookup_categories')
-      .select('id, name')
-      .eq('key', sizeCategoryKey)
-      .single()
-      .then(({ data: cat, error: catErr }) => {
-        if (catErr || !cat) {
-          setSizesLoading(false)
-          return
-        }
-
-        setSizeLabel(cat.name)
-
-        supabase
-          .from('lookup_values')
-          .select('id, label')
-          .eq('category_id', cat.id)
-          .eq('is_active', true)
-          .order('sort_order')
-          .then(({ data: values }) => {
-            setSizeChoices(values ?? [])
-            setSizesLoading(false)
-          })
-      })
-  }, [sizeCategoryKey])
+  const currentSizeChoices = sizeCategoryKey ? (sizeOptions[sizeCategoryKey] ?? []) : []
+  const currentSizeLabel = sizeCategoryKey ? (sizeLabels[sizeCategoryKey] ?? 'Size') : 'Size'
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true)
@@ -122,14 +83,12 @@ export default function IssueForm({ userId, items, action }: IssueFormProps) {
         {sizeCategoryKey && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              {sizeLabel}
+              {currentSizeLabel}
             </label>
-            {sizesLoading ? (
-              <div className="text-sm text-slate-400 py-2">Loading sizes…</div>
-            ) : sizeChoices.length > 0 ? (
+            {currentSizeChoices.length > 0 ? (
               <select name="size_value_id" className={selectCls}>
                 <option value="">Select size…</option>
-                {sizeChoices.map((s) => (
+                {currentSizeChoices.map((s) => (
                   <option key={s.id} value={s.id}>{s.label}</option>
                 ))}
               </select>
