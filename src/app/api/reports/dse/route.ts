@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { buildWorkbook } from '@/lib/export'
 
-const HEADERS = ['Name', 'Email', 'Role', 'Site', 'DSE Status', 'Assessment Date', 'Outcome', 'Review Date', 'Eye Test Required', 'Further Action Required']
+const HEADERS = ['Name', 'Email', 'Role', 'Site', 'DSE Status', 'Assessment Date', 'Review Date', 'Assessment Status', 'Notes']
 
 export async function GET() {
   const supabase = await createClient()
@@ -18,7 +18,7 @@ export async function GET() {
       .order('last_name'),
     supabase
       .from('dse_assessments')
-      .select('user_id, assessment_date, next_review_date, status, overall_outcome, eye_test_recommended, further_action_required')
+      .select('user_id, assessment_date, next_review_date, status, overall_notes')
       .order('assessment_date', { ascending: false }),
   ])
 
@@ -58,10 +58,9 @@ export async function GET() {
         'Site': site?.name ?? '',
         'DSE Status': dseStatus,
         'Assessment Date': (assessment?.assessment_date as string) ?? '',
-        'Outcome': (assessment?.overall_outcome as string) ?? '',
         'Review Date': (assessment?.next_review_date as string) ?? '',
-        'Eye Test Required': assessment?.eye_test_recommended === true ? 'Yes' : assessment?.eye_test_recommended === false ? 'No' : '',
-        'Further Action Required': assessment?.further_action_required === true ? 'Yes' : assessment?.further_action_required === false ? 'No' : '',
+        'Assessment Status': (assessment?.status as string) ?? '',
+        'Notes': (assessment?.overall_notes as string) ?? '',
       }
     }),
   }])
