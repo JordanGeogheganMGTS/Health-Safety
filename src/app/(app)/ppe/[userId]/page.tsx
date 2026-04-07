@@ -113,20 +113,38 @@ export default async function UserPpePage({ params }: PageProps) {
   const sizeLabels: Record<string, string> = {}
 
   if (sizeCategoryKeys.length > 0) {
-    const { data: sizeData } = await supabase
-      .from('lookup_values')
-      .select('id, label, lookup_categories!inner(key, name)')
-      .in('lookup_categories.key', sizeCategoryKeys)
-      .eq('is_active', true)
-      .order('sort_order')
+    // Two-step: get category IDs first (direct column filter, reliable),
+    // then fetch lookup values by category_id
+    const { data: cats } = await supabase
+      .from('lookup_categories')
+      .select('id, key, name')
+      .in('key', sizeCategoryKeys)
 
-    for (const row of (sizeData ?? []) as unknown as { id: string; label: string; lookup_categories: { key: string; name: string } }[]) {
-      const key = row.lookup_categories.key
-      if (!sizeOptions[key]) {
-        sizeOptions[key] = []
-        sizeLabels[key] = row.lookup_categories.name
+    const catKeyById: Record<string, string> = {}
+    const catNameById: Record<string, string> = {}
+    for (const c of cats ?? []) {
+      catKeyById[c.id] = c.key
+      catNameById[c.id] = c.name
+    }
+
+    const catIds = Object.keys(catKeyById)
+    if (catIds.length > 0) {
+      const { data: sizeData } = await supabase
+        .from('lookup_values')
+        .select('id, label, category_id')
+        .in('category_id', catIds)
+        .eq('is_active', true)
+        .order('sort_order')
+
+      for (const row of (sizeData ?? []) as { id: string; label: string; category_id: string }[]) {
+        const key = catKeyById[row.category_id]
+        if (!key) continue
+        if (!sizeOptions[key]) {
+          sizeOptions[key] = []
+          sizeLabels[key] = catNameById[row.category_id] ?? key
+        }
+        sizeOptions[key].push({ id: row.id, label: row.label })
       }
-      sizeOptions[key].push({ id: row.id, label: row.label })
     }
   }
 
