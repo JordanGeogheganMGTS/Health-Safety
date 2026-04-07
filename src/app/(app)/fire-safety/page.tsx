@@ -38,9 +38,9 @@ interface DrillRow {
   drill_date: string
   drill_time: string | null
   evacuation_time_secs: number | null
-  total_occupants: number | null
-  all_accounted_for: boolean
-  issues_found: string | null
+  number_evacuated: number | null
+  issues_identified: string | null
+  notes: string | null
   sites: { name: string } | null
 }
 
@@ -95,7 +95,7 @@ export default async function FireSafetyPage() {
       .limit(50),
     supabase
       .from('fire_drills')
-      .select('id, drill_date, drill_time, evacuation_time_secs, total_occupants, all_accounted_for, issues_found, sites(name)')
+      .select('id, drill_date, drill_time, evacuation_time_secs, number_evacuated, issues_identified, notes, sites!site_id(name)')
       .order('drill_date', { ascending: false })
       .limit(50),
   ])
@@ -158,7 +158,7 @@ export default async function FireSafetyPage() {
                   {extinguishers.map((ext) => (
                     <tr key={ext.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-sm font-medium text-slate-800">{ext.location}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{ext.sites?.[0]?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{(ext.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{ext.type}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{ext.capacity_kg_or_l ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">
@@ -286,32 +286,28 @@ export default async function FireSafetyPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Time</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Evacuation (secs)</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Occupants</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">All Accounted</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Issues Found</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">No. Evacuated</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Issues Identified</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {drills.map((d) => (
                     <tr key={d.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-4 py-3 text-sm text-slate-700">{d.sites?.[0]?.name ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-700">{(d.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-700">{formatDate(d.drill_date)}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{d.drill_time ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {d.evacuation_time_secs != null ? d.evacuation_time_secs : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
-                        {d.total_occupants != null ? d.total_occupants : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        {d.all_accounted_for ? (
-                          <span className="text-green-600 font-semibold">✓</span>
-                        ) : (
-                          <span className="text-red-600 font-semibold">✗</span>
-                        )}
+                        {d.number_evacuated != null ? d.number_evacuated : '—'}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
-                        {d.issues_found ?? '—'}
+                        {d.issues_identified ?? '—'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
+                        {d.notes ?? '—'}
                       </td>
                     </tr>
                   ))}
