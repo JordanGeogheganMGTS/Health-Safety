@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { clearPasswordFlag } from './actions'
 
 export default function ChangePasswordPage() {
   const supabase = createClient()
@@ -26,36 +27,24 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true)
 
-    const { data: updateData, error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
+    // Step 1: Update the password in Supabase Auth
+    const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
     if (updateErr) {
       setError(updateErr.message)
       setSubmitting(false)
       return
     }
 
-    const userId = updateData?.user?.id
-    if (!userId) {
-      setError('Could not identify user. Please try again.')
+    // Step 2: Clear the must_change_password flag via server action
+    // (server actions have reliable server-side session access)
+    const result = await clearPasswordFlag()
+    if (!result.ok) {
+      setError(result.error ?? 'Failed to clear password flag. Please contact an admin.')
       setSubmitting(false)
       return
     }
 
-    // Clear the must_change_password flag — send userId directly since
-    // cookies/tokens may not be settled yet after updateUser()
-    const res = await fetch('/api/auth/clear-password-flag', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId }),
-    })
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      setError(body.error ?? 'Failed to clear password flag. Please contact an admin.')
-      setSubmitting(false)
-      return
-    }
-
-    // Hard redirect so middleware re-evaluates with fresh flag
+    // Step 3: Hard redirect — middleware will now allow through
     window.location.replace('/dashboard')
   }
 

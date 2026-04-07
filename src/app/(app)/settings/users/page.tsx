@@ -20,7 +20,7 @@ export default async function UsersPage() {
 
   const { data: users } = await supabase
     .from('users')
-    .select('id, first_name, last_name, email, is_active, last_login_at, roles(name), sites(name)')
+    .select('id, first_name, last_name, email, is_active, last_login_at, must_change_password, password_changed_at, roles(name), sites(name)')
     .order('last_name')
 
   return (
@@ -65,6 +65,7 @@ export default async function UsersPage() {
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Site</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Last Login</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Password Changed</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -96,6 +97,17 @@ export default async function UsersPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500">{formatDate(u.last_login_at)}</td>
+                    <td className="px-6 py-4 text-sm">
+                      {u.must_change_password ? (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">
+                          Pending change
+                        </span>
+                      ) : u.password_changed_at ? (
+                        <span className="text-slate-500">{new Date(u.password_changed_at).toLocaleString()}</span>
+                      ) : (
+                        <span className="text-slate-400">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-right">
                       <Link
                         href={`/profile/${u.id}`}
