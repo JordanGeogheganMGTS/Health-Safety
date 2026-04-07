@@ -18,7 +18,7 @@ const schema = z.object({
   location: z.string().optional(),
   description: z.string().min(1, 'Description is required'),
   injured_person_name: z.string().optional(),
-  injured_person_type: z.enum(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other', '']).optional(),
+  injured_person_type: z.string().optional(),
   injured_person_dept: z.string().optional(),
   witnesses: z.string().optional(),
   immediate_causes: z.string().optional(),
@@ -37,6 +37,7 @@ type FormValues = z.infer<typeof schema>
 interface Site { id: string; name: string }
 interface UserOption { id: string; first_name: string; last_name: string }
 interface IncidentType { id: string; label: string }
+interface LookupOption { id: string; label: string }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ export default function EditIncidentPage({ params }: PageProps) {
   const [sites, setSites] = useState<Site[]>([])
   const [users, setUsers] = useState<UserOption[]>([])
   const [incidentTypes, setIncidentTypes] = useState<IncidentType[]>([])
+  const [personTypes, setPersonTypes] = useState<LookupOption[]>([])
   const [loading, setLoading] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -75,26 +77,28 @@ export default function EditIncidentPage({ params }: PageProps) {
       const { id } = await params
       setIncidentId(id)
 
-      // Fetch lookup category for incident types
-      const { data: catData } = await supabase
-        .from('lookup_categories')
-        .select('id')
-        .eq('key', 'incident_type')
-        .single()
+      const [{ data: incTypeCat }, { data: personTypeCat }] = await Promise.all([
+        supabase.from('lookup_categories').select('id').eq('key', 'incident_type').single(),
+        supabase.from('lookup_categories').select('id').eq('key', 'incident_person_type').single(),
+      ])
 
-      const [{ data: inc }, { data: sitesData }, { data: usersData }, { data: typesData }] =
+      const [{ data: inc }, { data: sitesData }, { data: usersData }, { data: typesData }, { data: personTypesData }] =
         await Promise.all([
           supabase.from('incidents').select('*').eq('id', id).single(),
           supabase.from('sites').select('id, name').order('name'),
           supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
-          catData
-            ? supabase.from('lookup_values').select('id, label').eq('category_id', catData.id).order('sort_order')
+          incTypeCat
+            ? supabase.from('lookup_values').select('id, label').eq('category_id', incTypeCat.id).eq('is_active', true).order('sort_order')
+            : Promise.resolve({ data: [] }),
+          personTypeCat
+            ? supabase.from('lookup_values').select('id, label').eq('category_id', personTypeCat.id).eq('is_active', true).order('sort_order')
             : Promise.resolve({ data: [] }),
         ])
 
       setSites(sitesData ?? [])
       setUsers(usersData ?? [])
       setIncidentTypes((typesData ?? []) as IncidentType[])
+      setPersonTypes((personTypesData ?? []) as LookupOption[])
 
       if (inc) {
         let overrideStatus = inc.status
@@ -291,8 +295,8 @@ export default function EditIncidentPage({ params }: PageProps) {
                 <label htmlFor="injured_person_type" className={labelClass}>Person Type</label>
                 <select id="injured_person_type" {...register('injured_person_type')} className={selectClass}>
                   <option value="">Select type…</option>
-                  {(['Employee', 'Contractor', 'Visitor', 'Member of Public', 'Other'] as const).map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  {personTypes.map((t) => (
+                    <option key={t.id} value={t.label}>{t.label}</option>
                   ))}
                 </select>
               </div>
