@@ -64,6 +64,7 @@ export default async function EmergencyLightsPage() {
           <div key={siteName} className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">{siteName}</h2>
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-100">
                 <thead>
                   <tr className="bg-slate-50">
@@ -97,6 +98,7 @@ export default async function EmergencyLightsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           </div>
         ))

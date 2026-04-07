@@ -67,6 +67,7 @@ export default async function SitesPage() {
         {!sites || sites.length === 0 ? (
           <div className="p-8 text-center text-slate-500 text-sm">No sites found. Add your first site to get started.</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -115,6 +116,7 @@ export default async function SitesPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

@@ -68,6 +68,7 @@ export default async function TemplatesPage() {
             No templates found. Create your first inspection template.
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -112,6 +113,7 @@ export default async function TemplatesPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

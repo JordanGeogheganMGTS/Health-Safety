@@ -136,6 +136,7 @@ export default async function LookupCategoryPage({ params }: { params: Promise<{
         {!values || values.length === 0 ? (
           <div className="p-8 text-center text-slate-500 text-sm">No values found. Add your first value above.</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -160,6 +161,7 @@ export default async function LookupCategoryPage({ params }: { params: Promise<{
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

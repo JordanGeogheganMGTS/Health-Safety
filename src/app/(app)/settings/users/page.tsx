@@ -56,6 +56,7 @@ export default async function UsersPage() {
         {!users || users.length === 0 ? (
           <div className="p-8 text-center text-slate-500 text-sm">No users found.</div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -121,6 +122,7 @@ export default async function UsersPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

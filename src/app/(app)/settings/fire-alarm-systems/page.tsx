@@ -66,6 +66,7 @@ export default async function FireAlarmSystemsPage() {
             No fire alarm systems found. Add your first system to enable alarm test logging.
           </div>
         ) : (
+          <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-200">
             <thead className="bg-slate-50">
               <tr>
@@ -123,6 +124,7 @@ export default async function FireAlarmSystemsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

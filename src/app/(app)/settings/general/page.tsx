@@ -61,7 +61,9 @@ export default async function GeneralSettingsPage() {
         {!settings || settings.length === 0 ? (
           <div className="p-8 text-center text-slate-500 text-sm">No settings found.</div>
         ) : (
-          <GeneralSettingsTable settings={settings} updateSetting={updateSetting} />
+          <div className="overflow-x-auto">
+            <GeneralSettingsTable settings={settings} updateSetting={updateSetting} />
+          </div>
         )}
       </div>
     </div>
