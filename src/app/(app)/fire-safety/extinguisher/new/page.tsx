@@ -12,18 +12,18 @@ import { createClient } from '@/lib/supabase/client'
 const schema = z.object({
   site_id: z.string().uuid('Please select a site'),
   location: z.string().min(1, 'Location is required'),
-  type: z.enum(['Water', 'Foam', 'CO2', 'Dry Powder', 'Wet Chemical', 'Halon']),
-  capacity_kg_or_l: z.string().optional(),
+  type_id: z.string().uuid('Please select a type'),
   serial_number: z.string().optional(),
-  install_date: z.string().optional(),
-  next_inspection_due: z.string().min(1, 'Next inspection due date is required'),
-  status: z.enum(['Operational', 'Condemned', 'Requires Attention']),
+  manufacture_date: z.string().optional(),
+  next_inspection_date: z.string().min(1, 'Next inspection date is required'),
+  status_id: z.string().uuid('Please select a status'),
   notes: z.string().optional(),
 })
 
 type FormValues = z.infer<typeof schema>
 
 interface Site { id: string; name: string }
+interface LookupOption { id: string; label: string }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,8 @@ export default function NewExtinguisherPage() {
   const supabase = createClient()
 
   const [sites, setSites] = useState<Site[]>([])
+  const [extTypes, setExtTypes] = useState<LookupOption[]>([])
+  const [extStatuses, setExtStatuses] = useState<LookupOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -41,16 +43,31 @@ export default function NewExtinguisherPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      type: 'CO2',
-      status: 'Operational',
-    },
   })
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('sites').select('id, name').order('name')
-      setSites(data ?? [])
+      const { data: cats } = await supabase
+        .from('lookup_categories')
+        .select('id, key')
+        .in('key', ['extinguisher_type', 'extinguisher_status'])
+
+      const typeCatId = cats?.find((c) => c.key === 'extinguisher_type')?.id
+      const statusCatId = cats?.find((c) => c.key === 'extinguisher_status')?.id
+
+      const [{ data: sitesData }, { data: typesData }, { data: statusesData }] = await Promise.all([
+        supabase.from('sites').select('id, name').order('name'),
+        typeCatId
+          ? supabase.from('lookup_values').select('id, label').eq('category_id', typeCatId).order('sort_order')
+          : Promise.resolve({ data: [] }),
+        statusCatId
+          ? supabase.from('lookup_values').select('id, label').eq('category_id', statusCatId).order('sort_order')
+          : Promise.resolve({ data: [] }),
+      ])
+
+      setSites(sitesData ?? [])
+      setExtTypes((typesData ?? []) as LookupOption[])
+      setExtStatuses((statusesData ?? []) as LookupOption[])
       setLoadingOptions(false)
     }
     load()
@@ -63,12 +80,11 @@ export default function NewExtinguisherPage() {
     const { error } = await supabase.from('fire_extinguishers').insert({
       site_id: values.site_id,
       location: values.location,
-      type: values.type,
-      capacity_kg_or_l: values.capacity_kg_or_l || null,
+      type_id: values.type_id,
       serial_number: values.serial_number || null,
-      install_date: values.install_date || null,
-      next_inspection_due: values.next_inspection_due,
-      status: values.status,
+      manufacture_date: values.manufacture_date || null,
+      next_inspection_date: values.next_inspection_date,
+      status_id: values.status_id,
       notes: values.notes || null,
     })
 
@@ -136,58 +152,51 @@ export default function NewExtinguisherPage() {
 
           {/* Type */}
           <div className="space-y-1">
-            <label htmlFor="type" className={labelClass}>
+            <label htmlFor="type_id" className={labelClass}>
               Type <span className="text-red-500">*</span>
             </label>
-            <select id="type" {...register('type')} className={selectClass}>
-              <option value="Water">Water</option>
-              <option value="Foam">Foam</option>
-              <option value="CO2">CO2</option>
-              <option value="Dry Powder">Dry Powder</option>
-              <option value="Wet Chemical">Wet Chemical</option>
-              <option value="Halon">Halon</option>
+            <select id="type_id" {...register('type_id')} disabled={loadingOptions} className={selectClass}>
+              <option value="">Select a type…</option>
+              {extTypes.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
             </select>
-            {errors.type && <p className={errorClass}>{errors.type.message}</p>}
+            {errors.type_id && <p className={errorClass}>{errors.type_id.message}</p>}
           </div>
 
-          {/* Capacity & Serial Number */}
+          {/* Serial Number & Manufacture Date */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label htmlFor="capacity_kg_or_l" className={labelClass}>Capacity (kg/L)</label>
-              <input id="capacity_kg_or_l" type="text" {...register('capacity_kg_or_l')} className={inputClass} placeholder="e.g. 2kg" />
-            </div>
             <div className="space-y-1">
               <label htmlFor="serial_number" className={labelClass}>Serial Number</label>
               <input id="serial_number" type="text" {...register('serial_number')} className={inputClass} />
             </div>
+            <div className="space-y-1">
+              <label htmlFor="manufacture_date" className={labelClass}>Manufacture Date</label>
+              <input id="manufacture_date" type="date" {...register('manufacture_date')} className={inputClass} />
+            </div>
           </div>
 
-          {/* Install Date */}
+          {/* Next Inspection Date */}
           <div className="space-y-1">
-            <label htmlFor="install_date" className={labelClass}>Install Date</label>
-            <input id="install_date" type="date" {...register('install_date')} className={inputClass} />
-          </div>
-
-          {/* Next Inspection Due */}
-          <div className="space-y-1">
-            <label htmlFor="next_inspection_due" className={labelClass}>
-              Next Inspection Due <span className="text-red-500">*</span>
+            <label htmlFor="next_inspection_date" className={labelClass}>
+              Next Inspection Date <span className="text-red-500">*</span>
             </label>
-            <input id="next_inspection_due" type="date" {...register('next_inspection_due')} className={inputClass} />
-            {errors.next_inspection_due && <p className={errorClass}>{errors.next_inspection_due.message}</p>}
+            <input id="next_inspection_date" type="date" {...register('next_inspection_date')} className={inputClass} />
+            {errors.next_inspection_date && <p className={errorClass}>{errors.next_inspection_date.message}</p>}
           </div>
 
           {/* Status */}
           <div className="space-y-1">
-            <label htmlFor="status" className={labelClass}>
+            <label htmlFor="status_id" className={labelClass}>
               Status <span className="text-red-500">*</span>
             </label>
-            <select id="status" {...register('status')} className={selectClass}>
-              <option value="Operational">Operational</option>
-              <option value="Condemned">Condemned</option>
-              <option value="Requires Attention">Requires Attention</option>
+            <select id="status_id" {...register('status_id')} disabled={loadingOptions} className={selectClass}>
+              <option value="">Select a status…</option>
+              {extStatuses.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
             </select>
-            {errors.status && <p className={errorClass}>{errors.status.message}</p>}
+            {errors.status_id && <p className={errorClass}>{errors.status_id.message}</p>}
           </div>
 
           {/* Notes */}

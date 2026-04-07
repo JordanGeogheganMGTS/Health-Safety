@@ -14,14 +14,15 @@ const today = new Date().toISOString().split('T')[0]
 
 const schema = z.object({
   inspection_date: z.string().min(1, 'Inspection date is required'),
-  inspector_name: z.string().min(1, 'Inspector name is required'),
-  company: z.string().optional(),
-  outcome: z.enum(['Pass', 'Fail', 'Advisory'], { required_error: 'Outcome is required' }),
+  inspected_by: z.string().min(1, 'Inspector name is required'),
+  outcome_id: z.string().uuid('Please select an outcome'),
   notes: z.string().optional(),
   next_due_date: z.string().min(1, 'Next due date is required'),
 })
 
 type FormValues = z.infer<typeof schema>
+
+interface LookupOption { id: string; label: string }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,7 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
 
   const [extinguisherId, setExtinguisherId] = useState<string | null>(null)
   const [extinguisherLabel, setExtinguisherLabel] = useState<string>('Extinguisher')
+  const [outcomes, setOutcomes] = useState<LookupOption[]>([])
   const [certificateFile, setCertificateFile] = useState<File | null>(null)
   const [serverError, setServerError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,12 +56,29 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
     async function load() {
       const { id } = await params
       setExtinguisherId(id)
-      const { data } = await supabase
-        .from('fire_extinguishers')
-        .select('location, type')
-        .eq('id', id)
+
+      const { data: catData } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'extinguisher_outcome')
         .single()
-      if (data) setExtinguisherLabel(`${data.type} — ${data.location}`)
+
+      const [{ data: extData }, { data: outcomesData }] = await Promise.all([
+        supabase
+          .from('fire_extinguishers')
+          .select('location, type:lookup_values!type_id(label)')
+          .eq('id', id)
+          .single(),
+        catData
+          ? supabase.from('lookup_values').select('id, label').eq('category_id', catData.id).order('sort_order')
+          : Promise.resolve({ data: [] }),
+      ])
+
+      if (extData) {
+        const typeLabel = (extData.type as unknown as { label: string } | null)?.label ?? 'Unknown'
+        setExtinguisherLabel(`${typeLabel} — ${extData.location}`)
+      }
+      setOutcomes((outcomesData ?? []) as LookupOption[])
       setLoading(false)
     }
     load()
@@ -77,7 +96,8 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
     }
 
     // Upload certificate if provided
-    let certificate_key: string | null = null
+    let file_path: string | null = null
+    let file_name: string | null = null
     if (certificateFile) {
       const { key, error: uploadError } = await uploadFile(
         `fire-extinguisher/${extinguisherId}/inspections`,
@@ -87,21 +107,22 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
         setServerError(`File upload failed: ${uploadError}`)
         return
       }
-      certificate_key = key
+      file_path = key
+      file_name = certificateFile.name
     }
 
     // Insert inspection record
     const { error: insertError } = await supabase
       .from('fire_extinguisher_inspections')
       .insert({
-        extinguisher_id: extinguisherId,
+        fire_extinguisher_id: extinguisherId,
         inspection_date: values.inspection_date,
-        inspector_name: values.inspector_name,
-        company: values.company || null,
-        outcome: values.outcome,
+        inspected_by: values.inspected_by,
+        outcome_id: values.outcome_id,
         notes: values.notes || null,
         next_due_date: values.next_due_date,
-        certificate_key,
+        file_path,
+        file_name,
         recorded_by: user.id,
       })
 
@@ -115,7 +136,7 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
       .from('fire_extinguishers')
       .update({
         last_inspection_date: values.inspection_date,
-        next_inspection_due: values.next_due_date,
+        next_inspection_date: values.next_due_date,
       })
       .eq('id', extinguisherId)
 
@@ -177,33 +198,27 @@ export default function InspectExtinguisherPage({ params }: PageProps) {
             {errors.inspection_date && <p className={errorClass}>{errors.inspection_date.message}</p>}
           </div>
 
-          {/* Inspector Name & Company */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label htmlFor="inspector_name" className={labelClass}>
-                Inspector Name <span className="text-red-500">*</span>
-              </label>
-              <input id="inspector_name" type="text" {...register('inspector_name')} className={inputClass} placeholder="e.g. Jane Doe" />
-              {errors.inspector_name && <p className={errorClass}>{errors.inspector_name.message}</p>}
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="company" className={labelClass}>Company</label>
-              <input id="company" type="text" {...register('company')} className={inputClass} placeholder="e.g. SafeGuard Ltd" />
-            </div>
+          {/* Inspector Name */}
+          <div className="space-y-1">
+            <label htmlFor="inspected_by" className={labelClass}>
+              Inspector Name <span className="text-red-500">*</span>
+            </label>
+            <input id="inspected_by" type="text" {...register('inspected_by')} className={inputClass} placeholder="e.g. Jane Doe" />
+            {errors.inspected_by && <p className={errorClass}>{errors.inspected_by.message}</p>}
           </div>
 
           {/* Outcome */}
           <div className="space-y-1">
-            <label htmlFor="outcome" className={labelClass}>
+            <label htmlFor="outcome_id" className={labelClass}>
               Outcome <span className="text-red-500">*</span>
             </label>
-            <select id="outcome" {...register('outcome')} className={selectClass}>
+            <select id="outcome_id" {...register('outcome_id')} className={selectClass}>
               <option value="">Select outcome…</option>
-              <option value="Pass">Pass</option>
-              <option value="Fail">Fail</option>
-              <option value="Advisory">Advisory</option>
+              {outcomes.map((o) => (
+                <option key={o.id} value={o.id}>{o.label}</option>
+              ))}
             </select>
-            {errors.outcome && <p className={errorClass}>{errors.outcome.message}</p>}
+            {errors.outcome_id && <p className={errorClass}>{errors.outcome_id.message}</p>}
           </div>
 
           {/* Notes */}

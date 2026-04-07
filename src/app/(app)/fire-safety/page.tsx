@@ -5,17 +5,15 @@ import { getAuthUser } from '@/lib/permissions'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ExtinguisherStatus = 'Operational' | 'Condemned' | 'Requires Attention'
 type InspectionOutcome = 'Pass' | 'Fail' | 'Advisory'
 type AlarmTestOutcome = 'Pass' | 'Fail'
 
 interface ExtinguisherRow {
   id: string
   location: string
-  type: string
-  capacity_kg_or_l: string | null
-  next_inspection_due: string
-  status: ExtinguisherStatus
+  type: { label: string } | null
+  next_inspection_date: string | null
+  status: { label: string } | null
   sites: { name: string } | null
 }
 
@@ -46,12 +44,11 @@ interface DrillRow {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function extStatusBadgeClass(status: ExtinguisherStatus): string {
-  switch (status) {
-    case 'Operational': return 'bg-green-100 text-green-700 ring-green-200'
-    case 'Condemned': return 'bg-red-100 text-red-700 ring-red-200'
-    case 'Requires Attention': return 'bg-amber-100 text-amber-700 ring-amber-200'
-  }
+function extStatusBadgeClass(label: string): string {
+  const l = label.toLowerCase()
+  if (l === 'serviceable') return 'bg-green-100 text-green-700 ring-green-200'
+  if (l === 'out of service') return 'bg-red-100 text-red-700 ring-red-200'
+  return 'bg-amber-100 text-amber-700 ring-amber-200'
 }
 
 function outcomeBadgeClass(outcome: InspectionOutcome | AlarmTestOutcome): string {
@@ -80,8 +77,8 @@ export default async function FireSafetyPage() {
   ] = await Promise.all([
     supabase
       .from('fire_extinguishers')
-      .select('id, location, type, capacity_kg_or_l, next_inspection_due, status, sites(name)')
-      .order('next_inspection_due', { ascending: true }),
+      .select('id, location, next_inspection_date, sites!site_id(name), type:lookup_values!type_id(label), status:lookup_values!status_id(label)')
+      .order('next_inspection_date', { ascending: true }),
     supabase
       .from('fire_alarm_tests')
       .select(
@@ -148,7 +145,6 @@ export default async function FireSafetyPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Location</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Site</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Type</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Capacity</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Next Inspection</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Actions</th>
@@ -159,17 +155,20 @@ export default async function FireSafetyPage() {
                     <tr key={ext.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-sm font-medium text-slate-800">{ext.location}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{(ext.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{ext.type}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{ext.capacity_kg_or_l ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{ext.type?.label ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">
-                        <span className={dueDateClass(ext.next_inspection_due)}>
-                          {formatDate(ext.next_inspection_due)}
-                        </span>
+                        {ext.next_inspection_date ? (
+                          <span className={dueDateClass(ext.next_inspection_date)}>
+                            {formatDate(ext.next_inspection_date)}
+                          </span>
+                        ) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${extStatusBadgeClass(ext.status)}`}>
-                          {ext.status}
-                        </span>
+                        {ext.status?.label ? (
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${extStatusBadgeClass(ext.status.label)}`}>
+                            {ext.status.label}
+                          </span>
+                        ) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <Link
@@ -224,6 +223,7 @@ export default async function FireSafetyPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Outcome</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Faults</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Recorded By</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -243,6 +243,9 @@ export default async function FireSafetyPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {t.tested_by_user ? `${(t.tested_by_user as unknown as { first_name: string; last_name: string }).first_name} ${(t.tested_by_user as unknown as { first_name: string; last_name: string }).last_name}` : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/fire-safety/alarm/${t.id}`} className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">View</Link>
                       </td>
                     </tr>
                   ))}
@@ -289,6 +292,7 @@ export default async function FireSafetyPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">No. Evacuated</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Issues Identified</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Notes</th>
+                    <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -308,6 +312,9 @@ export default async function FireSafetyPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600 max-w-[200px] truncate">
                         {d.notes ?? '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Link href={`/fire-safety/drill/${d.id}`} className="text-xs font-medium text-orange-600 hover:text-orange-700 hover:underline">View</Link>
                       </td>
                     </tr>
                   ))}
