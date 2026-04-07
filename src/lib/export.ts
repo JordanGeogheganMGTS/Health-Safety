@@ -10,7 +10,7 @@ export interface ExportColumn {
  * Build a multi-sheet Excel workbook and return it as a Buffer.
  * For use in Route Handlers (server-side).
  */
-export function buildWorkbook(sheets: Array<{ name: string; data: Record<string, unknown>[] }>): Uint8Array {
+export function buildWorkbook(sheets: Array<{ name: string; data: Record<string, unknown>[] }>): ArrayBuffer {
   const workbook = XLSX.utils.book_new()
 
   for (const sheet of sheets) {
@@ -23,7 +23,9 @@ export function buildWorkbook(sheets: Array<{ name: string; data: Record<string,
     }
   }
 
-  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Uint8Array
+  const u8 = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Uint8Array
+  // Slice to ensure a plain ArrayBuffer (valid BodyInit) rather than a shared ArrayBufferLike
+  return u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength)
 }
 
 export function exportToExcel<T extends Record<string, unknown>>(
