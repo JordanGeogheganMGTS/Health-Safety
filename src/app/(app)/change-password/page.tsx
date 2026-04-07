@@ -33,8 +33,17 @@ export default function ChangePasswordPage() {
       return
     }
 
-    // Clear the flag via server-side API (bypasses RLS)
-    await fetch('/api/auth/clear-password-flag', { method: 'POST' })
+    // Get the fresh session token (updateUser issues a new one)
+    const { data: { session } } = await supabase.auth.getSession()
+
+    // Clear the flag via server-side API — send token explicitly because
+    // browser cookies may not yet reflect the new session at this point
+    await fetch('/api/auth/clear-password-flag', {
+      method: 'POST',
+      headers: session?.access_token
+        ? { 'Authorization': `Bearer ${session.access_token}` }
+        : {},
+    })
 
     // Hard redirect so middleware re-evaluates with fresh flag
     window.location.replace('/dashboard')
