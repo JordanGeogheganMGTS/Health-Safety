@@ -21,17 +21,17 @@ ON CONFLICT (key) DO NOTHING;
 -- 3. Seed default values
 INSERT INTO lookup_values (category_id, value, label, sort_order, is_active)
 SELECT
-  id AS category_id,
-  value,
-  label,
-  sort_order,
+  lc.id AS category_id,
+  vals.val,
+  vals.lbl,
+  vals.sort_order,
   true
-FROM lookup_categories, (VALUES
+FROM lookup_categories lc, (VALUES
   ('employee',          'Employee',          1),
   ('contractor',        'Contractor',        2),
   ('visitor',           'Visitor',           3),
   ('member_of_public',  'Member of Public',  4),
   ('other',             'Other',             5)
-) AS vals(value, label, sort_order)
-WHERE lookup_categories.key = 'incident_person_type'
+) AS vals(val, lbl, sort_order)
+WHERE lc.key = 'incident_person_type'
 ON CONFLICT DO NOTHING;
