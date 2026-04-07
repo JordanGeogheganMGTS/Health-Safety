@@ -19,7 +19,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
   const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
-  const [{ data: template }, { data: items }, { data: sites }, catRes] = await Promise.all([
+  const [{ data: template }, { data: items }, { data: sites }, { data: types }] = await Promise.all([
     supabase
       .from('inspection_templates')
       .select('id, name, description, site_id, type_id, is_active')
@@ -31,12 +31,8 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
       .eq('template_id', id)
       .order('sort_order'),
     supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
-    supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').maybeSingle(),
+    supabase.from('lookup_values').select('id, label, lookup_categories!inner(key)').eq('lookup_categories.key', 'inspection_type').eq('is_active', true).order('sort_order'),
   ])
-
-  const typesRes = catRes.data?.id
-    ? await supabase.from('lookup_values').select('id, label').eq('category_id', catRes.data.id).eq('is_active', true).order('sort_order')
-    : { data: [] }
 
   if (!template) redirect('/settings/templates')
 
@@ -64,7 +60,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
         template={template}
         items={items ?? []}
         sites={sites ?? []}
-        types={typesRes.data ?? []}
+        types={(types ?? []) as { id: string; label: string }[]}
       />
     </div>
   )

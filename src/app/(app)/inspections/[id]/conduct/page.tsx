@@ -134,22 +134,14 @@ export default function ConductInspectionPage() {
         items = (itemRows ?? []) as unknown as TemplateItem[]
       }
 
-      // Load finding severity lookups (two-step)
-      const { data: catRow } = await supabase
-        .from('lookup_categories')
-        .select('id')
-        .eq('key', 'finding_severity')
-        .maybeSingle()
-
-      if (catRow?.id) {
-        const { data: sevRows } = await supabase
-          .from('lookup_values')
-          .select('id, label')
-          .eq('category_id', catRow.id)
-          .eq('is_active', true)
-          .order('sort_order')
-        setSeverities((sevRows ?? []) as LookupVal[])
-      }
+      // Load finding severity lookups (direct join)
+      const { data: sevRows } = await supabase
+        .from('lookup_values')
+        .select('id, label, lookup_categories!inner(key)')
+        .eq('lookup_categories.key', 'finding_severity')
+        .eq('is_active', true)
+        .order('sort_order')
+      setSeverities((sevRows ?? []) as LookupVal[])
 
       // Initialise field array
       replace(items.map((item) => ({

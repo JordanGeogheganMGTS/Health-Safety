@@ -55,34 +55,24 @@ export default function NewInspectionPage() {
       const [
         { data: { user } },
         sitesRes,
-        catRes,
+        typesRes,
         templatesRes,
         usersRes,
       ] = await Promise.all([
         supabase.auth.getUser(),
         supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
-        supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').maybeSingle(),
+        supabase.from('lookup_values').select('id, label, lookup_categories!inner(key)').eq('lookup_categories.key', 'inspection_type').eq('is_active', true).order('sort_order'),
         supabase.from('inspection_templates').select('id, name, site_id').eq('is_active', true).order('name'),
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
       ])
 
       setSites(sitesRes.data ?? [])
+      setTypes((typesRes.data ?? []) as LookupVal[])
       setTemplates((templatesRes.data ?? []) as Template[])
       setUsers(usersRes.data ?? [])
 
       // Default conducted-by to the current user
       if (user) setValue('inspected_by', user.id)
-
-      // Two-step lookup: category key → category id → values
-      if (catRes.data?.id) {
-        const { data: typeRows } = await supabase
-          .from('lookup_values')
-          .select('id, label')
-          .eq('category_id', catRes.data.id)
-          .eq('is_active', true)
-          .order('sort_order')
-        setTypes(typeRows ?? [])
-      }
     }
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
