@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface PpeItem {
   id: string
@@ -11,11 +12,14 @@ interface PpeItem {
   is_active: boolean
 }
 
+interface SizeOption {
+  id: string
+  label: string
+}
+
 interface IssueFormProps {
   userId: string
   items: PpeItem[]
-  sizeOptions: Record<string, { id: string; label: string }[]>
-  sizeLabels: Record<string, string>
   action: (formData: FormData) => Promise<{ error?: string } | void>
 }
 
@@ -23,15 +27,55 @@ function todayISO() {
   return new Date().toISOString().split('T')[0]
 }
 
-export default function IssueForm({ userId, items, sizeOptions, sizeLabels, action }: IssueFormProps) {
+export default function IssueForm({ userId, items, action }: IssueFormProps) {
   const [selectedItemId, setSelectedItemId] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sizeChoices, setSizeChoices] = useState<SizeOption[]>([])
+  const [sizeLabel, setSizeLabel] = useState('Size')
+  const [sizesLoading, setSizesLoading] = useState(false)
 
   const selectedItem = items.find((i) => i.id === selectedItemId)
   const sizeCategoryKey = selectedItem?.has_sizes ? selectedItem.size_category_key : null
-  const sizeChoices = sizeCategoryKey ? (sizeOptions[sizeCategoryKey] ?? []) : []
-  const sizeLabel = sizeCategoryKey ? (sizeLabels[sizeCategoryKey] ?? 'Size') : 'Size'
+
+  // Fetch size options from lookup values whenever the selected item changes
+  useEffect(() => {
+    if (!sizeCategoryKey) {
+      setSizeChoices([])
+      setSizeLabel('Size')
+      return
+    }
+
+    setSizesLoading(true)
+    setSizeChoices([])
+
+    const supabase = createClient()
+
+    supabase
+      .from('lookup_categories')
+      .select('id, name')
+      .eq('key', sizeCategoryKey)
+      .single()
+      .then(({ data: cat, error: catErr }) => {
+        if (catErr || !cat) {
+          setSizesLoading(false)
+          return
+        }
+
+        setSizeLabel(cat.name)
+
+        supabase
+          .from('lookup_values')
+          .select('id, label')
+          .eq('category_id', cat.id)
+          .eq('is_active', true)
+          .order('sort_order')
+          .then(({ data: values }) => {
+            setSizeChoices(values ?? [])
+            setSizesLoading(false)
+          })
+      })
+  }, [sizeCategoryKey])
 
   async function handleSubmit(formData: FormData) {
     setSubmitting(true)
@@ -80,7 +124,9 @@ export default function IssueForm({ userId, items, sizeOptions, sizeLabels, acti
             <label className="block text-sm font-medium text-slate-700 mb-1">
               {sizeLabel}
             </label>
-            {sizeChoices.length > 0 ? (
+            {sizesLoading ? (
+              <div className="text-sm text-slate-400 py-2">Loading sizes…</div>
+            ) : sizeChoices.length > 0 ? (
               <select name="size_value_id" className={selectCls}>
                 <option value="">Select size…</option>
                 {sizeChoices.map((s) => (
@@ -89,7 +135,7 @@ export default function IssueForm({ userId, items, sizeOptions, sizeLabels, acti
               </select>
             ) : (
               <p className="text-xs text-slate-400 mt-1">
-                No sizes configured for this item. Add them in Lookup Management.
+                No sizes found for this item. Check Lookup Management.
               </p>
             )}
           </div>

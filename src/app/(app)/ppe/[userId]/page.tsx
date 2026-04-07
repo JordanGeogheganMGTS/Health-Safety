@@ -104,50 +104,6 @@ export default async function UserPpePage({ params }: PageProps) {
   const items = (ppeItemsData ?? []) as unknown as PpeItem[]
   const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
 
-  // Fetch size lookup options for any PPE items that have sizes
-  const sizeCategoryKeys = Array.from(new Set(
-    items.filter((i) => i.has_sizes && i.size_category_key).map((i) => i.size_category_key!)
-  ))
-
-  const sizeOptions: Record<string, { id: string; label: string }[]> = {}
-  const sizeLabels: Record<string, string> = {}
-
-  if (sizeCategoryKeys.length > 0) {
-    // Two-step: get category IDs first (direct column filter, reliable),
-    // then fetch lookup values by category_id
-    const { data: cats } = await supabase
-      .from('lookup_categories')
-      .select('id, key, name')
-      .in('key', sizeCategoryKeys)
-
-    const catKeyById: Record<string, string> = {}
-    const catNameById: Record<string, string> = {}
-    for (const c of cats ?? []) {
-      catKeyById[c.id] = c.key
-      catNameById[c.id] = c.name
-    }
-
-    const catIds = Object.keys(catKeyById)
-    if (catIds.length > 0) {
-      const { data: sizeData } = await supabase
-        .from('lookup_values')
-        .select('id, label, category_id')
-        .in('category_id', catIds)
-        .eq('is_active', true)
-        .order('sort_order')
-
-      for (const row of (sizeData ?? []) as { id: string; label: string; category_id: string }[]) {
-        const key = catKeyById[row.category_id]
-        if (!key) continue
-        if (!sizeOptions[key]) {
-          sizeOptions[key] = []
-          sizeLabels[key] = catNameById[row.category_id] ?? key
-        }
-        sizeOptions[key].push({ id: row.id, label: row.label })
-      }
-    }
-  }
-
   // Split into active (not returned) and returned
   const activeRecords = records.filter((r) => !r.returned_date)
   const returnedRecords = records.filter((r) => r.returned_date)
@@ -255,8 +211,6 @@ export default async function UserPpePage({ params }: PageProps) {
         <IssueForm
           userId={userId}
           items={items}
-          sizeOptions={sizeOptions}
-          sizeLabels={sizeLabels}
           action={issuePpeAction}
         />
       </div>
