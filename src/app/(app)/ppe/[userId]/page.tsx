@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/dates'
 import IssueForm from './IssueForm'
+import { getAuthUser } from '@/lib/permissions'
 
 interface PpeItem {
   id: string
@@ -100,6 +101,9 @@ export default async function UserPpePage({ params }: PageProps) {
   ])
 
   if (!profile) notFound()
+
+  const authUser = await getAuthUser()
+  const canIssuePpe = authUser?.can('ppe', 'create') ?? false
 
   const items = (ppeItemsData ?? []) as unknown as PpeItem[]
   const records = (ppeRecords ?? []) as unknown as UserPpeRecord[]
@@ -244,19 +248,21 @@ export default async function UserPpePage({ params }: PageProps) {
         )}
       </div>
 
-      {/* Issue PPE Form */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden mb-6">
-        <div className="px-6 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-semibold text-slate-700">Issue / Re-issue PPE</h2>
+      {/* Issue PPE Form — hidden for read-only roles */}
+      {canIssuePpe && (
+        <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden mb-6">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <h2 className="text-sm font-semibold text-slate-700">Issue / Re-issue PPE</h2>
+          </div>
+          <IssueForm
+            userId={userId}
+            items={items}
+            sizeOptions={sizeOptions}
+            sizeLabels={sizeLabels}
+            action={issuePpeAction}
+          />
         </div>
-        <IssueForm
-          userId={userId}
-          items={items}
-          sizeOptions={sizeOptions}
-          sizeLabels={sizeLabels}
-          action={issuePpeAction}
-        />
-      </div>
+      )}
 
       {/* Previously Returned PPE */}
       {returnedRecords.length > 0 && (

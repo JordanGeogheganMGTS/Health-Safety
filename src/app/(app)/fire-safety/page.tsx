@@ -63,7 +63,7 @@ function dueDateClass(dateStr: string | null): string {
 }
 
 const TAB_LINKS = [
-  { key: 'extinguishers', label: 'Fire Extinguishers', href: '/fire-safety' },
+  { key: 'extinguishers', label: 'Fire Extinguishers', href: '/fire-safety?tab=extinguishers' },
   { key: 'alarm', label: 'Fire Alarm Tests', href: '/fire-safety?tab=alarm' },
   { key: 'drills', label: 'Fire Drills', href: '/fire-safety?tab=drills' },
   { key: 'emergency', label: 'Emergency Lighting', href: '/fire-safety?tab=emergency' },
@@ -77,7 +77,7 @@ interface PageProps {
 
 export default async function FireSafetyPage({ searchParams }: PageProps) {
   const sp = await searchParams
-  const activeTab = ['alarm', 'drills', 'emergency'].includes(sp.tab ?? '') ? sp.tab! : 'extinguishers'
+  const activeTab = ['extinguishers', 'alarm', 'drills', 'emergency'].includes(sp.tab ?? '') ? sp.tab! : 'extinguishers'
   const sort = sp.sort ?? ''
   const dir = sp.dir === 'desc' ? 'desc' : 'asc'
   const asc = dir === 'asc'
@@ -188,7 +188,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
           {extinguishers.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No extinguishers recorded.</p>
-              <Link href="/fire-safety/extinguisher/new" className="mt-1 text-xs text-orange-600 hover:underline">Add the first extinguisher</Link>
+              {authUser?.can('fire_safety', 'create') && <Link href="/fire-safety/extinguisher/new" className="mt-1 text-xs text-orange-600 hover:underline">Add the first extinguisher</Link>}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -239,7 +239,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
           {alarmTests.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No alarm tests recorded.</p>
-              <Link href="/fire-safety/alarm/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first alarm test</Link>
+              {authUser?.can('fire_safety', 'create') && <Link href="/fire-safety/alarm/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first alarm test</Link>}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -293,7 +293,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
           {drills.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No fire drills recorded.</p>
-              <Link href="/fire-safety/drill/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first fire drill</Link>
+              {authUser?.can('fire_safety', 'create') && <Link href="/fire-safety/drill/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first fire drill</Link>}
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -338,7 +338,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
           {elTests.length === 0 ? (
             <div className="px-6 py-12 text-center">
               <p className="text-sm font-medium text-slate-500">No emergency lighting tests recorded.</p>
-              <Link href="/fire-safety/emergency-lighting/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first test</Link>
+              {authUser?.can('fire_safety', 'create') && <Link href="/fire-safety/emergency-lighting/new" className="mt-1 text-xs text-orange-600 hover:underline">Log the first test</Link>}
             </div>
           ) : (
             <div className="overflow-x-auto">

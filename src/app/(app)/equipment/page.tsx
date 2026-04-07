@@ -45,9 +45,10 @@ interface PageProps {
 
 export default async function EquipmentPage({ searchParams }: PageProps) {
   const { site_id: siteParam } = await searchParams
-  const siteFilters = siteParam ? siteParam.split(',').filter(Boolean) : []
   const supabase = await createClient()
   const authUser = await getAuthUser()
+
+  const isSiteScoped = authUser?.role === 'Site Manager' || authUser?.role === 'TDA / Staff'
 
   let query = supabase
     .from('equipment')
@@ -59,7 +60,13 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
     )
     .order('name')
 
-  if (siteFilters.length > 0) query = query.in('site_id', siteFilters)
+  if (isSiteScoped && authUser?.siteId) {
+    // Restrict to their site only — ignore any URL filter param
+    query = query.eq('site_id', authUser.siteId)
+  } else {
+    const siteFilters = siteParam ? siteParam.split(',').filter(Boolean) : []
+    if (siteFilters.length > 0) query = query.in('site_id', siteFilters)
+  }
 
   const { data: rows, error } = await query
   const { data: sites } = await supabase.from('sites').select('id, name').order('name')
@@ -95,15 +102,17 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
       </div>
 
       {/* Filters */}
-      <Suspense fallback={<div className="h-10" />}>
-        <FilterBar filters={[
-          ...(sites && sites.length > 0 ? [{
-            param: 'site_id',
-            label: 'Site',
-            options: sites.map((s) => ({ value: s.id, label: s.name })),
-          }] : []),
-        ]} />
-      </Suspense>
+      {!isSiteScoped && (
+        <Suspense fallback={<div className="h-10" />}>
+          <FilterBar filters={[
+            ...(sites && sites.length > 0 ? [{
+              param: 'site_id',
+              label: 'Site',
+              options: sites.map((s) => ({ value: s.id, label: s.name })),
+            }] : []),
+          ]} />
+        </Suspense>
+      )}
 
       {/* Table */}
       <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">

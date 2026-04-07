@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, formatDateTime, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -60,6 +61,8 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
   const overdue = isOverdue(ms.review_due_date)
 
   const approveAction = approveMethodStatement.bind(null, ms.id)
+  const authUser = await getAuthUser()
+  const canEdit = authUser?.can('method_statements', 'edit') ?? false
 
   return (
     <div className="max-w-4xl">
@@ -74,7 +77,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
           <h1 className="text-2xl font-semibold text-slate-900">{ms.title}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          {ms.status === 'Draft' && (
+          {canEdit && ms.status === 'Draft' && (
             <form action={approveAction}>
               <button
                 type="submit"
@@ -84,6 +87,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
               </button>
             </form>
           )}
+          {canEdit && (
           <Link
             href={`/method-statements/${ms.id}/edit`}
             className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors shadow-sm"
@@ -93,6 +97,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
             </svg>
             Edit
           </Link>
+          )}
         </div>
       </div>
 
@@ -162,9 +167,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
         {!steps || steps.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-slate-400">
             <p className="text-sm">No steps added yet.</p>
-            <Link href={`/method-statements/${ms.id}/edit`} className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium">
-              Add steps
-            </Link>
+            {canEdit && <Link href={`/method-statements/${ms.id}/edit`} className="mt-2 text-sm text-orange-600 hover:text-orange-700 font-medium">Add steps</Link>}
           </div>
         ) : (
           <ol className="divide-y divide-slate-100">

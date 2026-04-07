@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, formatDateTime, isOverdue } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -71,6 +72,9 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
 
   if (!ca) notFound()
 
+  const authUser = await getAuthUser()
+  const canEdit = authUser?.can('coshh_assessments', 'edit') ?? false
+
   const site = ca.sites as unknown as { name: string } | null
   const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
   const approver = ca.approver as unknown as { first_name: string; last_name: string } | null
@@ -117,7 +121,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
               Download SDS
             </a>
           )}
-          {(ca.status === 'Draft' || ca.status === 'Under Review') && (
+          {canEdit && (ca.status === 'Draft' || ca.status === 'Under Review') && (
             <form action={approveAction}>
               <button
                 type="submit"
@@ -127,6 +131,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
               </button>
             </form>
           )}
+          {canEdit && (
           <Link
             href={`/coshh/${ca.id}/edit`}
             className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors shadow-sm"
@@ -136,6 +141,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
             </svg>
             Edit
           </Link>
+          )}
         </div>
       </div>
 
