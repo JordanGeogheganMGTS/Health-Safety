@@ -18,10 +18,14 @@ export default async function NewUserPage() {
   const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
-  const [{ data: roles }, { data: sites }] = await Promise.all([
+  const [{ data: roles }, { data: sitesData }] = await Promise.all([
     supabase.from('roles').select('id, name').order('sort_order'),
-    supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('sites').select('id, name, is_all_sites').eq('is_active', true).order('name'),
   ])
+
+  // Separate "All Sites" record from regular sites so the form shows it once with its real UUID
+  const allSitesRecord = (sitesData ?? []).find((s) => (s as unknown as { is_all_sites: boolean }).is_all_sites)
+  const regularSites = (sitesData ?? []).filter((s) => !(s as unknown as { is_all_sites: boolean }).is_all_sites)
 
   return (
     <div className="space-y-6">
@@ -45,7 +49,7 @@ export default async function NewUserPage() {
         </p>
       </div>
 
-      <NewUserForm roles={roles ?? []} sites={sites ?? []} />
+      <NewUserForm roles={roles ?? []} sites={regularSites} allSitesId={allSitesRecord?.id ?? null} />
     </div>
   )
 }

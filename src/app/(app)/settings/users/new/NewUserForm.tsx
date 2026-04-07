@@ -5,11 +5,11 @@ import Link from 'next/link'
 
 interface Role { id: string; name: string }
 interface Site { id: string; name: string }
-interface Props { roles: Role[]; sites: Site[] }
+interface Props { roles: Role[]; sites: Site[]; allSitesId: string | null }
 
 const inputCls = 'block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500'
 
-export default function NewUserForm({ roles, sites }: Props) {
+export default function NewUserForm({ roles, sites, allSitesId }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ name: string; email: string; password: string } | null>(null)
@@ -154,8 +154,11 @@ export default function NewUserForm({ roles, sites }: Props) {
 
         <div>
           <label htmlFor="site_id" className="block text-sm font-medium text-slate-700 mb-1">Site</label>
-          <select id="site_id" name="site_id" className={inputCls}>
-            <option value="">All sites</option>
+          <select id="site_id" name="site_id" required className={inputCls}>
+            <option value="">Select a site…</option>
+            {allSitesId && (
+              <option value={allSitesId}>All Sites</option>
+            )}
             {sites.map((site) => (
               <option key={site.id} value={site.id}>{site.name}</option>
             ))}
