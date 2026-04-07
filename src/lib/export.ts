@@ -10,16 +10,20 @@ export interface ExportColumn {
  * Build a multi-sheet Excel workbook and return it as a Buffer.
  * For use in Route Handlers (server-side).
  */
-export function buildWorkbook(sheets: Array<{ name: string; data: Record<string, unknown>[] }>): Blob {
+export function buildWorkbook(sheets: Array<{ name: string; data: Record<string, unknown>[] }>): Buffer {
   const workbook = XLSX.utils.book_new()
 
   for (const sheet of sheets) {
-    const worksheet = XLSX.utils.json_to_sheet(sheet.data)
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name)
+    // json_to_sheet with empty data produces no headers — use aoa_to_sheet for empty sheets
+    if (sheet.data.length === 0) {
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([[]]), sheet.name)
+    } else {
+      const worksheet = XLSX.utils.json_to_sheet(sheet.data)
+      XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name)
+    }
   }
 
-  const uint8 = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as unknown as Uint8Array<ArrayBuffer>
-  return new Blob([uint8])
+  return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
 }
 
 export function exportToExcel<T extends Record<string, unknown>>(

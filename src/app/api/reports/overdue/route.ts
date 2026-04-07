@@ -12,38 +12,54 @@ export async function GET() {
   const [
     { data: correctiveActions },
     { data: documents },
+    { data: riskAssessments },
     { data: equipment },
     { data: fireExtinguishers },
     { data: trainingRecords },
   ] = await Promise.all([
     supabase
       .from('corrective_actions')
-      .select('title, priority, assigned_to_id, due_date, status, sites(name)')
-      .not('status', 'in', '("Completed","Closed")')
+      .select('title, due_date, status, sites(name), priority:lookup_values!priority_id(label), assigned:users!assigned_to(first_name, last_name)')
+      .not('status', 'in', '(Completed,Verified,Cancelled)')
       .lt('due_date', todayStr)
       .order('due_date', { ascending: true }),
 
     supabase
       .from('documents')
-      .select('title, version, status, review_date, sites(name)')
-      .lt('review_date', todayStr)
-      .order('review_date', { ascending: true }),
+      .select('title, review_due_date, status, sites(name)')
+      .not('review_due_date', 'is', null)
+      .lt('review_due_date', todayStr)
+      .not('status', 'in', '(Expired,Superseded)')
+      .order('review_due_date', { ascending: true }),
+
+    supabase
+      .from('risk_assessments')
+      .select('title, review_due_date, status, sites(name)')
+      .not('review_due_date', 'is', null)
+      .lt('review_due_date', todayStr)
+      .not('status', 'in', '(Superseded,Archived)')
+      .order('review_due_date', { ascending: true }),
 
     supabase
       .from('equipment')
-      .select('name, asset_tag, next_service_due, sites(name)')
-      .lt('next_service_due', todayStr)
-      .order('next_service_due', { ascending: true }),
+      .select('name, next_inspection_date, sites(name)')
+      .not('next_inspection_date', 'is', null)
+      .lt('next_inspection_date', todayStr)
+      .eq('is_active', true)
+      .order('next_inspection_date', { ascending: true }),
 
     supabase
       .from('fire_extinguishers')
-      .select('location, type, next_inspection_due, sites(name)')
-      .lt('next_inspection_due', todayStr)
-      .order('next_inspection_due', { ascending: true }),
+      .select('location, next_inspection_date, sites(name)')
+      .not('next_inspection_date', 'is', null)
+      .lt('next_inspection_date', todayStr)
+      .eq('is_active', true)
+      .order('next_inspection_date', { ascending: true }),
 
     supabase
       .from('training_records')
-      .select('expiry_date, users(first_name, last_name), training_types(name)')
+      .select('expiry_date, users!user_id(first_name, last_name), training_types(name), sites(name)')
+      .not('expiry_date', 'is', null)
       .lt('expiry_date', todayStr)
       .order('expiry_date', { ascending: true }),
   ])
@@ -59,12 +75,13 @@ export async function GET() {
       name: 'Corrective Actions',
       data: (correctiveActions ?? []).map(r => {
         const row = r as any
-        const site = row.sites ?? null
+        const assigned = row.assigned ?? null
+        const assignedName = assigned ? `${assigned.first_name ?? ''} ${assigned.last_name ?? ''}`.trim() : ''
         return {
           'Title': row.title ?? '',
-          'Site': site?.name ?? '',
-          'Priority': row.priority ?? '',
-          'Assigned To': row.assigned_to_id ?? '',
+          'Site': row.sites?.name ?? '',
+          'Priority': row.priority?.label ?? '',
+          'Assigned To': assignedName,
           'Due Date': row.due_date ?? '',
           'Status': row.status ?? '',
           'Days Overdue': calcDaysOverdue(row.due_date),
@@ -75,14 +92,25 @@ export async function GET() {
       name: 'Documents',
       data: (documents ?? []).map(r => {
         const row = r as any
-        const site = row.sites ?? null
         return {
           'Title': row.title ?? '',
-          'Site': site?.name ?? '',
-          'Version': row.version ?? '',
+          'Site': row.sites?.name ?? '',
           'Status': row.status ?? '',
-          'Review Date': row.review_date ?? '',
-          'Days Overdue': calcDaysOverdue(row.review_date),
+          'Review Due Date': row.review_due_date ?? '',
+          'Days Overdue': calcDaysOverdue(row.review_due_date),
+        }
+      }),
+    },
+    {
+      name: 'Risk Assessments',
+      data: (riskAssessments ?? []).map(r => {
+        const row = r as any
+        return {
+          'Title': row.title ?? '',
+          'Site': row.sites?.name ?? '',
+          'Status': row.status ?? '',
+          'Review Due Date': row.review_due_date ?? '',
+          'Days Overdue': calcDaysOverdue(row.review_due_date),
         }
       }),
     },
@@ -90,13 +118,11 @@ export async function GET() {
       name: 'Equipment',
       data: (equipment ?? []).map(r => {
         const row = r as any
-        const site = row.sites ?? null
         return {
           'Name': row.name ?? '',
-          'Site': site?.name ?? '',
-          'Asset Tag': row.asset_tag ?? '',
-          'Next Service Due': row.next_service_due ?? '',
-          'Days Overdue': calcDaysOverdue(row.next_service_due),
+          'Site': row.sites?.name ?? '',
+          'Next Inspection Date': row.next_inspection_date ?? '',
+          'Days Overdue': calcDaysOverdue(row.next_inspection_date),
         }
       }),
     },
@@ -104,13 +130,11 @@ export async function GET() {
       name: 'Fire Extinguishers',
       data: (fireExtinguishers ?? []).map(r => {
         const row = r as any
-        const site = row.sites ?? null
         return {
           'Location': row.location ?? '',
-          'Type': row.type ?? '',
-          'Site': site?.name ?? '',
-          'Next Inspection Due': row.next_inspection_due ?? '',
-          'Days Overdue': calcDaysOverdue(row.next_inspection_due),
+          'Site': row.sites?.name ?? '',
+          'Next Inspection Date': row.next_inspection_date ?? '',
+          'Days Overdue': calcDaysOverdue(row.next_inspection_date),
         }
       }),
     },
@@ -118,12 +142,13 @@ export async function GET() {
       name: 'Training',
       data: (trainingRecords ?? []).map(r => {
         const row = r as any
-        const u = row.users ?? null
+        const u = row['users!user_id'] ?? row.users ?? null
         const tt = row.training_types ?? null
         const staffName = u ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : ''
         return {
           'Staff Member': staffName,
           'Training Type': tt?.name ?? '',
+          'Site': row.sites?.name ?? '',
           'Expiry Date': row.expiry_date ?? '',
           'Days Overdue': calcDaysOverdue(row.expiry_date),
         }

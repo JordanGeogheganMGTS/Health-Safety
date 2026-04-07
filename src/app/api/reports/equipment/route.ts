@@ -13,7 +13,8 @@ export async function GET() {
     .from('equipment')
     .select(
       'name, asset_tag, serial_number, manufacturer, model, ' +
-      'last_service_date, next_service_due, status, ' +
+      'purchase_date, next_inspection_date, notes, ' +
+      'status:lookup_values!status_id(value), ' +
       'sites(name)'
     )
     .order('name', { ascending: true })
@@ -25,8 +26,8 @@ export async function GET() {
       const site = row.sites ?? null
 
       let daysOverdue = 0
-      if (row.next_service_due && row.next_service_due < todayStr) {
-        const dueDate = new Date(row.next_service_due)
+      if (row.next_inspection_date && row.next_inspection_date < todayStr) {
+        const dueDate = new Date(row.next_inspection_date)
         daysOverdue = Math.floor((today.getTime() - dueDate.getTime()) / 86400000)
       }
 
@@ -37,10 +38,11 @@ export async function GET() {
         'Serial Number': row.serial_number ?? '',
         'Manufacturer': row.manufacturer ?? '',
         'Model': row.model ?? '',
-        'Last Service Date': row.last_service_date ?? '',
-        'Next Service Due': row.next_service_due ?? '',
-        'Days Overdue': daysOverdue,
-        'Status': row.status ?? '',
+        'Purchase Date': row.purchase_date ?? '',
+        'Next Inspection Date': row.next_inspection_date ?? '',
+        'Days Overdue': daysOverdue || '',
+        'Status': row.status?.value ?? '',
+        'Notes': row.notes ?? '',
       }
     }),
   }])
