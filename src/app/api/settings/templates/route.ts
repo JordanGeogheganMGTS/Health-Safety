@@ -8,13 +8,14 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { name, description, site_id, is_active, created_by } = body
+  const { name, description, site_id, type_id, is_active, created_by } = body
 
-  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  if (!name)    return NextResponse.json({ error: 'Name is required' }, { status: 400 })
+  if (!type_id) return NextResponse.json({ error: 'Inspection type is required' }, { status: 400 })
 
   const { data, error } = await supabase
     .from('inspection_templates')
-    .insert({ name, description, site_id, is_active, created_by })
+    .insert({ name, description, site_id, type_id, is_active, created_by })
     .select('id')
     .single()
 

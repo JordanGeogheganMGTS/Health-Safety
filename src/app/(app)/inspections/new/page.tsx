@@ -10,33 +10,33 @@ import { createClient } from '@/lib/supabase/client'
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const schema = z.object({
-  title:            z.string().min(1, 'Title is required'),
-  site_id:          z.string().min(1, 'Site is required'),
-  type_id:          z.string().min(1, 'Type is required'),
-  template_id:      z.string().optional(),
-  scheduled_date:   z.string().min(1, 'Scheduled date is required'),
-  conducted_by_id:  z.string().optional(),
+  title:           z.string().min(1, 'Title is required'),
+  site_id:         z.string().min(1, 'Site is required'),
+  type_id:         z.string().min(1, 'Type is required'),
+  template_id:     z.string().optional(),
+  inspection_date: z.string().min(1, 'Date is required'),
+  inspected_by:    z.string().min(1, 'Conducted by is required'),
 })
 
 type FormValues = z.infer<typeof schema>
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface Site     { id: string; name: string }
+interface Site      { id: string; name: string }
 interface LookupVal { id: string; label: string }
 interface Template  { id: string; name: string; site_id: string | null }
-interface User     { id: string; first_name: string; last_name: string }
+interface User      { id: string; first_name: string; last_name: string }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function NewInspectionPage() {
-  const router  = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
 
-  const [sites,      setSites]     = useState<Site[]>([])
-  const [types,      setTypes]     = useState<LookupVal[]>([])
-  const [templates,  setTemplates] = useState<Template[]>([])
-  const [users,      setUsers]     = useState<User[]>([])
+  const [sites,     setSites]     = useState<Site[]>([])
+  const [types,     setTypes]     = useState<LookupVal[]>([])
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [users,     setUsers]     = useState<User[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [serverErr,  setServerErr]  = useState<string | null>(null)
 
@@ -44,29 +44,51 @@ export default function NewInspectionPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   const selectedSite = watch('site_id')
 
-  // Load reference data
   useEffect(() => {
     async function load() {
-      const [sitesRes, typesRes, templatesRes, usersRes] = await Promise.all([
-        supabase.from('sites').select('id, name').order('name'),
-        supabase.from('lookup_values').select('id, label').eq('category', 'inspection_type').order('label'),
+      const [
+        { data: { user } },
+        sitesRes,
+        catRes,
+        templatesRes,
+        usersRes,
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
+        supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').single(),
         supabase.from('inspection_templates').select('id, name, site_id').eq('is_active', true).order('name'),
         supabase.from('users').select('id, first_name, last_name').eq('is_active', true).order('last_name'),
       ])
+
       setSites(sitesRes.data ?? [])
-      setTypes(typesRes.data ?? [])
-      setTemplates(templatesRes.data ?? [])
+      setTemplates((templatesRes.data ?? []) as Template[])
       setUsers(usersRes.data ?? [])
+
+      // Default conducted-by to the current user
+      if (user) setValue('inspected_by', user.id)
+
+      // Two-step lookup: category key → category id → values
+      if (catRes.data?.id) {
+        const { data: typeRows } = await supabase
+          .from('lookup_values')
+          .select('id, label')
+          .eq('category_id', catRes.data.id)
+          .eq('is_active', true)
+          .order('sort_order')
+        setTypes(typeRows ?? [])
+      }
     }
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Filter templates by selected site (include site-agnostic ones)
+  // Filter templates to those matching the selected site (or site-agnostic)
   const filteredTemplates = templates.filter(
     (t) => t.site_id === null || t.site_id === selectedSite
   )
@@ -75,19 +97,17 @@ export default function NewInspectionPage() {
     setSubmitting(true)
     setServerErr(null)
 
-    const payload = {
-      title:           values.title,
-      site_id:         values.site_id,
-      type_id:         values.type_id,
-      template_id:     values.template_id || null,
-      scheduled_date:  values.scheduled_date,
-      conducted_by_id: values.conducted_by_id || null,
-      status:          'Scheduled' as const,
-    }
-
     const { data, error } = await supabase
       .from('inspections')
-      .insert(payload)
+      .insert({
+        title:           values.title,
+        site_id:         values.site_id,
+        type_id:         values.type_id,
+        template_id:     values.template_id || null,
+        inspection_date: values.inspection_date,
+        inspected_by:    values.inspected_by,
+        status:          'Draft',
+      })
       .select('id')
       .single()
 
@@ -115,6 +135,7 @@ export default function NewInspectionPage() {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+
         {/* Title */}
         <div>
           <label className="block text-sm font-medium text-slate-700">
@@ -126,9 +147,7 @@ export default function NewInspectionPage() {
             placeholder="e.g. Monthly Fire Safety Audit"
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
-          {errors.title && (
-            <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>
-          )}
+          {errors.title && <p className="mt-1 text-xs text-red-600">{errors.title.message}</p>}
         </div>
 
         {/* Site */}
@@ -145,9 +164,7 @@ export default function NewInspectionPage() {
               <option key={s.id} value={s.id}>{s.name}</option>
             ))}
           </select>
-          {errors.site_id && (
-            <p className="mt-1 text-xs text-red-600">{errors.site_id.message}</p>
-          )}
+          {errors.site_id && <p className="mt-1 text-xs text-red-600">{errors.site_id.message}</p>}
         </div>
 
         {/* Type */}
@@ -164,9 +181,7 @@ export default function NewInspectionPage() {
               <option key={t.id} value={t.id}>{t.label}</option>
             ))}
           </select>
-          {errors.type_id && (
-            <p className="mt-1 text-xs text-red-600">{errors.type_id.message}</p>
-          )}
+          {errors.type_id && <p className="mt-1 text-xs text-red-600">{errors.type_id.message}</p>}
         </div>
 
         {/* Template */}
@@ -187,35 +202,36 @@ export default function NewInspectionPage() {
           )}
         </div>
 
-        {/* Scheduled Date */}
+        {/* Date */}
         <div>
           <label className="block text-sm font-medium text-slate-700">
-            Scheduled Date <span className="text-red-500">*</span>
+            Inspection Date <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
-            {...register('scheduled_date')}
+            {...register('inspection_date')}
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
-          {errors.scheduled_date && (
-            <p className="mt-1 text-xs text-red-600">{errors.scheduled_date.message}</p>
-          )}
+          {errors.inspection_date && <p className="mt-1 text-xs text-red-600">{errors.inspection_date.message}</p>}
         </div>
 
         {/* Conducted By */}
         <div>
-          <label className="block text-sm font-medium text-slate-700">Conducted By (optional)</label>
+          <label className="block text-sm font-medium text-slate-700">
+            Conducted By <span className="text-red-500">*</span>
+          </label>
           <select
-            {...register('conducted_by_id')}
+            {...register('inspected_by')}
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
-            <option value="">Unassigned</option>
+            <option value="">Select person…</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.first_name} {u.last_name}
               </option>
             ))}
           </select>
+          {errors.inspected_by && <p className="mt-1 text-xs text-red-600">{errors.inspected_by.message}</p>}
         </div>
 
         {/* Actions */}

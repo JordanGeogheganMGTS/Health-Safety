@@ -7,13 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type ResponseType = 'pass_fail' | 'yes_no' | 'score_1_5' | 'text'
+type ResponseType = 'pass_fail' | 'yes_no' | 'yes_no_na' | 'numeric' | 'text'
 
 interface TemplateItem {
   id: string
   item_text: string
   response_type: ResponseType
-  is_mandatory: boolean
+  is_required: boolean
   sort_order: number
   guidance: string | null
 }
@@ -22,90 +22,70 @@ interface LookupVal { id: string; label: string }
 
 interface FindingField {
   template_item_id: string
-  item_text: string
-  response_type: ResponseType
-  is_mandatory: boolean
-  guidance: string | null
-  response: string
-  finding_detail: string
-  severity_id: string
+  item_text:        string
+  response_type:    ResponseType
+  is_required:      boolean
+  guidance:         string | null
+  response:         string   // yes/no/pass/fail/n/a
+  response_text:    string   // text-type answer or finding detail
+  response_numeric: string   // numeric-type answer
+  severity_id:      string
 }
 
 interface FormValues {
-  notes: string
+  summary_notes: string
   findings: FindingField[]
 }
 
-// ─── Score selector ───────────────────────────────────────────────────────────
+// ─── Toggle button (2-way) ────────────────────────────────────────────────────
 
-function ScoreSelector({
-  value,
-  onChange,
+function ToggleButton({
+  optionA, optionB, value, onChange,
 }: {
-  value: string
-  onChange: (v: string) => void
+  optionA: string; optionB: string; value: string; onChange: (v: string) => void
 }) {
+  const a = optionA.toLowerCase()
+  const b = optionB.toLowerCase()
+  const isGood  = (v: string) => v === 'pass' || v === 'yes'
+  const isBad   = (v: string) => v === 'fail' || v === 'no'
   return (
-    <div className="flex gap-2">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => onChange(String(n))}
-          className={`h-9 w-9 rounded-lg border text-sm font-semibold transition-colors ${
-            value === String(n)
-              ? 'border-orange-500 bg-orange-500 text-white'
-              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-          }`}
-        >
-          {n}
-        </button>
-      ))}
+    <div className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
+      <button type="button" onClick={() => onChange(a)}
+        className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+          value === a
+            ? isGood(a) ? 'bg-green-600 text-white' : isBad(a) ? 'bg-red-600 text-white' : 'bg-slate-600 text-white'
+            : 'bg-white text-slate-600 hover:bg-slate-50'
+        }`}>{optionA}</button>
+      <button type="button" onClick={() => onChange(b)}
+        className={`px-4 py-1.5 text-sm font-medium border-l border-slate-300 transition-colors ${
+          value === b
+            ? isBad(b) ? 'bg-red-600 text-white' : isGood(b) ? 'bg-green-600 text-white' : 'bg-slate-600 text-white'
+            : 'bg-white text-slate-600 hover:bg-slate-50'
+        }`}>{optionB}</button>
     </div>
   )
 }
 
-// ─── Toggle button ────────────────────────────────────────────────────────────
+// ─── 3-way toggle (Yes / No / N/A) ───────────────────────────────────────────
 
-function ToggleButton({
-  optionA,
-  optionB,
-  value,
-  onChange,
-}: {
-  optionA: string
-  optionB: string
-  value: string
-  onChange: (v: string) => void
-}) {
+function ThreeWayToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const options = [
+    { val: 'yes', label: 'Yes', activeClass: 'bg-green-600 text-white' },
+    { val: 'no',  label: 'No',  activeClass: 'bg-red-600 text-white' },
+    { val: 'n/a', label: 'N/A', activeClass: 'bg-slate-500 text-white' },
+  ]
   return (
     <div className="inline-flex rounded-lg border border-slate-300 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => onChange(optionA.toLowerCase())}
-        className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-          value === optionA.toLowerCase()
-            ? optionA.toLowerCase() === 'pass' || optionA.toLowerCase() === 'yes'
-              ? 'bg-green-600 text-white'
-              : 'bg-red-600 text-white'
-            : 'bg-white text-slate-600 hover:bg-slate-50'
-        }`}
-      >
-        {optionA}
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange(optionB.toLowerCase())}
-        className={`px-4 py-1.5 text-sm font-medium border-l border-slate-300 transition-colors ${
-          value === optionB.toLowerCase()
-            ? optionB.toLowerCase() === 'fail' || optionB.toLowerCase() === 'no'
-              ? 'bg-red-600 text-white'
-              : 'bg-green-600 text-white'
-            : 'bg-white text-slate-600 hover:bg-slate-50'
-        }`}
-      >
-        {optionB}
-      </button>
+      {options.map((opt, i) => (
+        <button
+          key={opt.val}
+          type="button"
+          onClick={() => onChange(opt.val)}
+          className={`px-4 py-1.5 text-sm font-medium transition-colors ${i > 0 ? 'border-l border-slate-300' : ''} ${
+            value === opt.val ? opt.activeClass : 'bg-white text-slate-600 hover:bg-slate-50'
+          }`}
+        >{opt.label}</button>
+      ))}
     </div>
   )
 }
@@ -118,15 +98,14 @@ export default function ConductInspectionPage() {
   const router   = useRouter()
   const supabase = createClient()
 
-  const [templateItems, setTemplateItems] = useState<TemplateItem[]>([])
-  const [severities,    setSeverities]    = useState<LookupVal[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [submitting,    setSubmitting]    = useState(false)
-  const [serverErr,     setServerErr]     = useState<string | null>(null)
-  const [inspTitle,     setInspTitle]     = useState('')
+  const [severities, setSeverities] = useState<LookupVal[]>([])
+  const [loading,    setLoading]    = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [serverErr,  setServerErr]  = useState<string | null>(null)
+  const [inspTitle,  setInspTitle]  = useState('')
 
   const { register, control, handleSubmit, watch } = useForm<FormValues>({
-    defaultValues: { notes: '', findings: [] },
+    defaultValues: { summary_notes: '', findings: [] },
   })
 
   const { fields, replace } = useFieldArray({ control, name: 'findings' })
@@ -134,7 +113,7 @@ export default function ConductInspectionPage() {
 
   useEffect(() => {
     async function load() {
-      // Load inspection to get template_id and title
+      // Load inspection
       const { data: insp } = await supabase
         .from('inspections')
         .select('title, template_id')
@@ -144,64 +123,63 @@ export default function ConductInspectionPage() {
       if (!insp) { setLoading(false); return }
       setInspTitle(insp.title)
 
-      // Load template items if a template is linked
+      // Load template items if linked
       let items: TemplateItem[] = []
       if (insp.template_id) {
         const { data: itemRows } = await supabase
           .from('inspection_template_items')
-          .select('id, item_text, response_type, is_mandatory, sort_order, guidance')
+          .select('id, item_text, response_type, is_required, sort_order, guidance')
           .eq('template_id', insp.template_id)
           .order('sort_order', { ascending: true })
-
         items = (itemRows ?? []) as unknown as TemplateItem[]
       }
 
-      // Load severity lookups
-      const { data: sevRows } = await supabase
-        .from('lookup_values')
-        .select('id, label')
-        .eq('category', 'severity')
-        .order('label')
+      // Load finding severity lookups (two-step)
+      const { data: catRow } = await supabase
+        .from('lookup_categories')
+        .select('id')
+        .eq('key', 'finding_severity')
+        .single()
 
-      setSeverities((sevRows ?? []) as unknown as LookupVal[])
+      if (catRow?.id) {
+        const { data: sevRows } = await supabase
+          .from('lookup_values')
+          .select('id, label')
+          .eq('category_id', catRow.id)
+          .eq('is_active', true)
+          .order('sort_order')
+        setSeverities((sevRows ?? []) as LookupVal[])
+      }
 
-      // Initialise field array from template items
-      const initial: FindingField[] = items.map((item) => ({
+      // Initialise field array
+      replace(items.map((item) => ({
         template_item_id: item.id,
         item_text:        item.item_text,
         response_type:    item.response_type,
-        is_mandatory:     item.is_mandatory,
+        is_required:      item.is_required,
         guidance:         item.guidance,
         response:         '',
-        finding_detail:   '',
+        response_text:    '',
+        response_numeric: '',
         severity_id:      '',
-      }))
-      replace(initial)
-      setTemplateItems(items)
+      })))
+
       setLoading(false)
     }
     load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true)
     setServerErr(null)
 
-    const today = new Date().toISOString().split('T')[0]
-
-    // Determine overall outcome — any fail/no response = fail
-    const hasFailure = values.findings.some((f) => {
-      const r = f.response.toLowerCase()
-      return r === 'fail' || r === 'no'
-    })
-
-    // 1. Update inspection status
+    // Update inspection to Submitted with summary notes
     const { error: updateErr } = await supabase
       .from('inspections')
       .update({
-        status:           'Completed',
-        completed_date:   today,
-        notes:            values.notes || null,
+        status:        'Submitted',
+        summary_notes: values.summary_notes || null,
       })
       .eq('id', id)
 
@@ -211,74 +189,36 @@ export default function ConductInspectionPage() {
       return
     }
 
-    // 2. Insert findings
-    const findingInserts = values.findings.map((f, i) => ({
-      inspection_id:    id,
-      template_item_id: f.template_item_id || null,
-      item_text:        f.item_text,
-      response:         f.response || null,
-      finding_detail:   f.finding_detail || null,
-      severity_id:      f.severity_id || null,
-      sort_order:       i,
-    }))
+    // Insert findings (one per checklist item)
+    if (values.findings.length > 0) {
+      const findingInserts = values.findings.map((f) => {
+        const isToggleType = ['yes_no', 'yes_no_na', 'pass_fail'].includes(f.response_type)
+        return {
+          inspection_id:    id,
+          template_item_id: f.template_item_id || null,
+          description:      f.item_text,
+          severity_id:      f.severity_id || null,
+          // Toggle types → response column; others → null
+          response:         isToggleType ? (f.response || null) : null,
+          // Text type answer or finding detail for fail/no responses
+          response_text:    f.response_type === 'text'
+            ? (f.response_text || null)
+            : (f.response_text || null),
+          // Numeric type answer
+          response_numeric: f.response_type === 'numeric' && f.response_numeric
+            ? parseFloat(f.response_numeric)
+            : null,
+        }
+      })
 
-    let insertedFindings: { id: string; response: string | null; finding_detail: string | null; severity_id: string | null; item_text: string }[] = []
-
-    if (findingInserts.length > 0) {
-      const { data: inserted, error: findErr } = await supabase
+      const { error: findErr } = await supabase
         .from('inspection_findings')
         .insert(findingInserts)
-        .select('id, response, finding_detail, severity_id, item_text')
 
       if (findErr) {
         setServerErr(findErr.message)
         setSubmitting(false)
         return
-      }
-      insertedFindings = inserted ?? []
-    }
-
-    // 3. Insert corrective actions for fail/no findings that have a severity
-    const caInserts = insertedFindings
-      .filter((f) => {
-        const r = (f.response ?? '').toLowerCase()
-        return (r === 'fail' || r === 'no') && f.severity_id && f.finding_detail
-      })
-      .map((f) => ({
-        title:         `Finding: ${f.item_text}`,
-        description:   f.finding_detail,
-        source_module: 'inspections',
-        source_id:     id,
-        status:        'Open',
-        priority:      'Medium',
-      }))
-
-    if (caInserts.length > 0) {
-      const { data: caRows, error: caErr } = await supabase
-        .from('corrective_actions')
-        .insert(caInserts)
-        .select('id')
-
-      if (caErr) {
-        // Non-fatal — log but continue
-        console.error('CA insert error:', caErr.message)
-      } else if (caRows) {
-        // Link each CA back to its finding
-        const failFindings = insertedFindings.filter((f) => {
-          const r = (f.response ?? '').toLowerCase()
-          return (r === 'fail' || r === 'no') && f.severity_id && f.finding_detail
-        })
-
-        await Promise.all(
-          failFindings.map((f, i) =>
-            caRows[i]
-              ? supabase
-                  .from('inspection_findings')
-                  .update({ ca_id: caRows[i].id })
-                  .eq('id', f.id)
-              : Promise.resolve()
-          )
-        )
       }
     }
 
@@ -317,10 +257,10 @@ export default function ConductInspectionPage() {
 
         {/* Checklist items */}
         {fields.map((field, index) => {
-          const currentResponse = findingsWatch[index]?.response ?? ''
-          const needsDetail =
-            currentResponse === 'fail' || currentResponse === 'no'
-          const currentDetail = findingsWatch[index]?.finding_detail ?? ''
+          const fw = findingsWatch[index]
+          const response = fw?.response ?? ''
+          const needsDetail = response === 'fail' || response === 'no'
+          const responseText = fw?.response_text ?? ''
 
           return (
             <div
@@ -329,18 +269,14 @@ export default function ConductInspectionPage() {
                 needsDetail ? 'border-red-200' : 'border-slate-200'
               }`}
             >
-              <div className="mb-3 flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-medium text-slate-800">
-                    {index + 1}. {field.item_text}
-                    {field.is_mandatory && (
-                      <span className="ml-1 text-red-500">*</span>
-                    )}
-                  </p>
-                  {field.guidance && (
-                    <p className="mt-0.5 text-xs text-slate-400">{field.guidance}</p>
-                  )}
-                </div>
+              <div className="mb-3">
+                <p className="text-sm font-medium text-slate-800">
+                  {index + 1}. {field.item_text}
+                  {field.is_required && <span className="ml-1 text-red-500">*</span>}
+                </p>
+                {field.guidance && (
+                  <p className="mt-0.5 text-xs text-slate-400">{field.guidance}</p>
+                )}
               </div>
 
               {/* Response input */}
@@ -349,42 +285,40 @@ export default function ConductInspectionPage() {
                 name={`findings.${index}.response`}
                 render={({ field: f }) => {
                   if (field.response_type === 'pass_fail') {
-                    return (
-                      <ToggleButton
-                        optionA="Pass"
-                        optionB="Fail"
-                        value={f.value}
-                        onChange={f.onChange}
-                      />
-                    )
+                    return <ToggleButton optionA="Pass" optionB="Fail" value={f.value} onChange={f.onChange} />
                   }
                   if (field.response_type === 'yes_no') {
-                    return (
-                      <ToggleButton
-                        optionA="Yes"
-                        optionB="No"
-                        value={f.value}
-                        onChange={f.onChange}
-                      />
-                    )
+                    return <ToggleButton optionA="Yes" optionB="No" value={f.value} onChange={f.onChange} />
                   }
-                  if (field.response_type === 'score_1_5') {
-                    return <ScoreSelector value={f.value} onChange={f.onChange} />
+                  if (field.response_type === 'yes_no_na') {
+                    return <ThreeWayToggle value={f.value} onChange={f.onChange} />
                   }
-                  // text
-                  return (
-                    <textarea
-                      value={f.value}
-                      onChange={f.onChange}
-                      rows={2}
-                      placeholder="Enter response…"
-                      className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
-                    />
-                  )
+                  return null
                 }}
               />
 
-              {/* Conditional finding detail */}
+              {/* Numeric input */}
+              {field.response_type === 'numeric' && (
+                <input
+                  type="number"
+                  step="any"
+                  {...register(`findings.${index}.response_numeric`)}
+                  placeholder="Enter value…"
+                  className="block w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                />
+              )}
+
+              {/* Text input */}
+              {field.response_type === 'text' && (
+                <textarea
+                  {...register(`findings.${index}.response_text`)}
+                  rows={2}
+                  placeholder="Enter response…"
+                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                />
+              )}
+
+              {/* Finding detail for fail/no responses */}
               {needsDetail && (
                 <div className="mt-3 space-y-3">
                   <div>
@@ -392,19 +326,15 @@ export default function ConductInspectionPage() {
                       Finding Detail <span className="text-red-500">*</span>
                     </label>
                     <textarea
-                      {...register(`findings.${index}.finding_detail`)}
+                      {...register(`findings.${index}.response_text`)}
                       rows={2}
                       placeholder="Describe the finding…"
                       className="mt-1 block w-full rounded-lg border border-red-300 px-3 py-2 text-sm shadow-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
                     />
                   </div>
-
-                  {/* Conditional severity (only if finding detail is filled) */}
-                  {currentDetail.trim().length > 0 && (
+                  {responseText.trim().length > 0 && (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600">
-                        Severity
-                      </label>
+                      <label className="block text-xs font-medium text-slate-600">Severity</label>
                       <select
                         {...register(`findings.${index}.severity_id`)}
                         className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
@@ -414,9 +344,6 @@ export default function ConductInspectionPage() {
                           <option key={s.id} value={s.id}>{s.label}</option>
                         ))}
                       </select>
-                      <p className="mt-1 text-xs text-slate-400">
-                        A corrective action will be automatically created if severity is set.
-                      </p>
                     </div>
                   )}
                 </div>
@@ -431,7 +358,7 @@ export default function ConductInspectionPage() {
             Overall Notes (optional)
           </label>
           <textarea
-            {...register('notes')}
+            {...register('summary_notes')}
             rows={3}
             placeholder="Any additional notes about this inspection…"
             className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"

@@ -18,11 +18,14 @@ export default async function NewTemplatePage() {
   const roleName = (profile?.roles as unknown as { name: string } | null)?.name
   if (roleName !== 'System Admin') redirect('/dashboard')
 
-  const { data: sites } = await supabase
-    .from('sites')
-    .select('id, name')
-    .eq('is_active', true)
-    .order('name')
+  const [sitesRes, catRes] = await Promise.all([
+    supabase.from('sites').select('id, name').eq('is_active', true).order('name'),
+    supabase.from('lookup_categories').select('id').eq('key', 'inspection_type').single(),
+  ])
+
+  const typesRes = catRes.data?.id
+    ? await supabase.from('lookup_values').select('id, label').eq('category_id', catRes.data.id).eq('is_active', true).order('sort_order')
+    : { data: [] }
 
   return (
     <div className="space-y-6">
@@ -44,7 +47,7 @@ export default async function NewTemplatePage() {
         <p className="mt-1 text-sm text-slate-500">Set up a new inspection checklist template.</p>
       </div>
 
-      <NewTemplateForm sites={sites ?? []} currentUserId={profile!.id} />
+      <NewTemplateForm sites={sitesRes.data ?? []} types={typesRes.data ?? []} currentUserId={profile!.id} />
     </div>
   )
 }

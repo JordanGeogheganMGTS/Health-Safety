@@ -6,40 +6,42 @@ import Link from 'next/link'
 
 interface TemplateItem {
   id?: string
-  item_text: string
+  item_text:     string
   response_type: string
-  is_mandatory: boolean
-  guidance: string
-  sort_order: number
+  is_required:   boolean
+  guidance:      string
+  sort_order:    number
 }
 
 interface Template {
-  id: string
-  name: string
+  id:          string
+  name:        string
   description: string | null
-  site_id: string | null
-  is_active: boolean
+  site_id:     string | null
+  type_id:     string | null
+  is_active:   boolean
 }
 
-interface Site {
-  id: string
-  name: string
-}
+interface Site     { id: string; name: string }
+interface LookupVal { id: string; label: string }
 
 interface Props {
-  template: Template
-  items: TemplateItem[]
-  sites: Site[]
+  template:     Template
+  items:        TemplateItem[]
+  sites:        Site[]
+  types:        LookupVal[]
 }
 
+// Valid response types matching DB CHECK constraint
 const RESPONSE_TYPES = [
   { value: 'pass_fail', label: 'Pass / Fail' },
-  { value: 'yes_no', label: 'Yes / No' },
-  { value: 'score_1_5', label: 'Score 1–5' },
-  { value: 'text', label: 'Text' },
+  { value: 'yes_no',    label: 'Yes / No' },
+  { value: 'yes_no_na', label: 'Yes / No / N/A' },
+  { value: 'numeric',   label: 'Numeric' },
+  { value: 'text',      label: 'Text' },
 ]
 
-export default function TemplateEditForm({ template, items: initialItems, sites }: Props) {
+export default function TemplateEditForm({ template, items: initialItems, sites, types }: Props) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -53,11 +55,11 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
     setItems((prev) => [
       ...prev,
       {
-        item_text: '',
+        item_text:     '',
         response_type: 'pass_fail',
-        is_mandatory: true,
-        guidance: '',
-        sort_order: prev.length + 1,
+        is_required:   true,
+        guidance:      '',
+        sort_order:    prev.length + 1,
       },
     ])
   }
@@ -77,10 +79,11 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
     setSubmitting(true)
     setError(null)
 
-    const formData = new FormData(e.currentTarget)
-    const name = formData.get('name') as string
+    const formData  = new FormData(e.currentTarget)
+    const name      = formData.get('name') as string
     const description = formData.get('description') as string
-    const site_id = formData.get('site_id') as string
+    const site_id   = formData.get('site_id') as string
+    const type_id   = formData.get('type_id') as string
     const is_active = formData.get('is_active') === 'true'
 
     try {
@@ -90,14 +93,15 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
         body: JSON.stringify({
           name,
           description: description || null,
-          site_id: site_id || null,
+          site_id:     site_id || null,
+          type_id:     type_id || null,
           is_active,
           items: items.map((item, idx) => ({
-            item_text: item.item_text,
+            item_text:     item.item_text,
             response_type: item.response_type,
-            is_mandatory: item.is_mandatory,
-            guidance: item.guidance || null,
-            sort_order: idx + 1,
+            is_required:   item.is_required,
+            guidance:      item.guidance || null,
+            sort_order:    idx + 1,
           })),
         }),
       })
@@ -145,6 +149,24 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
           </div>
 
           <div>
+            <label htmlFor="type_id" className="block text-sm font-medium text-slate-700 mb-1">
+              Inspection Type <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="type_id"
+              name="type_id"
+              required
+              defaultValue={template.type_id ?? ''}
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              <option value="">Select type…</option>
+              {types.map((t) => (
+                <option key={t.id} value={t.id}>{t.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
             <label htmlFor="site_id" className="block text-sm font-medium text-slate-700 mb-1">Site</label>
             <select
               id="site_id"
@@ -159,17 +181,6 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
             </select>
           </div>
 
-          <div className="sm:col-span-2">
-            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">Description</label>
-            <textarea
-              id="description"
-              name="description"
-              rows={2}
-              defaultValue={template.description ?? ''}
-              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
-            />
-          </div>
-
           <div>
             <label htmlFor="is_active" className="block text-sm font-medium text-slate-700 mb-1">Status</label>
             <select
@@ -181,6 +192,17 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
               <option value="true">Active</option>
               <option value="false">Inactive</option>
             </select>
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+            <textarea
+              id="description"
+              name="description"
+              rows={2}
+              defaultValue={template.description ?? ''}
+              className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
+            />
           </div>
         </div>
       </div>
@@ -258,11 +280,11 @@ export default function TemplateEditForm({ template, items: initialItems, sites 
                         <label className="flex items-center gap-2 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={item.is_mandatory}
-                            onChange={(e) => updateItem(idx, 'is_mandatory', e.target.checked)}
+                            checked={item.is_required}
+                            onChange={(e) => updateItem(idx, 'is_required', e.target.checked)}
                             className="h-4 w-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
                           />
-                          <span className="text-sm text-slate-700">Mandatory</span>
+                          <span className="text-sm text-slate-700">Required</span>
                         </label>
                       </div>
                     </div>

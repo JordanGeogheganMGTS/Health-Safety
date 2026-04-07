@@ -9,17 +9,17 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
   const body = await request.json()
-  const { name, description, site_id, is_active, items } = body
+  const { name, description, site_id, type_id, is_active, items } = body
 
   // Update template header
   const { error: templateError } = await supabase
     .from('inspection_templates')
-    .update({ name, description, site_id, is_active })
+    .update({ name, description, site_id, type_id, is_active })
     .eq('id', id)
 
   if (templateError) return NextResponse.json({ error: templateError.message }, { status: 500 })
 
-  // Replace items: delete then re-insert
+  // Replace items: delete existing, re-insert
   const { error: deleteError } = await supabase
     .from('inspection_template_items')
     .delete()
@@ -28,11 +28,18 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
 
   if (items && items.length > 0) {
+    const rows = (items as Record<string, unknown>[]).map((item) => ({
+      template_id:   id,
+      item_text:     item.item_text,
+      response_type: item.response_type,
+      is_required:   item.is_required,   // correct column name
+      guidance:      item.guidance ?? null,
+      sort_order:    item.sort_order,
+    }))
+
     const { error: insertError } = await supabase
       .from('inspection_template_items')
-      .insert(
-        items.map((item: Record<string, unknown>) => ({ ...item, template_id: id }))
-      )
+      .insert(rows)
 
     if (insertError) return NextResponse.json({ error: insertError.message }, { status: 500 })
   }

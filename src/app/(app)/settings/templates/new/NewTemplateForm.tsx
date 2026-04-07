@@ -4,17 +4,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-interface Site {
-  id: string
-  name: string
-}
+interface Site    { id: string; name: string }
+interface LookupVal { id: string; label: string }
 
 interface Props {
   sites: Site[]
+  types: LookupVal[]
   currentUserId: string
 }
 
-export default function NewTemplateForm({ sites, currentUserId }: Props) {
+export default function NewTemplateForm({ sites, types, currentUserId }: Props) {
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -25,10 +24,17 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
     setError(null)
 
     const formData = new FormData(e.currentTarget)
-    const name = formData.get('name') as string
+    const name        = formData.get('name') as string
     const description = formData.get('description') as string
-    const site_id = formData.get('site_id') as string
-    const is_active = formData.get('is_active') === 'true'
+    const site_id     = formData.get('site_id') as string
+    const type_id     = formData.get('type_id') as string
+    const is_active   = formData.get('is_active') === 'true'
+
+    if (!type_id) {
+      setError('Inspection type is required')
+      setSubmitting(false)
+      return
+    }
 
     try {
       const res = await fetch('/api/settings/templates', {
@@ -36,10 +42,11 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name,
-          description: description || null,
-          site_id: site_id || null,
+          description:  description || null,
+          site_id:      site_id || null,
+          type_id,
           is_active,
-          created_by: currentUserId,
+          created_by:   currentUserId,
         }),
       })
 
@@ -82,16 +89,20 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
         </div>
 
         <div>
-          <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
-            Description
+          <label htmlFor="type_id" className="block text-sm font-medium text-slate-700 mb-1">
+            Inspection Type <span className="text-red-500">*</span>
           </label>
-          <textarea
-            id="description"
-            name="description"
-            rows={3}
-            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
-            placeholder="Optional description of this template"
-          />
+          <select
+            id="type_id"
+            name="type_id"
+            required
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          >
+            <option value="">Select type…</option>
+            {types.map((t) => (
+              <option key={t.id} value={t.id}>{t.label}</option>
+            ))}
+          </select>
         </div>
 
         <div>
@@ -108,6 +119,19 @@ export default function NewTemplateForm({ sites, currentUserId }: Props) {
               <option key={site.id} value={site.id}>{site.name}</option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="description" className="block text-sm font-medium text-slate-700 mb-1">
+            Description
+          </label>
+          <textarea
+            id="description"
+            name="description"
+            rows={3}
+            className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 resize-none"
+            placeholder="Optional description of this template"
+          />
         </div>
 
         <div>
