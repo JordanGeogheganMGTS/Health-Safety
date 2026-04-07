@@ -26,24 +26,34 @@ export default function ChangePasswordPage() {
 
     setSubmitting(true)
 
-    const { error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
+    const { data: updateData, error: updateErr } = await supabase.auth.updateUser({ password: newPassword })
     if (updateErr) {
       setError(updateErr.message)
       setSubmitting(false)
       return
     }
 
-    // Get the fresh session token (updateUser issues a new one)
-    const { data: { session } } = await supabase.auth.getSession()
+    const userId = updateData?.user?.id
+    if (!userId) {
+      setError('Could not identify user. Please try again.')
+      setSubmitting(false)
+      return
+    }
 
-    // Clear the flag via server-side API — send token explicitly because
-    // browser cookies may not yet reflect the new session at this point
-    await fetch('/api/auth/clear-password-flag', {
+    // Clear the must_change_password flag — send userId directly since
+    // cookies/tokens may not be settled yet after updateUser()
+    const res = await fetch('/api/auth/clear-password-flag', {
       method: 'POST',
-      headers: session?.access_token
-        ? { 'Authorization': `Bearer ${session.access_token}` }
-        : {},
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
     })
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}))
+      setError(body.error ?? 'Failed to clear password flag. Please contact an admin.')
+      setSubmitting(false)
+      return
+    }
 
     // Hard redirect so middleware re-evaluates with fresh flag
     window.location.replace('/dashboard')
