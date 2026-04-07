@@ -30,6 +30,9 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
 
   const authUser = await getAuthUser()
   const isTdaStaff = authUser?.role === 'TDA / Staff'
+  const canSeeTypesTab = authUser?.role === 'System Admin' || authUser?.role === 'H&S Manager'
+  // If restricted role somehow lands on types tab, fall back to records
+  const effectiveTab = activeTab === 'types' && !canSeeTypesTab ? 'records' : activeTab
 
   const [{ data: trainingTypes }, { data: allTypes }, { data: allUsers }] = await Promise.all([
     supabase
@@ -90,7 +93,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
           <p className="text-sm text-slate-500 mt-1">Staff training and certification management</p>
         </div>
         {authUser?.can('training', 'create') && (
-          activeTab === 'types' ? (
+          effectiveTab === 'types' ? (
             <Link
               href="/training/types/new"
               className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
@@ -120,28 +123,30 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
           <Link
             href="/training"
             className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'records'
+              effectiveTab === 'records'
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Training Records
           </Link>
-          <Link
-            href="/training?tab=types"
-            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'types'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            Training Types
-          </Link>
+          {canSeeTypesTab && (
+            <Link
+              href="/training?tab=types"
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                effectiveTab === 'types'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              Training Types
+            </Link>
+          )}
         </nav>
       </div>
 
       {/* ── Training Records tab ── */}
-      {activeTab === 'records' && (
+      {effectiveTab === 'records' && (
         <div className="space-y-4">
           <Suspense fallback={<div className="h-10" />}>
             <FilterBar filters={[
@@ -231,7 +236,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
       )}
 
       {/* ── Training Types tab ── */}
-      {activeTab === 'types' && (
+      {effectiveTab === 'types' && (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
           {!trainingTypes || trainingTypes.length === 0 ? (
             <div className="py-8 text-center text-slate-400 text-sm">

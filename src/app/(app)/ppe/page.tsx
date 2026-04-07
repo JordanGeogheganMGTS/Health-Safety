@@ -40,6 +40,9 @@ export default async function PpePage({
 
   const isAdmin = authUser?.role === 'System Admin'
   const isTdaStaff = authUser?.role === 'TDA / Staff'
+  const canSeeItemsTab = authUser?.role === 'System Admin' || authUser?.role === 'H&S Manager'
+  // If restricted role somehow lands on items tab, fall back to staff
+  const effectiveTab = activeTab === 'items' && !canSeeItemsTab ? 'staff' : activeTab
 
   const [{ data: ppeItems }, { data: activeUsers }, { data: allPpeRecords }] = await Promise.all([
     supabase
@@ -84,7 +87,7 @@ export default async function PpePage({
           <h1 className="text-2xl font-semibold text-slate-900">PPE Management</h1>
           <p className="text-sm text-slate-500 mt-1">Personal protective equipment issuance and compliance</p>
         </div>
-        {isAdmin && activeTab === 'items' && (
+        {isAdmin && effectiveTab === 'items' && (
           <Link
             href="/ppe/items/new"
             className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
@@ -103,28 +106,30 @@ export default async function PpePage({
           <Link
             href="/ppe"
             className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'staff'
+              effectiveTab === 'staff'
                 ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
             }`}
           >
             Staff PPE
           </Link>
-          <Link
-            href="/ppe?tab=items"
-            className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === 'items'
-                ? 'border-orange-500 text-orange-600'
-                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-            }`}
-          >
-            PPE Items Register
-          </Link>
+          {canSeeItemsTab && (
+            <Link
+              href="/ppe?tab=items"
+              className={`px-5 py-3 text-sm font-medium border-b-2 transition-colors ${
+                effectiveTab === 'items'
+                  ? 'border-orange-500 text-orange-600'
+                  : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+              }`}
+            >
+              PPE Items Register
+            </Link>
+          )}
         </nav>
       </div>
 
       {/* ── Staff PPE tab ── */}
-      {activeTab === 'staff' && (
+      {effectiveTab === 'staff' && (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
           {complianceRows.length === 0 ? (
             <div className="py-8 text-center text-slate-400 text-sm">
@@ -172,7 +177,7 @@ export default async function PpePage({
       )}
 
       {/* ── PPE Items tab ── */}
-      {activeTab === 'items' && (
+      {effectiveTab === 'items' && (
         <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm">
           {items.length === 0 ? (
             <div className="py-8 text-center text-slate-400 text-sm">

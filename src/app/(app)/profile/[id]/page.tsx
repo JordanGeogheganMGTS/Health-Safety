@@ -152,7 +152,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
 
       {/* Header card */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-5">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 px-6 py-5">
           <div className="flex items-center gap-4">
             <div className="flex h-14 w-14 items-center justify-center rounded-full bg-orange-500 text-white text-lg font-bold">
               {profile.first_name.charAt(0)}{profile.last_name.charAt(0)}

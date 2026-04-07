@@ -62,7 +62,7 @@ function HeaderInner({ user, sites, notificationCount, onMenuClick }: HeaderProp
 
   // Derive page title from first non-empty path segment
   const segment = pathname.split('/').filter(Boolean)[0] ?? ''
-  const pageTitle = PATH_TITLE_MAP[segment] ?? 'MGTS Health & Safety'
+  const pageTitle = PATH_TITLE_MAP[segment] ?? 'MGTS Sentinel'
 
   // Initials
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
