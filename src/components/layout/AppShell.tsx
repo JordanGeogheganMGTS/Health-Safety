@@ -14,12 +14,19 @@ interface UserProfile {
   siteName: string | null
 }
 
+interface Site {
+  id: string
+  name: string
+}
+
 interface AppShellProps {
   user: UserProfile
+  sites: Site[]
+  notificationCount: number
   children: React.ReactNode
 }
 
-export function AppShell({ user, children }: AppShellProps) {
+export function AppShell({ user, sites, notificationCount, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -39,6 +46,8 @@ export function AppShell({ user, children }: AppShellProps) {
       <div className="flex flex-1 flex-col min-w-0 lg:pl-[220px]">
         <Header
           user={user}
+          sites={sites}
+          notificationCount={notificationCount}
           onMenuClick={() => setSidebarOpen(true)}
         />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">

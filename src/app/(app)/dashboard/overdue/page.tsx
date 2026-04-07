@@ -40,12 +40,22 @@ const TYPE_COLOURS: Record<ItemType, string> = {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function OverduePage() {
+export default async function OverduePage({
+  searchParams,
+}: {
+  searchParams: { site?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]
+  const siteId = searchParams.site?.trim() || null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function withSite<T extends { eq: (col: string, val: string) => T }>(q: T): T {
+    return siteId ? q.eq('site_id', siteId) : q
+  }
 
   const [
     { data: cas },
@@ -58,55 +68,61 @@ export default async function OverduePage() {
     { data: training },
     { data: ppeRows },
   ] = await Promise.all([
-    supabase.from('corrective_actions')
+    withSite(supabase.from('corrective_actions')
       .select('id, title, due_date, status, sites(name), priority:lookup_values!priority_id(label)')
       .lt('due_date', today)
       .not('status', 'in', '(Completed,Verified,Cancelled)')
-      .order('due_date'),
-    supabase.from('documents')
+      .order('due_date')),
+    withSite(supabase.from('documents')
       .select('id, title, review_due_date, status, sites(name)')
       .not('review_due_date', 'is', null)
       .lt('review_due_date', today)
       .not('status', 'in', '(Expired,Superseded)')
-      .order('review_due_date'),
-    supabase.from('risk_assessments')
+      .order('review_due_date')),
+    withSite(supabase.from('risk_assessments')
       .select('id, title, review_due_date, status, sites(name)')
       .not('review_due_date', 'is', null)
       .lt('review_due_date', today)
       .not('status', 'in', '(Superseded,Archived)')
-      .order('review_due_date'),
-    supabase.from('coshh_assessments')
+      .order('review_due_date')),
+    withSite(supabase.from('coshh_assessments')
       .select('id, product_name, review_due_date, sites(name)')
       .not('review_due_date', 'is', null)
       .lt('review_due_date', today)
-      .order('review_due_date'),
-    supabase.from('equipment')
+      .order('review_due_date')),
+    withSite(supabase.from('equipment')
       .select('id, name, next_inspection_date, sites(name)')
       .not('next_inspection_date', 'is', null)
       .lt('next_inspection_date', today)
       .eq('is_active', true)
-      .order('next_inspection_date'),
-    supabase.from('fire_extinguishers')
+      .order('next_inspection_date')),
+    withSite(supabase.from('fire_extinguishers')
       .select('id, location, next_inspection_date, sites(name)')
       .not('next_inspection_date', 'is', null)
       .lt('next_inspection_date', today)
       .eq('is_active', true)
-      .order('next_inspection_date'),
-    supabase.from('fire_alarm_systems')
+      .order('next_inspection_date')),
+    withSite(supabase.from('fire_alarm_systems')
       .select('id, panel_location, next_service_date, sites(name)')
       .not('next_service_date', 'is', null)
       .lt('next_service_date', today)
       .eq('is_active', true)
-      .order('next_service_date'),
-    supabase.from('training_records')
+      .order('next_service_date')),
+    withSite(supabase.from('training_records')
       .select('id, expiry_date, training_types(name), users!user_id(first_name, last_name), sites(name)')
       .not('expiry_date', 'is', null)
       .lt('expiry_date', today)
-      .order('expiry_date'),
+      .order('expiry_date')),
     // PPE active (not returned) with replacement interval
-    supabase.from('user_ppe_records')
-      .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
-      .is('returned_date', null),
+    (siteId
+      ? supabase.from('user_ppe_records')
+          .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+          .is('returned_date', null)
+          .eq('site_id', siteId)
+      : supabase.from('user_ppe_records')
+          .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+          .is('returned_date', null)
+    ),
   ])
 
   function addMonths(dateStr: string, months: number): string {
@@ -163,7 +179,7 @@ export default async function OverduePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
+        <Link href={`/dashboard${siteId ? `?site=${siteId}` : ''}`} className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Overdue Items</h1>
           <p className="mt-0.5 text-sm text-slate-500">

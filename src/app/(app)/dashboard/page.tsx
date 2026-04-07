@@ -49,7 +49,11 @@ function statusBadgeClass(status: CAStatus): string {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: { site?: string }
+}) {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -62,6 +66,15 @@ export default async function DashboardPage() {
   const TERMINAL_CA = '(Completed,Verified,Cancelled)'
   const TERMINAL_DOC = '(Expired,Superseded)'
   const TERMINAL_RA = '(Superseded,Archived)'
+
+  // Site filter — only applied when a specific site is selected
+  const siteId = searchParams.site?.trim() || null
+
+  // Helper to apply optional site filter
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function withSite<T extends { eq: (col: string, val: string) => T }>(q: T): T {
+    return siteId ? q.eq('site_id', siteId) : q
+  }
 
   const [
     // ── Overdue counts ─────────────────────────────────────────────────────────
@@ -96,74 +109,80 @@ export default async function DashboardPage() {
     { data: ppeRows },
   ] = await Promise.all([
     // Overdue
-    supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
-      .lt('due_date', todayIso).not('status', 'in', TERMINAL_CA),
-    supabase.from('documents').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lt('review_due_date', todayIso).not('status', 'in', TERMINAL_DOC),
-    supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lt('review_due_date', todayIso).not('status', 'in', TERMINAL_RA),
-    supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lt('review_due_date', todayIso),
-    supabase.from('equipment').select('id', { count: 'exact', head: true })
-      .not('next_inspection_date', 'is', null).lt('next_inspection_date', todayIso).eq('is_active', true),
-    supabase.from('fire_extinguishers').select('id', { count: 'exact', head: true })
-      .not('next_inspection_date', 'is', null).lt('next_inspection_date', todayIso).eq('is_active', true),
-    supabase.from('fire_alarm_systems').select('id', { count: 'exact', head: true })
-      .not('next_service_date', 'is', null).lt('next_service_date', todayIso).eq('is_active', true),
+    withSite(supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
+      .lt('due_date', todayIso).not('status', 'in', TERMINAL_CA)),
+    withSite(supabase.from('documents').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lt('review_due_date', todayIso).not('status', 'in', TERMINAL_DOC)),
+    withSite(supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lt('review_due_date', todayIso).not('status', 'in', TERMINAL_RA)),
+    withSite(supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lt('review_due_date', todayIso)),
+    withSite(supabase.from('equipment').select('id', { count: 'exact', head: true })
+      .not('next_inspection_date', 'is', null).lt('next_inspection_date', todayIso).eq('is_active', true)),
+    withSite(supabase.from('fire_extinguishers').select('id', { count: 'exact', head: true })
+      .not('next_inspection_date', 'is', null).lt('next_inspection_date', todayIso).eq('is_active', true)),
+    withSite(supabase.from('fire_alarm_systems').select('id', { count: 'exact', head: true })
+      .not('next_service_date', 'is', null).lt('next_service_date', todayIso).eq('is_active', true)),
     // Due within 30 days
-    supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
-      .gte('due_date', todayIso).lte('due_date', in30).not('status', 'in', TERMINAL_CA),
-    supabase.from('documents').select('id', { count: 'exact', head: true })
-      .gte('review_due_date', todayIso).lte('review_due_date', in30).not('status', 'in', TERMINAL_DOC),
-    supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
-      .gte('review_due_date', todayIso).lte('review_due_date', in30).not('status', 'in', TERMINAL_RA),
-    supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
-      .gte('review_due_date', todayIso).lte('review_due_date', in30),
-    supabase.from('equipment').select('id', { count: 'exact', head: true })
-      .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30).eq('is_active', true),
-    supabase.from('fire_extinguishers').select('id', { count: 'exact', head: true })
-      .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30).eq('is_active', true),
-    supabase.from('fire_alarm_systems').select('id', { count: 'exact', head: true })
-      .gte('next_service_date', todayIso).lte('next_service_date', in30).eq('is_active', true),
+    withSite(supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
+      .gte('due_date', todayIso).lte('due_date', in30).not('status', 'in', TERMINAL_CA)),
+    withSite(supabase.from('documents').select('id', { count: 'exact', head: true })
+      .gte('review_due_date', todayIso).lte('review_due_date', in30).not('status', 'in', TERMINAL_DOC)),
+    withSite(supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
+      .gte('review_due_date', todayIso).lte('review_due_date', in30).not('status', 'in', TERMINAL_RA)),
+    withSite(supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
+      .gte('review_due_date', todayIso).lte('review_due_date', in30)),
+    withSite(supabase.from('equipment').select('id', { count: 'exact', head: true })
+      .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30).eq('is_active', true)),
+    withSite(supabase.from('fire_extinguishers').select('id', { count: 'exact', head: true })
+      .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30).eq('is_active', true)),
+    withSite(supabase.from('fire_alarm_systems').select('id', { count: 'exact', head: true })
+      .gte('next_service_date', todayIso).lte('next_service_date', in30).eq('is_active', true)),
     // Open CAs
-    supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
-      .in('status', ['Open', 'In Progress']),
+    withSite(supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
+      .in('status', ['Open', 'In Progress'])),
     // Docs review within 60 days
-    supabase.from('documents').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lte('review_due_date', in60).not('status', 'in', TERMINAL_DOC),
-    supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lte('review_due_date', in60).not('status', 'in', TERMINAL_RA),
-    supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
-      .not('review_due_date', 'is', null).lte('review_due_date', in60),
+    withSite(supabase.from('documents').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lte('review_due_date', in60).not('status', 'in', TERMINAL_DOC)),
+    withSite(supabase.from('risk_assessments').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lte('review_due_date', in60).not('status', 'in', TERMINAL_RA)),
+    withSite(supabase.from('coshh_assessments').select('id', { count: 'exact', head: true })
+      .not('review_due_date', 'is', null).lte('review_due_date', in60)),
     // Open CA rows for display panel
-    supabase.from('corrective_actions')
+    withSite(supabase.from('corrective_actions')
       .select('id, title, due_date, status, sites(name), priority:lookup_values!priority_id(label)')
       .in('status', ['Open', 'In Progress'])
       .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(10),
+      .limit(10)),
     // Upcoming items for display panel (due within 30 days)
-    supabase.from('corrective_actions')
+    withSite(supabase.from('corrective_actions')
       .select('id, title, due_date')
       .gte('due_date', todayIso).lte('due_date', in30)
       .not('status', 'in', TERMINAL_CA)
-      .order('due_date').limit(20),
-    supabase.from('documents')
+      .order('due_date').limit(20)),
+    withSite(supabase.from('documents')
       .select('id, title, review_due_date')
       .gte('review_due_date', todayIso).lte('review_due_date', in30)
       .not('status', 'in', TERMINAL_DOC)
-      .order('review_due_date').limit(20),
-    supabase.from('equipment')
+      .order('review_due_date').limit(20)),
+    withSite(supabase.from('equipment')
       .select('id, name, next_inspection_date')
       .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30)
-      .eq('is_active', true).order('next_inspection_date').limit(20),
-    supabase.from('fire_extinguishers')
+      .eq('is_active', true).order('next_inspection_date').limit(20)),
+    withSite(supabase.from('fire_extinguishers')
       .select('id, location, next_inspection_date')
       .gte('next_inspection_date', todayIso).lte('next_inspection_date', in30)
-      .eq('is_active', true).order('next_inspection_date').limit(20),
+      .eq('is_active', true).order('next_inspection_date').limit(20)),
     // PPE active records (not returned) where item has a replacement interval
-    supabase.from('user_ppe_records')
-      .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
-      .is('returned_date', null),
+    (siteId
+      ? supabase.from('user_ppe_records')
+          .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+          .is('returned_date', null)
+          .eq('site_id', siteId)
+      : supabase.from('user_ppe_records')
+          .select('id, user_id, issued_date, ppe_item:ppe_items!user_ppe_records_ppe_item_id_fkey(name, replacement_months), person:users!user_ppe_records_user_id_fkey(first_name, last_name), sites(name)')
+          .is('returned_date', null)
+    ),
   ])
 
   // ── PPE replacement counts (computed from issued_date + months) ───────────────
@@ -223,6 +242,9 @@ export default async function DashboardPage() {
 
   const openCAs = (openCARows ?? []) as unknown as OpenCA[]
 
+  // ── Build site-aware tile links ───────────────────────────────────────────────
+  const siteQ = siteId ? `?site=${siteId}` : ''
+
   // ── Tiles ─────────────────────────────────────────────────────────────────────
   const tiles = [
     {
@@ -231,7 +253,7 @@ export default async function DashboardPage() {
       sub: 'Across CAs, docs & equipment',
       bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-700',
       subText: 'text-red-500', dot: 'bg-red-400',
-      href: '/dashboard/overdue',
+      href: `/dashboard/overdue${siteQ}`,
     },
     {
       label: 'Due Within 30 Days',
@@ -239,7 +261,7 @@ export default async function DashboardPage() {
       sub: 'Requiring attention soon',
       bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-700',
       subText: 'text-amber-500', dot: 'bg-amber-400',
-      href: '/dashboard/due-soon',
+      href: `/dashboard/due-soon${siteQ}`,
     },
     {
       label: 'Open Corrective Actions',
@@ -247,7 +269,7 @@ export default async function DashboardPage() {
       sub: 'Open or In Progress',
       bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700',
       subText: 'text-orange-500', dot: 'bg-orange-400',
-      href: '/dashboard/open-actions',
+      href: `/dashboard/open-actions${siteQ}`,
     },
     {
       label: 'Docs Due for Review',
@@ -255,7 +277,7 @@ export default async function DashboardPage() {
       sub: 'Within 60 days',
       bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-700',
       subText: 'text-blue-500', dot: 'bg-blue-400',
-      href: '/dashboard/docs-review',
+      href: `/dashboard/docs-review${siteQ}`,
     },
   ]
 
@@ -298,7 +320,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-800">Upcoming Requirements</h2>
-            <Link href="/dashboard/due-soon" className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 transition-colors">
+            <Link href={`/dashboard/due-soon${siteQ}`} className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-200 transition-colors">
               Next 30 days
             </Link>
           </div>
@@ -327,7 +349,7 @@ export default async function DashboardPage() {
               ))}
               {upcomingItems.length > 10 && (
                 <li className="px-5 py-3 text-center">
-                  <Link href="/dashboard/due-soon" className="text-xs font-medium text-orange-600 hover:underline">
+                  <Link href={`/dashboard/due-soon${siteQ}`} className="text-xs font-medium text-orange-600 hover:underline">
                     View all {upcomingItems.length} items →
                   </Link>
                 </li>
@@ -340,7 +362,7 @@ export default async function DashboardPage() {
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
             <h2 className="text-base font-semibold text-slate-800">Open Corrective Actions</h2>
-            <Link href="/dashboard/open-actions" className="text-xs font-medium text-orange-600 hover:underline">
+            <Link href={`/dashboard/open-actions${siteQ}`} className="text-xs font-medium text-orange-600 hover:underline">
               View all →
             </Link>
           </div>

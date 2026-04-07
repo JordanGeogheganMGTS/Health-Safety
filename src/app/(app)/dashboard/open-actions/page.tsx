@@ -34,14 +34,19 @@ function statusBadgeClass(s: CAStatus): string {
   }
 }
 
-export default async function OpenActionsPage() {
+export default async function OpenActionsPage({
+  searchParams,
+}: {
+  searchParams: { site?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]
+  const siteId = searchParams.site?.trim() || null
 
-  const { data: rows } = await supabase
+  let query = supabase
     .from('corrective_actions')
     .select(`
       id, title, description, due_date, status,
@@ -51,6 +56,12 @@ export default async function OpenActionsPage() {
     `)
     .in('status', ['Open', 'In Progress'])
     .order('due_date', { ascending: true, nullsFirst: false })
+
+  if (siteId) {
+    query = query.eq('site_id', siteId)
+  }
+
+  const { data: rows } = await query
 
   const actions = (rows ?? []) as unknown as OpenCA[]
 
@@ -117,7 +128,7 @@ export default async function OpenActionsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
+          <Link href={`/dashboard${siteId ? `?site=${siteId}` : ''}`} className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
           <div>
             <h1 className="text-2xl font-semibold text-slate-900">Open Corrective Actions</h1>
             <p className="mt-0.5 text-sm text-slate-500">

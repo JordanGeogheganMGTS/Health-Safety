@@ -22,36 +22,46 @@ const TYPE_COLOURS: Record<ItemType, string> = {
   'COSHH Assessment': 'bg-yellow-100 text-yellow-700',
 }
 
-export default async function DocsReviewPage() {
+export default async function DocsReviewPage({
+  searchParams,
+}: {
+  searchParams: { site?: string }
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
   const today = new Date().toISOString().split('T')[0]
   const in60 = new Date(Date.now() + 60 * 86_400_000).toISOString().split('T')[0]
+  const siteId = searchParams.site?.trim() || null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function withSite<T extends { eq: (col: string, val: string) => T }>(q: T): T {
+    return siteId ? q.eq('site_id', siteId) : q
+  }
 
   const [
     { data: docs },
     { data: ras },
     { data: coshh },
   ] = await Promise.all([
-    supabase.from('documents')
+    withSite(supabase.from('documents')
       .select('id, title, review_due_date, status, sites(name)')
       .not('review_due_date', 'is', null)
       .lte('review_due_date', in60)
       .not('status', 'in', '(Expired,Superseded)')
-      .order('review_due_date'),
-    supabase.from('risk_assessments')
+      .order('review_due_date')),
+    withSite(supabase.from('risk_assessments')
       .select('id, title, review_due_date, status, sites(name)')
       .not('review_due_date', 'is', null)
       .lte('review_due_date', in60)
       .not('status', 'in', '(Superseded,Archived)')
-      .order('review_due_date'),
-    supabase.from('coshh_assessments')
+      .order('review_due_date')),
+    withSite(supabase.from('coshh_assessments')
       .select('id, product_name, review_due_date, sites(name)')
       .not('review_due_date', 'is', null)
       .lte('review_due_date', in60)
-      .order('review_due_date'),
+      .order('review_due_date')),
   ])
 
   const items: ReviewItem[] = [
@@ -75,7 +85,7 @@ export default async function DocsReviewPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
+        <Link href={`/dashboard${siteId ? `?site=${siteId}` : ''}`} className="text-sm text-slate-500 hover:text-slate-700">← Dashboard</Link>
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Documents Due for Review</h1>
           <p className="mt-0.5 text-sm text-slate-500">
