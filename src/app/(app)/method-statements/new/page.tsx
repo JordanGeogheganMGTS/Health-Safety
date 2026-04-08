@@ -12,6 +12,7 @@ const schema = z.object({
   site_id: z.string().min(1, 'Site is required'),
   description: z.string().min(1, 'Task description is required'),
   category: z.string().optional(),
+  risk_assessment_id: z.string().optional(),
   ppe_required: z.string().optional(),
   plant_equipment: z.string().optional(),
   emergency_procedures: z.string().optional(),
@@ -21,12 +22,14 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>
 
 interface Site { id: string; name: string }
+interface RiskAssessment { id: string; title: string }
 
 export default function NewMethodStatementPage() {
   const router = useRouter()
   const supabase = createClient()
 
   const [sites, setSites] = useState<Site[]>([])
+  const [riskAssessments, setRiskAssessments] = useState<RiskAssessment[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -38,8 +41,12 @@ export default function NewMethodStatementPage() {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('sites').select('id, name').order('name')
-      setSites((data ?? []) as unknown as Site[])
+      const [sitesRes, raRes] = await Promise.all([
+        supabase.from('sites').select('id, name').order('name'),
+        supabase.from('risk_assessments').select('id, title').order('title'),
+      ])
+      setSites((sitesRes.data ?? []) as unknown as Site[])
+      setRiskAssessments((raRes.data ?? []) as unknown as RiskAssessment[])
     }
     load()
   }, [])
@@ -62,6 +69,7 @@ export default function NewMethodStatementPage() {
         site_id: values.site_id,
         description: values.description,
         category: values.category || null,
+        risk_assessment_id: values.risk_assessment_id || null,
         ppe_required: values.ppe_required || null,
         plant_equipment: values.plant_equipment || null,
         emergency_procedures: values.emergency_procedures || null,
@@ -149,6 +157,16 @@ export default function NewMethodStatementPage() {
             className={inputCls}
             placeholder="e.g. Electrical, Working at Height"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Related Risk Assessment</label>
+          <select {...register('risk_assessment_id')} className={selectCls}>
+            <option value="">None</option>
+            {riskAssessments.map((ra) => (
+              <option key={ra.id} value={ra.id}>{ra.title}</option>
+            ))}
+          </select>
         </div>
 
         <div>

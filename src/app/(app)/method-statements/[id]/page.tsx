@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, formatDateTime, isOverdue } from '@/lib/dates'
+import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: string }) {
@@ -39,10 +39,10 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
       .from('method_statements')
       .select(`
         id, title, description, category, ppe_required, plant_equipment,
-        emergency_procedures, status, review_due_date, approved_at, created_at,
+        emergency_procedures, status, review_due_date, created_at,
         sites(name),
         author:users!method_statements_authored_by_fkey(first_name, last_name),
-        approver:users!method_statements_approved_by_fkey(first_name, last_name)
+        risk_assessment:risk_assessments!method_statements_risk_assessment_id_fkey(id, title)
       `)
       .eq('id', params.id)
       .single(),
@@ -57,7 +57,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
 
   const site = ms.sites as unknown as { name: string } | null
   const author = ms.author as unknown as { first_name: string; last_name: string } | null
-  const approver = ms.approver as unknown as { first_name: string; last_name: string } | null
+  const relatedRA = ms.risk_assessment as unknown as { id: string; title: string } | null
   const overdue = isOverdue(ms.review_due_date)
 
   const approveAction = approveMethodStatement.bind(null, ms.id)
@@ -116,8 +116,12 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
             ),
           },
           { label: 'Category', value: ms.category ?? '—' },
-          { label: 'Approved By', value: approver ? `${approver.first_name} ${approver.last_name}` : '—' },
-          { label: 'Approved At', value: formatDateTime(ms.approved_at) },
+          {
+            label: 'Related Risk Assessment',
+            value: relatedRA
+              ? <a href={`/risk-assessments/${relatedRA.id}`} target="_blank" rel="noopener noreferrer" className="text-orange-600 hover:text-orange-700 underline underline-offset-2 font-medium">{relatedRA.title}</a>
+              : <span className="text-slate-400">—</span>,
+          },
           { label: 'Created', value: formatDate(ms.created_at) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
