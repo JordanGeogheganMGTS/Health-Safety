@@ -26,20 +26,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .from('corrective_actions')
       .select('id', { count: 'exact', head: true })
       .lt('due_date', today)
-      .not('status', 'in', '(Completed,Verified,Cancelled)'),
+      .not('status', 'in', '(Completed,Verified,Cancelled,Closed)'),
   ])
 
   const profile = profileResult.data
   if (!profile || !profile.is_active) redirect('/login')
 
+  const admin = createAdminClient()
+
   // Update last_login_at if null or more than 1 hour stale
   const lastLogin = (profile as unknown as { last_login_at: string | null }).last_login_at
   const now = new Date()
   if (!lastLogin || now.getTime() - new Date(lastLogin).getTime() > 60 * 60 * 1000) {
-    const admin = createAdminClient()
     // Fire-and-forget; don't block page render
     admin.from('users').update({ last_login_at: now.toISOString() }).eq('id', user.id).then(() => {})
   }
+
+  // Auto-mark corrective actions as Overdue when due_date has passed and still open/in-progress
+  admin
+    .from('corrective_actions')
+    .update({ status: 'Overdue' })
+    .lt('due_date', today)
+    .in('status', ['Open', 'In Progress'])
+    .then(() => {})
 
   // Exclude the special "All Sites" record from the dropdown
   const allSitesRaw = (sitesResult.data ?? []) as unknown as { id: string; name: string; is_all_sites?: boolean }[]

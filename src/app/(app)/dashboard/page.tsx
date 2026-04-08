@@ -5,7 +5,7 @@ import { formatDate } from '@/lib/dates'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type CAStatus = 'Open' | 'In Progress' | 'Completed' | 'Verified' | 'Overdue' | 'Cancelled'
+type CAStatus = 'Open' | 'In Progress' | 'Completed' | 'Verified' | 'Overdue' | 'Cancelled' | 'Closed'
 type Priority = 'Low' | 'Medium' | 'High' | 'Critical'
 
 interface OpenCA {
@@ -44,6 +44,7 @@ function statusBadgeClass(status: CAStatus): string {
     case 'Verified': return 'bg-green-100 text-green-800'
     case 'Overdue': return 'bg-red-100 text-red-700'
     case 'Cancelled': return 'bg-gray-100 text-gray-600'
+    case 'Closed': return 'bg-slate-100 text-slate-500'
   }
 }
 
@@ -63,7 +64,7 @@ export default async function DashboardPage({
   const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().split('T')[0]
   const in60 = new Date(Date.now() + 60 * 86_400_000).toISOString().split('T')[0]
 
-  const TERMINAL_CA = '(Completed,Verified,Cancelled)'
+  const TERMINAL_CA = '(Completed,Verified,Cancelled,Closed)'
   const TERMINAL_DOC = '(Expired,Superseded)'
   const TERMINAL_RA = '(Superseded,Archived)'
 
@@ -140,7 +141,7 @@ export default async function DashboardPage({
       .gte('next_service_date', todayIso).lte('next_service_date', in30).eq('is_active', true)),
     // Open CAs
     withSite(supabase.from('corrective_actions').select('id', { count: 'exact', head: true })
-      .in('status', ['Open', 'In Progress'])),
+      .in('status', ['Open', 'In Progress', 'Overdue'])),
     // Docs review within 60 days
     withSite(supabase.from('documents').select('id', { count: 'exact', head: true })
       .not('review_due_date', 'is', null).lte('review_due_date', in60).not('status', 'in', TERMINAL_DOC)),
@@ -151,7 +152,7 @@ export default async function DashboardPage({
     // Open CA rows for display panel
     withSite(supabase.from('corrective_actions')
       .select('id, title, due_date, status, sites(name), priority:lookup_values!priority_id(label)')
-      .in('status', ['Open', 'In Progress'])
+      .in('status', ['Open', 'In Progress', 'Overdue'])
       .order('due_date', { ascending: true, nullsFirst: false })
       .limit(10)),
     // Upcoming items for display panel (due within 30 days)
@@ -266,7 +267,7 @@ export default async function DashboardPage({
     {
       label: 'Open Corrective Actions',
       value: openCACount ?? 0,
-      sub: 'Open or In Progress',
+      sub: 'Open, In Progress or Overdue',
       bg: 'bg-orange-50', border: 'border-orange-200', text: 'text-orange-700',
       subText: 'text-orange-500', dot: 'bg-orange-400',
       href: `/dashboard/open-actions${siteQ}`,
