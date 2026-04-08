@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import path from 'path'
 import React from 'react'
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Font,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Font, Image,
 } from '@react-pdf/renderer'
 
 Font.registerHyphenationCallback((word) => [word])
+
+const LOGO_PATH = path.join(process.cwd(), 'public', 'logo.png')
 
 // ── Colour palette ────────────────────────────────────────────────────────────
 const C = {
@@ -27,11 +30,13 @@ const C = {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: C.slate700, backgroundColor: C.white, paddingBottom: 40 },
+  page: { fontFamily: 'Helvetica', fontSize: 9, color: C.slate700, backgroundColor: C.white, paddingTop: 62, paddingBottom: 40 },
   // Header
-  header: { backgroundColor: C.orange, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14 },
-  headerBrand: { color: C.white, fontSize: 15, fontFamily: 'Helvetica-Bold' },
-  headerSub: { color: '#fff7ed', fontSize: 8 },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: C.orange, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerLogo: { height: 26, backgroundColor: C.white, borderRadius: 3, padding: 3 },
+  headerBrand: { color: C.white, fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  headerSub: { color: '#fff7ed', fontSize: 7 },
   headerDate: { color: '#fff7ed', fontSize: 7, textAlign: 'right' },
   // Title band
   titleBand: { backgroundColor: C.orangeLight, borderBottomWidth: 1, borderBottomColor: C.orangeBorder, paddingHorizontal: 24, paddingVertical: 10 },
@@ -148,9 +153,12 @@ function RaPdf({ ra, generatedAt }: { ra: RaData; generatedAt: string }) {
       <Page size="A4" style={s.page} wrap>
         {/* Header */}
         <View style={s.header} fixed>
-          <View>
-            <Text style={s.headerBrand}>MGTS Sentinel</Text>
-            <Text style={s.headerSub}>Health &amp; Safety Management</Text>
+          <View style={s.headerLeft}>
+            <Image src={LOGO_PATH} style={s.headerLogo} />
+            <View>
+              <Text style={s.headerBrand}>MGTS Sentinel</Text>
+              <Text style={s.headerSub}>Health &amp; Safety Management</Text>
+            </View>
           </View>
           <Text style={s.headerDate}>Risk Assessment{'\n'}{generatedAt}</Text>
         </View>

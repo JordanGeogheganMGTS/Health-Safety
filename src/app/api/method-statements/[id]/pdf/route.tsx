@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import path from 'path'
 import React from 'react'
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Font,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Font, Image,
 } from '@react-pdf/renderer'
 
 Font.registerHyphenationCallback((word) => [word])
+
+const LOGO_PATH = path.join(process.cwd(), 'public', 'logo.png')
 
 // ── Colours ───────────────────────────────────────────────────────────────────
 const C = {
@@ -33,10 +36,12 @@ const C = {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: C.slate700, backgroundColor: C.white, paddingBottom: 40 },
-  header: { backgroundColor: C.orange, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 14 },
-  headerBrand: { color: C.white, fontSize: 15, fontFamily: 'Helvetica-Bold' },
-  headerSub: { color: '#fff7ed', fontSize: 8 },
+  page: { fontFamily: 'Helvetica', fontSize: 9, color: C.slate700, backgroundColor: C.white, paddingTop: 62, paddingBottom: 40 },
+  header: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: C.orange, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerLogo: { height: 26, backgroundColor: C.white, borderRadius: 3, padding: 3 },
+  headerBrand: { color: C.white, fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  headerSub: { color: '#fff7ed', fontSize: 7 },
   headerDate: { color: '#fff7ed', fontSize: 7, textAlign: 'right' },
   titleBand: { backgroundColor: C.orangeLight, borderBottomWidth: 1, borderBottomColor: C.orangeBorder, paddingHorizontal: 24, paddingVertical: 10 },
   titleText: { fontSize: 16, fontFamily: 'Helvetica-Bold', color: C.slate900 },
@@ -67,10 +72,10 @@ const s = StyleSheet.create({
   equipText: { color: C.amber700 },
   // Steps
   stepCard: { marginBottom: 8, borderWidth: 1, borderColor: C.slate300, borderRadius: 4, overflow: 'hidden' },
-  stepHeader: { backgroundColor: C.orange, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 5 },
-  stepNum: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', marginRight: 8 },
+  stepHeader: { backgroundColor: C.slate100, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6 },
+  stepNum: { width: 18, height: 18, borderRadius: 9, backgroundColor: C.orange, alignItems: 'center', justifyContent: 'center', marginRight: 8 },
   stepNumText: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: C.white },
-  stepTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.white },
+  stepTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: C.slate900 },
   stepBody: { padding: 10 },
   stepDesc: { fontSize: 9, color: C.slate700, marginBottom: 6, lineHeight: 1.5 },
   stepSubRow: { flexDirection: 'row', gap: 8 },
@@ -133,9 +138,12 @@ function MsPdf({ ms, generatedAt }: { ms: MsData; generatedAt: string }) {
       <Page size="A4" style={s.page} wrap>
         {/* Header */}
         <View style={s.header} fixed>
-          <View>
-            <Text style={s.headerBrand}>MGTS Sentinel</Text>
-            <Text style={s.headerSub}>Health &amp; Safety Management</Text>
+          <View style={s.headerLeft}>
+            <Image src={LOGO_PATH} style={s.headerLogo} />
+            <View>
+              <Text style={s.headerBrand}>MGTS Sentinel</Text>
+              <Text style={s.headerSub}>Health &amp; Safety Management</Text>
+            </View>
           </View>
           <Text style={s.headerDate}>Method Statement{'\n'}{generatedAt}</Text>
         </View>
