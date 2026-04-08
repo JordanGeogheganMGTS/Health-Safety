@@ -12,6 +12,14 @@ function riskRatingStyles(rating: number | null): string {
   return 'bg-red-100 text-red-700'
 }
 
+function avgTileStyles(rating: number | null): string {
+  if (rating === null) return 'bg-slate-100 text-slate-500 border-slate-200'
+  if (rating <= 4) return 'bg-green-500 text-white border-green-600'
+  if (rating <= 9) return 'bg-amber-400 text-white border-amber-500'
+  if (rating <= 15) return 'bg-orange-500 text-white border-orange-600'
+  return 'bg-red-500 text-white border-red-600'
+}
+
 function RiskChip({ rating }: { rating: number | null }) {
   return (
     <span className={`inline-flex items-center justify-center rounded-full w-8 h-8 text-xs font-bold ${riskRatingStyles(rating)}`}>
@@ -66,9 +74,17 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
 
   const site = ra.sites as unknown as { name: string } | null
   const assessor = ra.assessor as unknown as { first_name: string; last_name: string } | null
-  const approver = ra.approver as unknown as { first_name: string; last_name: string } | null
   const category = ra.category as unknown as { label: string } | null
   const overdue = isOverdue(ra.review_due_date)
+
+  const hazardsWithRatings = (hazards ?? []).filter((h) => h.risk_rating_before != null)
+  const hazardsWithResidual = (hazards ?? []).filter((h) => h.risk_rating_after != null)
+  const avgRR = hazardsWithRatings.length
+    ? Math.round((hazardsWithRatings.reduce((s, h) => s + (h.risk_rating_before ?? 0), 0) / hazardsWithRatings.length) * 10) / 10
+    : null
+  const avgResidual = hazardsWithResidual.length
+    ? Math.round((hazardsWithResidual.reduce((s, h) => s + (h.risk_rating_after ?? 0), 0) / hazardsWithResidual.length) * 10) / 10
+    : null
 
   return (
     <div className="max-w-6xl">
@@ -111,14 +127,30 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
               </span>
             ),
           },
-          { label: 'Approved By', value: approver ? `${approver.first_name} ${approver.last_name}` : '—' },
-          { label: 'Approved At', value: formatDate(ra.approved_at) },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">{label}</p>
             <div className="text-sm font-medium text-slate-900">{value}</div>
           </div>
         ))}
+
+        {/* Avg Risk Rating tile — full colour */}
+        <div className={`rounded-xl border p-4 shadow-sm ${avgTileStyles(avgRR)}`}>
+          <p className="text-xs font-medium uppercase tracking-wider mb-1 opacity-80">Avg Risk Rating</p>
+          <div className="text-3xl font-bold">{avgRR ?? '—'}</div>
+          <p className="text-xs mt-1 opacity-70">
+            {avgRR === null ? 'No hazards' : avgRR <= 4 ? 'Low' : avgRR <= 9 ? 'Medium' : avgRR <= 15 ? 'High' : 'Very High'}
+          </p>
+        </div>
+
+        {/* Avg Residual Risk Rating tile — full colour */}
+        <div className={`rounded-xl border p-4 shadow-sm ${avgTileStyles(avgResidual)}`}>
+          <p className="text-xs font-medium uppercase tracking-wider mb-1 opacity-80">Avg Residual Risk</p>
+          <div className="text-3xl font-bold">{avgResidual ?? '—'}</div>
+          <p className="text-xs mt-1 opacity-70">
+            {avgResidual === null ? 'No hazards' : avgResidual <= 4 ? 'Low' : avgResidual <= 9 ? 'Medium' : avgResidual <= 15 ? 'High' : 'Very High'}
+          </p>
+        </div>
       </div>
 
       {/* Hazards table */}

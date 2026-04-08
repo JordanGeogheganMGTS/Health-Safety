@@ -33,6 +33,20 @@ function RatingBadge({ rating }: { rating: string | null }) {
   )
 }
 
+function AvgRatingChip({ avg }: { avg: number | null }) {
+  if (avg === null) return <span className="text-slate-400 text-sm">—</span>
+  const cls =
+    avg <= 4 ? 'bg-green-500 text-white' :
+    avg <= 9 ? 'bg-amber-400 text-white' :
+    avg <= 15 ? 'bg-orange-500 text-white' :
+    'bg-red-500 text-white'
+  return (
+    <span className={`inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-bold min-w-[2.5rem] ${cls}`}>
+      {avg}
+    </span>
+  )
+}
+
 interface PageProps {
   searchParams: Promise<{ sort?: string; dir?: string }>
 }
@@ -63,6 +77,30 @@ export default async function RiskAssessmentsPage({ searchParams }: PageProps) {
     .order(sortCol, { ascending: asc })
 
   const authUser = await getAuthUser()
+
+  // Fetch hazard ratings for all assessments to compute averages
+  const raIds = (assessments ?? []).map((a) => a.id)
+  const { data: allHazards } = raIds.length
+    ? await supabase
+        .from('ra_hazards')
+        .select('risk_assessment_id, risk_rating_before, risk_rating_after')
+        .in('risk_assessment_id', raIds)
+    : { data: [] }
+
+  // Build per-RA average maps
+  const avgRRMap: Record<string, number | null> = {}
+  const avgResidualMap: Record<string, number | null> = {}
+  for (const id of raIds) {
+    const rows = (allHazards ?? []).filter((h) => h.risk_assessment_id === id)
+    const rrRows = rows.filter((h) => h.risk_rating_before != null)
+    const resRows = rows.filter((h) => h.risk_rating_after != null)
+    avgRRMap[id] = rrRows.length
+      ? Math.round((rrRows.reduce((s, h) => s + (h.risk_rating_before ?? 0), 0) / rrRows.length) * 10) / 10
+      : null
+    avgResidualMap[id] = resRows.length
+      ? Math.round((resRows.reduce((s, h) => s + (h.risk_rating_after ?? 0), 0) / resRows.length) * 10) / 10
+      : null
+  }
 
   const baseParams = Object.fromEntries(
     Object.entries(sp).filter(([k]) => k !== 'sort' && k !== 'dir').map(([k, v]) => [k, v ?? ''])
@@ -118,6 +156,8 @@ export default async function RiskAssessmentsPage({ searchParams }: PageProps) {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                     <SortLink column="status" label="Status" sort={sortCol} dir={dir} params={baseParams} />
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg RR</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Avg Residual</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Overall Rating</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                 </tr>
@@ -144,6 +184,12 @@ export default async function RiskAssessmentsPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={ra.status} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <AvgRatingChip avg={avgRRMap[ra.id] ?? null} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <AvgRatingChip avg={avgResidualMap[ra.id] ?? null} />
                       </td>
                       <td className="px-4 py-3">
                         <RatingBadge rating={ra.overall_rating} />
