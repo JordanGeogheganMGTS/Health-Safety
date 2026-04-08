@@ -62,7 +62,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
       .select(`
         id, hazard_description, who_is_affected, existing_controls, likelihood_before, severity_before, risk_rating_before,
         additional_controls, action_due_date, likelihood_after, severity_after, risk_rating_after, sort_order,
-        responsible_person
+        responsible_person:users!ra_hazards_responsible_person_fkey(first_name, last_name)
       `)
       .eq('risk_assessment_id', params.id)
       .order('sort_order'),
@@ -203,7 +203,10 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
                         <RiskChip rating={h.risk_rating_after} />
                       </td>
                       <td className="px-3 py-3 text-slate-600">
-                        {h.responsible_person ?? '—'}
+                        {(() => {
+                          const rp = h.responsible_person as unknown as { first_name: string; last_name: string } | null
+                          return rp ? `${rp.first_name} ${rp.last_name}` : '—'
+                        })()}
                       </td>
                       <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{formatDate(h.action_due_date)}</td>
                     </tr>

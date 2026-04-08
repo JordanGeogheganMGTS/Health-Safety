@@ -188,6 +188,8 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
     // Insert new hazards
     if (values.hazards.length > 0) {
       const hazardRows = values.hazards.map((h, idx) => {
+        const lb = Number(h.likelihood_before)
+        const sb = Number(h.severity_before)
         const la = h.likelihood_after ? Number(h.likelihood_after) : null
         const sa = h.severity_after ? Number(h.severity_after) : null
         return {
@@ -195,13 +197,15 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
           hazard_description: h.hazard_description,
           who_is_affected: h.who_is_affected,
           existing_controls: h.existing_controls,
-          likelihood_before: Number(h.likelihood_before),
-          severity_before: Number(h.severity_before),
+          likelihood_before: lb,
+          severity_before: sb,
+          risk_rating_before: lb * sb,
           additional_controls: h.additional_controls || null,
           responsible_person: h.responsible_person || null,
           action_due_date: h.action_due_date || null,
           likelihood_after: la,
           severity_after: sa,
+          risk_rating_after: la && sa ? la * sa : null,
           sort_order: idx + 1,
         }
       })
@@ -440,7 +444,12 @@ export default function EditRiskAssessmentPage({ params }: { params: { id: strin
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Responsible Person</label>
-                        <input {...register(`hazards.${idx}.responsible_person`)} className={smInputCls} placeholder="Name of responsible person" />
+                        <select {...register(`hazards.${idx}.responsible_person`)} className={smSelectCls}>
+                          <option value="">Select person…</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
+                          ))}
+                        </select>
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-slate-600 mb-1">Action Due Date</label>
