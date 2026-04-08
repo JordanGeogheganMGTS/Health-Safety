@@ -55,6 +55,13 @@ function outcomeBadgeClass(outcome: string): string {
   return 'bg-amber-100 text-amber-700 ring-amber-200'
 }
 
+function extinguisherStatusBadgeClass(status: string): string {
+  const l = status.toLowerCase()
+  if (l === 'serviceable') return 'bg-green-100 text-green-700 ring-green-200'
+  if (l === 'out of service') return 'bg-red-100 text-red-700 ring-red-200'
+  return 'bg-amber-100 text-amber-700 ring-amber-200'
+}
+
 function dueDateClass(dateStr: string | null): string {
   if (!dateStr) return 'text-slate-600'
   if (isOverdue(dateStr)) return 'text-red-600 font-semibold'
@@ -216,7 +223,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
                       </td>
                       <td className="px-4 py-3">
                         {ext.status?.label ? (
-                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${outcomeBadgeClass(ext.status.label)}`}>
+                          <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${extinguisherStatusBadgeClass(ext.status.label)}`}>
                             {ext.status.label}
                           </span>
                         ) : '—'}
