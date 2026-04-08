@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
 
@@ -42,6 +43,66 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+// ── Server action: raise a hazard's additional controls as a corrective action ──
+async function raiseHazardCA(hazardId: string) {
+  'use server'
+  const { createClient: createServerClient } = await import('@/lib/supabase/server')
+  const { createAdminClient: createAdmin } = await import('@/lib/supabase/admin')
+  const { revalidatePath } = await import('next/cache')
+
+  const supabase = await createServerClient()
+  const admin = createAdmin()
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  // Fetch hazard + parent RA site
+  const { data: hazard } = await admin
+    .from('ra_hazards')
+    .select('id, additional_controls, action_due_date, responsible_person, hazard_description, risk_assessment_id, risk_assessment:risk_assessments!ra_hazards_risk_assessment_id_fkey(title, site_id)')
+    .eq('id', hazardId)
+    .single()
+
+  if (!hazard || !hazard.additional_controls || !hazard.action_due_date) return
+
+  const ra = hazard.risk_assessment as unknown as { title: string; site_id: string } | null
+  if (!ra) return
+
+  // Look up Medium priority
+  const { data: priority } = await admin
+    .from('lookup_values')
+    .select('id')
+    .eq('value', 'medium')
+    .limit(1)
+    .single()
+
+  if (!priority) return
+
+  // Use responsible_person if set, otherwise fall back to current user
+  const assignedTo = (hazard.responsible_person as string | null) ?? user.id
+
+  // Derive title: RA title + first 80 chars of hazard description
+  const shortHazard = hazard.hazard_description.length > 80
+    ? hazard.hazard_description.slice(0, 77) + '…'
+    : hazard.hazard_description
+  const title = `${ra.title} — ${shortHazard}`
+
+  await admin.from('corrective_actions').insert({
+    title,
+    description: hazard.additional_controls,
+    site_id: ra.site_id,
+    due_date: hazard.action_due_date,
+    assigned_to: assignedTo,
+    assigned_by: user.id,
+    priority_id: priority.id,
+    status: 'Open',
+    source_table: 'ra_hazards',
+    source_record_id: hazardId,
+  })
+
+  revalidatePath(`/risk-assessments/${hazard.risk_assessment_id}`)
+}
+
 export default async function RiskAssessmentDetailPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
 
@@ -61,8 +122,8 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
       .from('ra_hazards')
       .select(`
         id, hazard_description, who_is_affected, existing_controls, likelihood_before, severity_before, risk_rating_before,
-        additional_controls, action_due_date, likelihood_after, severity_after, risk_rating_after, sort_order,
-        responsible_person:users!ra_hazards_responsible_person_fkey(first_name, last_name)
+        additional_controls, action_due_date, responsible_person, likelihood_after, severity_after, risk_rating_after, sort_order,
+        rp_user:users!ra_hazards_responsible_person_fkey(first_name, last_name)
       `)
       .eq('risk_assessment_id', params.id)
       .order('sort_order'),
@@ -71,6 +132,21 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
   if (!ra) notFound()
 
   const authUser = await getAuthUser()
+
+  // Fetch any CAs already raised from hazards in this RA
+  const hazardIds = (hazards ?? []).map((h) => h.id)
+  let existingCAMap: Record<string, string> = {}
+  if (hazardIds.length > 0) {
+    const admin = createAdminClient()
+    const { data: existingCAs } = await admin
+      .from('corrective_actions')
+      .select('id, source_record_id')
+      .eq('source_table', 'ra_hazards')
+      .in('source_record_id', hazardIds)
+    for (const ca of existingCAs ?? []) {
+      if (ca.source_record_id) existingCAMap[ca.source_record_id] = ca.id
+    }
+  }
 
   const site = ra.sites as unknown as { name: string } | null
   const assessor = ra.assessor as unknown as { first_name: string; last_name: string } | null
@@ -86,6 +162,9 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
     ? Math.round((hazardsWithResidual.reduce((s, h) => s + (h.risk_rating_after ?? 0), 0) / hazardsWithResidual.length) * 10) / 10
     : null
 
+  const canEdit = authUser?.can('risk_assessments', 'edit') ?? false
+  const canRaiseCA = authUser?.can('corrective_actions', 'create') ?? false
+
   return (
     <div className="max-w-6xl">
       {/* Header */}
@@ -98,7 +177,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
           </div>
           <h1 className="text-2xl font-semibold text-slate-900">{ra.title}</h1>
         </div>
-        {authUser?.can('risk_assessments', 'edit') && (
+        {canEdit && (
           <Link
             href={`/risk-assessments/${ra.id}/edit`}
             className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors shadow-sm shrink-0"
@@ -183,10 +262,18 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
                   <th className="px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Residual</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Action Owner</th>
                   <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Due Date</th>
+                  {canRaiseCA && (
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
                 {hazards.map((h, idx) => {
+                  const rp = h.rp_user as unknown as { first_name: string; last_name: string } | null
+                  const canRaise = !!(h.additional_controls && h.action_due_date)
+                  const existingCAId = existingCAMap[h.id]
+                  const raiseAction = raiseHazardCA.bind(null, h.id)
+
                   return (
                     <tr key={h.id} className="hover:bg-slate-50 align-top">
                       <td className="px-3 py-3 text-slate-500 font-mono text-xs">{idx + 1}</td>
@@ -203,12 +290,38 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
                         <RiskChip rating={h.risk_rating_after} />
                       </td>
                       <td className="px-3 py-3 text-slate-600">
-                        {(() => {
-                          const rp = h.responsible_person as unknown as { first_name: string; last_name: string } | null
-                          return rp ? `${rp.first_name} ${rp.last_name}` : '—'
-                        })()}
+                        {rp ? `${rp.first_name} ${rp.last_name}` : '—'}
                       </td>
                       <td className="px-3 py-3 text-slate-600 whitespace-nowrap">{formatDate(h.action_due_date)}</td>
+                      {canRaiseCA && (
+                        <td className="px-3 py-3 whitespace-nowrap">
+                          {existingCAId ? (
+                            <Link
+                              href={`/corrective-actions/${existingCAId}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-green-700 hover:text-green-800"
+                            >
+                              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              View CA
+                            </Link>
+                          ) : canRaise ? (
+                            <form action={raiseAction}>
+                              <button
+                                type="submit"
+                                className="inline-flex items-center gap-1 rounded-md bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-orange-200 hover:bg-orange-100 transition-colors"
+                              >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                </svg>
+                                Raise CA
+                              </button>
+                            </form>
+                          ) : (
+                            <span className="text-xs text-slate-300">—</span>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
