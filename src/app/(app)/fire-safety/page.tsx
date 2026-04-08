@@ -11,6 +11,7 @@ interface ExtinguisherRow {
   location: string
   next_inspection_date: string | null
   type: { label: string } | null
+  size: { label: string } | null
   status: { label: string } | null
   sites: { name: string } | null
 }
@@ -102,7 +103,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
     const extSort = sort === 'location' ? 'location' : 'next_inspection_date'
     const { data } = await supabase
       .from('fire_extinguishers')
-      .select('id, location, next_inspection_date, sites!site_id(name), type:lookup_values!type_id(label), status:lookup_values!status_id(label)')
+      .select('id, location, next_inspection_date, sites!site_id(name), type:lookup_values!type_id(label), size:lookup_values!size_id(label), status:lookup_values!status_id(label)')
       .order(extSort, { ascending: asc })
     extinguishers = (data ?? []) as unknown as ExtinguisherRow[]
   }
@@ -205,6 +206,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
                     <th className={thClass}><SortLink column="location" label="Location" sort={sort} dir={dir} params={baseParams} /></th>
                     <th className={thClass}>Site</th>
                     <th className={thClass}>Type</th>
+                    <th className={thClass}>Size</th>
                     <th className={thClass}><SortLink column="next_inspection_date" label="Next Inspection" sort={sort} dir={dir} params={baseParams} /></th>
                     <th className={thClass}>Status</th>
                     <th className={thClass}></th>
@@ -216,6 +218,7 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
                       <td className="px-4 py-3 text-sm font-medium text-slate-800">{ext.location}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{(ext.sites as unknown as { name: string } | null)?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{ext.type?.label ?? '—'}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600">{(ext.size as unknown as { label: string } | null)?.label ?? '—'}</td>
                       <td className="px-4 py-3 text-sm">
                         {ext.next_inspection_date
                           ? <span className={dueDateClass(ext.next_inspection_date)}>{formatDate(ext.next_inspection_date)}</span>
@@ -229,7 +232,14 @@ export default async function FireSafetyPage({ searchParams }: PageProps) {
                         ) : '—'}
                       </td>
                       <td className="px-4 py-3">
-                        <Link href={`/fire-safety/extinguisher/${ext.id}/inspect`} className="text-xs font-medium text-orange-600 hover:underline">Inspect</Link>
+                        <div className="flex items-center gap-3">
+                          {authUser?.can('fire_safety', 'edit') && (
+                            <Link href={`/fire-safety/extinguisher/${ext.id}/edit`} className="text-xs font-medium text-slate-600 hover:underline">Edit</Link>
+                          )}
+                          {authUser?.can('fire_safety', 'create') && (
+                            <Link href={`/fire-safety/extinguisher/${ext.id}/inspect`} className="text-xs font-medium text-orange-600 hover:underline">Inspect</Link>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

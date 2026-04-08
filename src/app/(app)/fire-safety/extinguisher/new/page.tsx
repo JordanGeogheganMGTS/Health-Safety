@@ -13,6 +13,7 @@ const schema = z.object({
   site_id: z.string().uuid('Please select a site'),
   location: z.string().min(1, 'Location is required'),
   type_id: z.string().uuid('Please select a type'),
+  size_id: z.string().optional(),
   serial_number: z.string().optional(),
   manufacture_date: z.string().optional(),
   next_inspection_date: z.string().min(1, 'Next inspection date is required'),
@@ -33,6 +34,7 @@ export default function NewExtinguisherPage() {
 
   const [sites, setSites] = useState<Site[]>([])
   const [extTypes, setExtTypes] = useState<LookupOption[]>([])
+  const [extSizes, setExtSizes] = useState<LookupOption[]>([])
   const [extStatuses, setExtStatuses] = useState<LookupOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
@@ -50,15 +52,19 @@ export default function NewExtinguisherPage() {
       const { data: cats } = await supabase
         .from('lookup_categories')
         .select('id, key')
-        .in('key', ['extinguisher_type', 'extinguisher_status'])
+        .in('key', ['extinguisher_type', 'extinguisher_status', 'extinguisher_size'])
 
       const typeCatId = cats?.find((c) => c.key === 'extinguisher_type')?.id
       const statusCatId = cats?.find((c) => c.key === 'extinguisher_status')?.id
+      const sizeCatId = cats?.find((c) => c.key === 'extinguisher_size')?.id
 
-      const [{ data: sitesData }, { data: typesData }, { data: statusesData }] = await Promise.all([
+      const [{ data: sitesData }, { data: typesData }, { data: sizesData }, { data: statusesData }] = await Promise.all([
         supabase.from('sites').select('id, name').order('name'),
         typeCatId
           ? supabase.from('lookup_values').select('id, label').eq('category_id', typeCatId).order('sort_order')
+          : Promise.resolve({ data: [] }),
+        sizeCatId
+          ? supabase.from('lookup_values').select('id, label').eq('category_id', sizeCatId).order('sort_order')
           : Promise.resolve({ data: [] }),
         statusCatId
           ? supabase.from('lookup_values').select('id, label').eq('category_id', statusCatId).order('sort_order')
@@ -67,6 +73,7 @@ export default function NewExtinguisherPage() {
 
       setSites(sitesData ?? [])
       setExtTypes((typesData ?? []) as LookupOption[])
+      setExtSizes((sizesData ?? []) as LookupOption[])
       setExtStatuses((statusesData ?? []) as LookupOption[])
       setLoadingOptions(false)
     }
@@ -81,6 +88,7 @@ export default function NewExtinguisherPage() {
       site_id: values.site_id,
       location: values.location,
       type_id: values.type_id,
+      size_id: values.size_id || null,
       serial_number: values.serial_number || null,
       manufacture_date: values.manufacture_date || null,
       next_inspection_date: values.next_inspection_date,
@@ -162,6 +170,17 @@ export default function NewExtinguisherPage() {
               ))}
             </select>
             {errors.type_id && <p className={errorClass}>{errors.type_id.message}</p>}
+          </div>
+
+          {/* Size */}
+          <div className="space-y-1">
+            <label htmlFor="size_id" className={labelClass}>Size</label>
+            <select id="size_id" {...register('size_id')} disabled={loadingOptions} className={selectClass}>
+              <option value="">Select a size…</option>
+              {extSizes.map((s) => (
+                <option key={s.id} value={s.id}>{s.label}</option>
+              ))}
+            </select>
           </div>
 
           {/* Serial Number & Manufacture Date */}
