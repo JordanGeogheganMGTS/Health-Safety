@@ -21,6 +21,7 @@ import {
   BarChart3,
   Settings,
   LogOut,
+  BookOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -38,6 +39,7 @@ interface SidebarProps {
   user: UserProfile
   open: boolean
   onClose: () => void
+  pendingAcknowledgements?: number
 }
 
 const NAV_ITEMS = [
@@ -56,10 +58,11 @@ const NAV_ITEMS = [
   { label: 'PPE',                href: '/ppe',                icon: Shield,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'DSE Assessments',    href: '/dse',                icon: Monitor,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'Reports',            href: '/reports',            icon: BarChart3,       roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
+  { label: 'My Reading',         href: '/acknowledgements',   icon: BookOpen,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'System Settings',    href: '/settings',           icon: Settings,        roles: ['System Admin'] },
 ]
 
-export function Sidebar({ user, open, onClose }: SidebarProps) {
+export function Sidebar({ user, open, onClose, pendingAcknowledgements = 0 }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -114,7 +117,12 @@ export function Sidebar({ user, open, onClose }: SidebarProps) {
                   ].join(' ')}
                 >
                   <Icon className="h-4 w-4 flex-shrink-0" />
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.href === '/acknowledgements' && pendingAcknowledgements > 0 && (
+                    <span className="ml-auto inline-flex items-center justify-center rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-bold text-white min-w-[18px]">
+                      {pendingAcknowledgements}
+                    </span>
+                  )}
                 </Link>
               </li>
             )

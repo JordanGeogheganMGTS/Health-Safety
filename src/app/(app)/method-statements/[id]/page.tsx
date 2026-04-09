@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import { AssignAcknowledgementButton } from '@/components/AssignAcknowledgementButton'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -63,6 +64,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
   const approveAction = approveMethodStatement.bind(null, ms.id)
   const authUser = await getAuthUser()
   const canEdit = authUser?.can('method_statements', 'edit') ?? false
+  const canAssign = authUser?.can('method_statements', 'approve') ?? false
 
   return (
     <div>
@@ -77,6 +79,9 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
           <h1 className="text-2xl font-semibold text-slate-900">{ms.title}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {canAssign && (
+            <AssignAcknowledgementButton itemType="method_statement" itemId={ms.id} itemTitle={ms.title} />
+          )}
           <a
             href={`/api/method-statements/${ms.id}/pdf`}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"

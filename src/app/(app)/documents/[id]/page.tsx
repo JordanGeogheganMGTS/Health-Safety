@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate } from '@/lib/dates'
+import { getAuthUser } from '@/lib/permissions'
+import { AssignAcknowledgementButton } from '@/components/AssignAcknowledgementButton'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -29,6 +31,8 @@ async function getDownloadUrl(storageKey: string): Promise<string | null> {
 
 export default async function DocumentDetailPage({ params }: { params: { id: string } }) {
   const supabase = await createClient()
+  const authUser = await getAuthUser()
+  const canAssign = authUser?.can('documents', 'approve') ?? false
 
   const { data: doc } = await supabase
     .from('documents')
@@ -86,7 +90,10 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
           </div>
           <h1 className="text-2xl font-semibold text-slate-900">{doc.title}</h1>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {canAssign && (
+            <AssignAcknowledgementButton itemType="document" itemId={doc.id} itemTitle={doc.title} />
+          )}
           {downloadUrl && (
             <a
               href={downloadUrl}

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { formatDate, formatDateTime, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import { AssignAcknowledgementButton } from '@/components/AssignAcknowledgementButton'
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -74,6 +75,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
 
   const authUser = await getAuthUser()
   const canEdit = authUser?.can('coshh_assessments', 'edit') ?? false
+  const canAssign = authUser?.can('coshh_assessments', 'approve') ?? false
 
   const site = ca.sites as unknown as { name: string } | null
   const assessor = ca.assessor as unknown as { first_name: string; last_name: string } | null
@@ -107,7 +109,10 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
             {ca.version && <span className="text-xs text-slate-500">v{ca.version}</span>}
           </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {canAssign && (
+            <AssignAcknowledgementButton itemType="coshh" itemId={ca.id} itemTitle={ca.product_name} />
+          )}
           {sdsUrl && (
             <a
               href={sdsUrl}

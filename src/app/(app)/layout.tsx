@@ -11,7 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const today = new Date().toISOString().split('T')[0]
 
-  const [profileResult, sitesResult, overdueResult] = await Promise.all([
+  const [profileResult, sitesResult, overdueResult, pendingAckResult] = await Promise.all([
     supabase
       .from('users')
       .select('id, email, first_name, last_name, is_active, site_id, last_login_at, dse_not_applicable, roles(name), sites(name)')
@@ -27,6 +27,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       .select('id', { count: 'exact', head: true })
       .lt('due_date', today)
       .not('status', 'in', '(Completed,Verified,Cancelled,Closed)'),
+    supabase
+      .from('document_acknowledgements')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .is('acknowledged_at', null),
   ])
 
   const profile = profileResult.data
@@ -55,6 +60,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const regularSites = allSitesRaw.filter((s) => !s.is_all_sites)
 
   const notificationCount = overdueResult.count ?? 0
+  const pendingAcknowledgements = pendingAckResult.count ?? 0
 
   const userProfile = {
     id: profile.id,
@@ -67,7 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <AppShell user={userProfile} sites={regularSites} notificationCount={notificationCount}>
+    <AppShell user={userProfile} sites={regularSites} notificationCount={notificationCount} pendingAcknowledgements={pendingAcknowledgements}>
       {children}
     </AppShell>
   )

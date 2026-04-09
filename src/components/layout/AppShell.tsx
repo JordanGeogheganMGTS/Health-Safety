@@ -23,16 +23,17 @@ interface AppShellProps {
   user: UserProfile
   sites: Site[]
   notificationCount: number
+  pendingAcknowledgements: number
   children: React.ReactNode
 }
 
-export function AppShell({ user, sites, notificationCount, children }: AppShellProps) {
+export function AppShell({ user, sites, notificationCount, pendingAcknowledgements, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
     <div className="flex h-screen bg-slate-50">
       {/* Sidebar */}
-      <Sidebar user={user} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar user={user} open={sidebarOpen} onClose={() => setSidebarOpen(false)} pendingAcknowledgements={pendingAcknowledgements} />
 
       {/* Sidebar overlay on mobile */}
       {sidebarOpen && (

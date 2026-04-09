@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
-import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { formatDate, formatDateTime, isOverdue, isDueWithin } from '@/lib/dates'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import ChangePasswordForm from './ChangePasswordForm'
+import { ResetAcknowledgementButton } from '@/components/ResetAcknowledgementButton'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -127,6 +129,42 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     next_review_date: string | null
     site: { name: string } | null
   }>
+
+  // ── Acknowledgements ──
+  const admin = createAdminClient()
+  const { data: acksRaw } = await admin
+    .from('document_acknowledgements')
+    .select(`
+      id, item_type, item_id, item_title, assigned_at, acknowledged_at,
+      assigner:users!document_acknowledgements_assigned_by_fkey(first_name, last_name)
+    `)
+    .eq('user_id', id)
+    .order('assigned_at', { ascending: false })
+
+  const acks = (acksRaw ?? []).map((r) => {
+    const assigner = r.assigner as unknown as { first_name: string; last_name: string } | null
+    return {
+      id: r.id as string,
+      item_type: r.item_type as string,
+      item_id: r.item_id as string,
+      item_title: r.item_title as string,
+      assigned_at: r.assigned_at as string,
+      acknowledged_at: r.acknowledged_at as string | null,
+      assigned_by_name: assigner ? `${assigner.first_name} ${assigner.last_name}` : null,
+    }
+  })
+
+  function itemHref(type: string, itemId: string): string {
+    const map: Record<string, string> = {
+      document: `/documents/${itemId}`,
+      risk_assessment: `/risk-assessments/${itemId}`,
+      method_statement: `/method-statements/${itemId}`,
+      coshh: `/coshh/${itemId}`,
+    }
+    return map[type] ?? '#'
+  }
+
+  const isSuperAdmin = currentRole === 'System Admin'
 
   // ── Admin server actions ──
   async function toggleDseNotApplicable() {
@@ -312,6 +350,65 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       </SectionCard>
 
       {/* DSE */}
+      <SectionCard title="Document Acknowledgements">
+        {acks.length === 0 ? (
+          <div className="px-6 py-8 text-center">
+            <p className="text-sm text-slate-500">No documents assigned for acknowledgement.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-50 text-sm">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Document</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned By</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Assigned</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                  {isSuperAdmin && <th className="px-4 py-3" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {acks.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50 align-top">
+                    <td className="px-4 py-3">
+                      <Link
+                        href={itemHref(a.item_type, a.item_id)}
+                        className="font-medium text-slate-900 hover:text-orange-600 transition-colors"
+                      >
+                        {a.item_title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500 capitalize">{a.item_type.replace(/_/g, ' ')}</td>
+                    <td className="px-4 py-3 text-slate-600">{a.assigned_by_name ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-600">{formatDate(a.assigned_at)}</td>
+                    <td className="px-4 py-3">
+                      {a.acknowledged_at ? (
+                        <span className="inline-flex items-center gap-1.5 text-green-700 font-medium text-xs">
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          {formatDateTime(a.acknowledged_at)}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">Pending</span>
+                      )}
+                    </td>
+                    {isSuperAdmin && (
+                      <td className="px-4 py-3 text-right">
+                        {a.acknowledged_at && (
+                          <ResetAcknowledgementButton acknowledgementId={a.id} />
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </SectionCard>
+
       <SectionCard title="DSE Assessments">
         {profile.dse_not_applicable ? (
           <div className="px-6 py-5 flex items-center gap-3">

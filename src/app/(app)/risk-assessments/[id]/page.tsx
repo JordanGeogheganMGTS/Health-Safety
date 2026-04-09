@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { formatDate, isOverdue } from '@/lib/dates'
 import { getAuthUser } from '@/lib/permissions'
+import { AssignAcknowledgementButton } from '@/components/AssignAcknowledgementButton'
 
 function riskRatingStyles(rating: number | null): string {
   if (!rating) return 'bg-slate-100 text-slate-600'
@@ -164,6 +165,7 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
 
   const canEdit = authUser?.can('risk_assessments', 'edit') ?? false
   const canRaiseCA = authUser?.can('corrective_actions', 'create') ?? false
+  const canAssign = authUser?.can('risk_assessments', 'approve') ?? false
 
   return (
     <div>
@@ -178,6 +180,9 @@ export default async function RiskAssessmentDetailPage({ params }: { params: { i
           <h1 className="text-2xl font-semibold text-slate-900">{ra.title}</h1>
         </div>
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          {canAssign && (
+            <AssignAcknowledgementButton itemType="risk_assessment" itemId={ra.id} itemTitle={ra.title} />
+          )}
           <a
             href={`/api/risk-assessments/${ra.id}/pdf`}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
