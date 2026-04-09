@@ -22,6 +22,7 @@ import {
   Settings,
   LogOut,
   BookOpen,
+  TableProperties,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -57,6 +58,7 @@ const NAV_ITEMS = [
   { label: 'Training',           href: '/training',           icon: GraduationCap,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'PPE',                href: '/ppe',                icon: Shield,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'DSE Assessments',    href: '/dse',                icon: Monitor,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
+  { label: 'Skills Matrix',       href: '/skills-matrix',      icon: TableProperties, roles: ['System Admin', 'H&S Manager', 'Read-Only'] },
   { label: 'Reports',            href: '/reports',            icon: BarChart3,       roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
   { label: 'My Reading',         href: '/acknowledgements',   icon: BookOpen,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'TDA / Staff', 'Read-Only'] },
   { label: 'System Settings',    href: '/settings',           icon: Settings,        roles: ['System Admin'] },

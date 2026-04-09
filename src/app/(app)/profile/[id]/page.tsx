@@ -6,6 +6,9 @@ import { notFound, redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import ChangePasswordForm from './ChangePasswordForm'
 import { ResetAcknowledgementButton } from '@/components/ResetAcknowledgementButton'
+import { MatrixMembershipButton } from '@/components/MatrixMembershipButton'
+import { ProfileSkillsSection } from '@/components/ProfileSkillsSection'
+import { toggleCompetency } from '@/app/(app)/skills-matrix/actions'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -166,6 +169,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
 
   const isSuperAdmin = currentRole === 'System Admin'
 
+  // ── Skills Matrix ──
+  const [skillsRes, membershipRes, skillCompsRes] = await Promise.all([
+    admin.from('skill_definitions').select('id, name, sort_order').eq('is_active', true).order('sort_order'),
+    admin.from('skill_matrix_members').select('user_id').eq('user_id', id).maybeSingle(),
+    admin.from('skill_competencies').select('skill_id, is_competent').eq('user_id', id),
+  ])
+
+  const skills = (skillsRes.data ?? []).map((s) => ({ id: s.id as string, name: s.name as string }))
+  const isMember = membershipRes.data !== null
+  const skillCompsMap: Record<string, boolean> = {}
+  for (const row of skillCompsRes.data ?? []) {
+    skillCompsMap[row.skill_id as string] = row.is_competent as boolean
+  }
+
+  // Bound server action for toggling this user's competencies
+  const toggleSkillForUser = toggleCompetency.bind(null, id)
+
   // ── Admin server actions ──
   async function toggleDseNotApplicable() {
     'use server'
@@ -210,7 +230,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
             </div>
           </div>
           {isAdmin && (
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+              <MatrixMembershipButton userId={id} isMember={isMember} />
               <Link
                 href={`/settings/users/${id}`}
                 className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
@@ -232,6 +253,25 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
           </div>
         )}
       </div>
+
+      {/* Skills Matrix */}
+      {(isMember || isAdmin) && (
+        <SectionCard title="Skills Matrix">
+          {isMember ? (
+            <ProfileSkillsSection
+              skills={skills}
+              competencies={skillCompsMap}
+              canEdit={isAdmin}
+              toggleAction={toggleSkillForUser}
+            />
+          ) : (
+            <div className="px-6 py-8 text-center">
+              <p className="text-sm text-slate-500">This staff member is not on the skills matrix.</p>
+              <p className="text-xs text-slate-400 mt-1">Use the &ldquo;Add to Skills Matrix&rdquo; button above to include them.</p>
+            </div>
+          )}
+        </SectionCard>
+      )}
 
       {/* Training Records */}
       <SectionCard title={`Training Records (${training.length})`}>
