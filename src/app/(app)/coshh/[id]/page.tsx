@@ -92,7 +92,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
   const anyExposure = ca.exposure_inhalation || ca.exposure_skin || ca.exposure_ingestion || ca.exposure_eyes
 
   return (
-    <div className="max-w-4xl">
+    <div>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

@@ -113,7 +113,7 @@ export default function NewDrillPage() {
         <p className="mt-1 text-sm text-slate-500">Record the details of an evacuation drill.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

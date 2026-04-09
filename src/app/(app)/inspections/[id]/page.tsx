@@ -92,7 +92,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
   const canConduct = inspection.status === 'Draft'
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">

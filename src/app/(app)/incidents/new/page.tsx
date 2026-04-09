@@ -143,7 +143,7 @@ export default function NewIncidentPage() {
         <p className="mt-1 text-sm text-slate-500">Complete the form below to log a new incident.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

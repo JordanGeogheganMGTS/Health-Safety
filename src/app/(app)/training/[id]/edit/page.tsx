@@ -117,7 +117,7 @@ export default function EditTrainingRecordPage() {
   }
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-3xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
           <Link href="/training" className="hover:text-orange-600">Training</Link>

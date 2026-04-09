@@ -62,7 +62,7 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-slate-500">
         <Link href="/training" className="hover:text-slate-700">Training</Link>

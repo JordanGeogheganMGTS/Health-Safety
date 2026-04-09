@@ -206,7 +206,7 @@ export default function EditCoshhPage({ params }: { params: { id: string } }) {
   const checkboxLabelCls = 'flex items-center gap-2 text-sm text-slate-700'
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-4xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
           <a href="/coshh" className="hover:text-orange-600 transition-colors">COSHH Assessments</a>

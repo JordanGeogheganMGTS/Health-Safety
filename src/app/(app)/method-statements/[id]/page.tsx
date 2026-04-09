@@ -65,7 +65,7 @@ export default async function MethodStatementDetailPage({ params }: { params: { 
   const canEdit = authUser?.can('method_statements', 'edit') ?? false
 
   return (
-    <div className="max-w-4xl">
+    <div>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

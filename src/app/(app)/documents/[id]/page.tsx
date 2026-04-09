@@ -75,7 +75,7 @@ export default async function DocumentDetailPage({ params }: { params: { id: str
   ]
 
   return (
-    <div className="max-w-3xl">
+    <div>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>

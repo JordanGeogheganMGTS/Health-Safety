@@ -140,7 +140,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6">
       {/* Breadcrumb */}
       {isAdmin && !isOwnProfile ? (
         <div className="flex items-center gap-2 text-sm text-slate-500">

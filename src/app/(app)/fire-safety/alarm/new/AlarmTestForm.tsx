@@ -147,7 +147,7 @@ export default function AlarmTestForm({ systems, testTypes, outcomeOptions }: Pr
   const errorClass = 'text-xs text-red-600'
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-4xl">
       <form
         onSubmit={handleSubmit(onSubmit)}
         noValidate

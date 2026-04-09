@@ -69,7 +69,7 @@ export default function NewPpeItemPage() {
   const textareaCls = `${inputCls} resize-none`
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-3xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
           <a href="/ppe" className="hover:text-orange-600 transition-colors">PPE Management</a>

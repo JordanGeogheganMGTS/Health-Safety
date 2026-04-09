@@ -216,7 +216,7 @@ export default function EditCorrectiveActionPage({ params }: PageProps) {
         </p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

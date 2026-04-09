@@ -136,7 +136,7 @@ export default function NewEquipmentPage() {
         <p className="mt-1 text-sm text-slate-500">Register a new piece of equipment in the system.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

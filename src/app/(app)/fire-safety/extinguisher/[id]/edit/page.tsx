@@ -173,7 +173,7 @@ export default function EditExtinguisherPage({ params }: PageProps) {
         <p className="mt-1 text-sm text-slate-500">Update the details for this extinguisher.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

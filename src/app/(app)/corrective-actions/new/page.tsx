@@ -135,7 +135,7 @@ export default function NewCorrectiveActionPage() {
         </p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate

@@ -94,7 +94,7 @@ export default function NewMethodStatementPage() {
   const textareaCls = `${inputCls} resize-none`
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-4xl">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
           <a href="/method-statements" className="hover:text-orange-600 transition-colors">Method Statements</a>

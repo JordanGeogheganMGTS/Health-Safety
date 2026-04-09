@@ -204,7 +204,7 @@ export default function EditIncidentPage({ params }: PageProps) {
         <p className="mt-1 text-sm text-slate-500">Update the incident record details.</p>
       </div>
 
-      <div className="max-w-2xl">
+      <div className="max-w-4xl">
         <form
           onSubmit={handleSubmit(onSubmit)}
           noValidate
