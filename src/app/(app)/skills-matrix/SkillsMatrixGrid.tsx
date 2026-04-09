@@ -25,14 +25,14 @@ interface Props {
 export function SkillsMatrixGrid({ skills, members, competencies: initial, canEdit }: Props) {
   const [comps, setComps] = useState(initial)
   const [pending, setPending] = useState<Set<string>>(new Set())
+  const [editMode, setEditMode] = useState(false)
   const [, startTransition] = useTransition()
 
   function handleToggle(userId: string, skillId: string) {
-    if (!canEdit) return
+    if (!editMode) return
     const key = `${userId}_${skillId}`
     const current = comps[key] ?? false
 
-    // Optimistic update
     setComps((prev) => ({ ...prev, [key]: !current }))
     setPending((prev) => new Set([...Array.from(prev), key]))
 
@@ -40,7 +40,6 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
       try {
         await toggleCompetency(userId, skillId, current)
       } catch {
-        // Revert on error
         setComps((prev) => ({ ...prev, [key]: current }))
       } finally {
         setPending((prev) => {
@@ -104,20 +103,51 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
       </div>
 
       {/* Matrix table */}
-      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-        {canEdit && (
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-            <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs text-slate-500">Click a cell to toggle competency</p>
-          </div>
-        )}
-        <div className="overflow-auto max-h-[calc(100vh-20rem)]">
+      <div className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-colors ${editMode ? 'border-orange-300 ring-2 ring-orange-100' : 'border-slate-200'}`}>
+        {/* Toolbar */}
+        <div className={`flex items-center justify-between px-4 py-2.5 border-b ${editMode ? 'bg-orange-50 border-orange-200' : 'bg-slate-50 border-slate-100'}`}>
+          {editMode ? (
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
+              <p className="text-xs font-medium text-orange-700">Editing — click any cell to toggle competency</p>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-400">Read-only view</p>
+          )}
+          {canEdit && (
+            <button
+              onClick={() => setEditMode((v) => !v)}
+              className={[
+                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+                editMode
+                  ? 'bg-orange-500 text-white hover:bg-orange-600'
+                  : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+              ].join(' ')}
+            >
+              {editMode ? (
+                <>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Done Editing
+                </>
+              ) : (
+                <>
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit Matrix
+                </>
+              )}
+            </button>
+          )}
+        </div>
+
+        {/* Scrollable table */}
+        <div className="overflow-auto max-h-[calc(100vh-22rem)]">
           <table className="border-collapse" style={{ minWidth: `${220 + skills.length * 80 + 70}px` }}>
             <thead>
               <tr>
-                {/* Sticky corner */}
                 <th
                   className="sticky left-0 top-0 z-30 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-200 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
                   style={{ minWidth: 220 }}
@@ -130,9 +160,7 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                     className="sticky top-0 z-20 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-100 px-2 py-3 text-center"
                     style={{ minWidth: 80 }}
                   >
-                    <span className="block text-xs font-semibold text-slate-600 leading-tight">
-                      {skill.name}
-                    </span>
+                    <span className="block text-xs font-semibold text-slate-600 leading-tight">{skill.name}</span>
                   </th>
                 ))}
                 <th
@@ -149,19 +177,11 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                 const pct = skills.length > 0 ? Math.round((memberScore / skills.length) * 100) : 0
                 return (
                   <tr key={member.userId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
-                    {/* Sticky name column */}
-                    <td
-                      className={`sticky left-0 z-10 border-b border-r border-slate-100 px-4 py-3 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}
-                    >
-                      <p className="text-sm font-semibold text-slate-900">
-                        {member.firstName} {member.lastName}
-                      </p>
-                      {member.siteName && (
-                        <p className="text-xs text-slate-400 mt-0.5">{member.siteName}</p>
-                      )}
+                    <td className={`sticky left-0 z-10 border-b border-r border-slate-100 px-4 py-3 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
+                      <p className="text-sm font-semibold text-slate-900">{member.firstName} {member.lastName}</p>
+                      {member.siteName && <p className="text-xs text-slate-400 mt-0.5">{member.siteName}</p>}
                     </td>
 
-                    {/* Skill cells */}
                     {skills.map((skill) => {
                       const key = `${member.userId}_${skill.id}`
                       const isComp = comps[key] ?? false
@@ -170,21 +190,13 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                         <td key={skill.id} className="border-b border-r border-slate-100 p-1.5 text-center">
                           <button
                             onClick={() => handleToggle(member.userId, skill.id)}
-                            disabled={!canEdit || isPend}
-                            title={
-                              !canEdit
-                                ? isComp ? 'Competent' : 'Not competent'
-                                : isComp ? 'Click to remove competency' : 'Click to mark competent'
-                            }
+                            disabled={!editMode || isPend}
+                            title={isComp ? 'Competent' : 'Not competent'}
                             className={[
                               'inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
-                              isComp
-                                ? 'bg-green-500 text-white shadow-sm'
-                                : 'bg-slate-100 text-slate-300',
-                              canEdit && !isPend
-                                ? isComp
-                                  ? 'hover:bg-green-600 cursor-pointer'
-                                  : 'hover:bg-slate-200 cursor-pointer'
+                              isComp ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-100 text-slate-300',
+                              editMode && !isPend
+                                ? isComp ? 'hover:bg-red-400 hover:shadow-md cursor-pointer' : 'hover:bg-green-400 hover:text-white hover:shadow-md cursor-pointer'
                                 : 'cursor-default',
                               isPend ? 'opacity-60' : '',
                             ].join(' ')}
@@ -208,23 +220,14 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                       )
                     })}
 
-                    {/* Score cell */}
                     <td className="border-b border-slate-100 px-3 py-3 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        <span className={`text-sm font-bold ${
-                          pct === 100 ? 'text-green-600' :
-                          pct >= 70 ? 'text-amber-600' :
-                          'text-slate-500'
-                        }`}>
+                        <span className={`text-sm font-bold ${pct === 100 ? 'text-green-600' : pct >= 70 ? 'text-amber-600' : 'text-slate-500'}`}>
                           {memberScore}/{skills.length}
                         </span>
                         <div className="w-10 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${
-                              pct === 100 ? 'bg-green-500' :
-                              pct >= 70 ? 'bg-amber-400' :
-                              'bg-slate-300'
-                            }`}
+                            className={`h-full rounded-full transition-all ${pct === 100 ? 'bg-green-500' : pct >= 70 ? 'bg-amber-400' : 'bg-slate-300'}`}
                             style={{ width: `${pct}%` }}
                           />
                         </div>
