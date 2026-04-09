@@ -68,6 +68,7 @@ export async function middleware(request: NextRequest) {
     const TDA_ALLOWED = [
       '/documents', '/risk-assessments', '/method-statements',
       '/coshh', '/equipment', '/training', '/ppe', '/dse', '/profile', '/change-password',
+      '/acknowledgements',
     ]
     if (role === 'TDA / Staff') {
       const allowed = TDA_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + '/'))
