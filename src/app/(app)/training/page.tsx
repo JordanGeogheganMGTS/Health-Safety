@@ -29,7 +29,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
   const supabase = await createClient()
 
   const authUser = await getAuthUser()
-  const isTdaStaff = authUser?.role === 'TDA / Staff'
+  const isTdaStaff = authUser?.role === 'Staff'
   const canSeeTypesTab = authUser?.role === 'System Admin' || authUser?.role === 'H&S Manager'
   // If restricted role somehow lands on types tab, fall back to records
   const effectiveTab = activeTab === 'types' && !canSeeTypesTab ? 'records' : activeTab

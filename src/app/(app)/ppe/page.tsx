@@ -39,7 +39,7 @@ export default async function PpePage({
   ])
 
   const isAdmin = authUser?.role === 'System Admin'
-  const isTdaStaff = authUser?.role === 'TDA / Staff'
+  const isTdaStaff = authUser?.role === 'Staff'
   const canSeeItemsTab = authUser?.role === 'System Admin' || authUser?.role === 'H&S Manager'
   // If restricted role somehow lands on items tab, fall back to staff
   const effectiveTab = activeTab === 'items' && !canSeeItemsTab ? 'staff' : activeTab

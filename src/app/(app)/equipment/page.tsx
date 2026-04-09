@@ -48,7 +48,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   const authUser = await getAuthUser()
 
-  const isSiteScoped = authUser?.role === 'Site Manager' || authUser?.role === 'TDA / Staff'
+  const isSiteScoped = authUser?.role === 'Site Manager' || authUser?.role === 'Staff'
 
   let query = supabase
     .from('equipment')

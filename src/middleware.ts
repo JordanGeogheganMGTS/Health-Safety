@@ -64,14 +64,14 @@ export async function middleware(request: NextRequest) {
 
     const role = (profile?.roles as unknown as { name: string } | null)?.name ?? ''
 
-    // ── TDA / Staff: restrict to allowed sections only ─────────────────────────
+    // ── Staff: restrict to allowed sections only ─────────────────────────
     const TDA_ALLOWED = [
       '/documents', '/risk-assessments', '/method-statements',
       '/coshh', '/equipment', '/training', '/ppe', '/dse', '/profile', '/change-password',
       '/acknowledgements',
-      // /skills-matrix intentionally excluded — TDA/Staff see their row on /profile
+      // /skills-matrix intentionally excluded — Staff see their row on /profile
     ]
-    if (role === 'TDA / Staff') {
+    if (role === 'Staff') {
       const allowed = TDA_ALLOWED.some((p) => pathname === p || pathname.startsWith(p + '/'))
       if (!allowed) {
         const url = request.nextUrl.clone()
@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Read-only roles: block all write routes ─────────────────────────────────
-    const READ_ONLY_ROLES = ['Read-Only', 'Site Manager', 'TDA / Staff']
+    const READ_ONLY_ROLES = ['Read-Only', 'Site Manager', 'Staff']
     if (READ_ONLY_ROLES.includes(role)) {
       const isWriteRoute =
         pathname.endsWith('/new') ||

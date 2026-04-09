@@ -11,7 +11,7 @@ export default async function DsePage() {
   if (!user) redirect('/login')
 
   const authUser = await getAuthUser()
-  const isTdaStaff = authUser?.role === 'TDA / Staff'
+  const isTdaStaff = authUser?.role === 'Staff'
 
   // TDA/Staff: only see their own assessments
   let assessmentsQuery = supabase

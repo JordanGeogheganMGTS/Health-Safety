@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 
-export type RoleName = 'System Admin' | 'H&S Manager' | 'Site Manager' | 'TDA / Staff' | 'Read-Only'
+export type RoleName = 'System Admin' | 'H&S Manager' | 'Site Manager' | 'Staff' | 'Read-Only'
 export type AccessLevel = 'full' | 'site' | 'limited' | 'view' | 'none'
 
 export interface ResolvedUser {
@@ -60,7 +60,7 @@ const PERMISSIONS: Record<RoleName, Record<string, string[]>> = {
     reports: ['view'],
     dashboard: ['view'],
   },
-  'TDA / Staff': {
+  'Staff': {
     // Read-only access to limited sections; own training/ppe/dse only (enforced in queries)
     documents: ['view'],
     risk_assessments: ['view'],

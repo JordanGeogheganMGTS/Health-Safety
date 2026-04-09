@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
-const RESTRICTED_ROLES = ['TDA', 'Staff']
+const RESTRICTED_ROLES = ['Staff']
 
 const reports = [
   {
