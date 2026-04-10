@@ -78,7 +78,7 @@ export async function signOffSkill(userId: string, skillId: string) {
   // Generate PDF
   const { renderToBuffer } = await import('@react-pdf/renderer')
   const React = (await import('react')).default
-  const { SkillCertificatePdf } = await import('./SkillCertificatePdf')
+  const { SkillCertificatePdf } = await import('@/app/api/certificates/skill/SkillCertificatePdf')
   const buffer = await renderToBuffer(
     React.createElement(SkillCertificatePdf, { skillName, userName, signedOffBy, signedOffAt, certRef })
   )
