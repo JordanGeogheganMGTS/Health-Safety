@@ -1,50 +1,68 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { addSkill, updateSkill, toggleSkillActive, deleteSkill } from '@/app/(app)/skills-matrix/actions'
+import {
+  addSkill, updateSkill, toggleSkillActive, deleteSkill,
+  addCategory, updateCategory, toggleCategoryActive, deleteCategory,
+} from '@/app/(app)/skills-matrix/actions'
 
-interface Skill {
+interface Category {
   id: string
   name: string
   sort_order: number
   is_active: boolean
 }
 
-interface Props {
-  skills: Skill[]
+interface Skill {
+  id: string
+  name: string
+  sort_order: number
+  is_active: boolean
+  category_id: string | null
 }
 
-export function SkillsSettingsClient({ skills: initial }: Props) {
-  const [skills, setSkills] = useState(initial)
+interface Props {
+  skills: Skill[]
+  categories: Category[]
+}
 
-  // Add form
+// ── Skills tab ───────────────────────────────────────────────────────────────
+
+function SkillsTab({ skills: initial, categories }: { skills: Skill[]; categories: Category[] }) {
+  const [skills, setSkills] = useState(initial)
   const [newName, setNewName] = useState('')
+  const [newCategoryId, setNewCategoryId] = useState<string>('')
   const [addPending, startAdd] = useTransition()
 
-  // Edit row
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editOrder, setEditOrder] = useState(0)
+  const [editCategoryId, setEditCategoryId] = useState<string>('')
   const [editPending, startEdit] = useTransition()
 
-  // Delete confirm
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deletePending, startDelete] = useTransition()
-
-  // Toggle active
   const [togglePending, startToggle] = useTransition()
+
+  const activeCategories = categories.filter((c) => c.is_active)
+
+  function getCategoryName(catId: string | null) {
+    if (!catId) return '—'
+    return categories.find((c) => c.id === catId)?.name ?? '—'
+  }
 
   function handleAdd() {
     if (!newName.trim()) return
     const name = newName.trim()
+    const categoryId = newCategoryId || null
     startAdd(async () => {
-      await addSkill(name)
+      await addSkill(name, categoryId)
       setNewName('')
-      // Optimistic add (server will revalidate too)
+      setNewCategoryId('')
       const nextOrder = (Math.max(0, ...skills.map((s) => s.sort_order)) + 10)
       setSkills((prev) => [
         ...prev,
-        { id: crypto.randomUUID(), name, sort_order: nextOrder, is_active: true },
+        { id: crypto.randomUUID(), name, sort_order: nextOrder, is_active: true, category_id: categoryId },
       ])
     })
   }
@@ -53,6 +71,7 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
     setEditId(skill.id)
     setEditName(skill.name)
     setEditOrder(skill.sort_order)
+    setEditCategoryId(skill.category_id ?? '')
   }
 
   function handleSaveEdit() {
@@ -60,10 +79,11 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
     const id = editId
     const name = editName.trim()
     const order = editOrder
+    const categoryId = editCategoryId || null
     startEdit(async () => {
-      await updateSkill(id, name, order)
+      await updateSkill(id, name, order, categoryId)
       setSkills((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, name, sort_order: order } : s))
+        prev.map((s) => (s.id === id ? { ...s, name, sort_order: order, category_id: categoryId } : s))
             .sort((a, b) => a.sort_order - b.sort_order)
       )
       setEditId(null)
@@ -93,18 +113,16 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Skills table */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
         {sorted.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-500">
-            No skills defined yet. Add your first skill below.
-          </div>
+          <div className="py-12 text-center text-sm text-slate-500">No skills defined yet. Add your first skill below.</div>
         ) : (
           <table className="min-w-full divide-y divide-slate-100">
             <thead className="bg-slate-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Order</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Skill Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
               </tr>
@@ -122,7 +140,7 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
                           className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         />
                       </td>
-                      <td className="px-6 py-3" colSpan={2}>
+                      <td className="px-6 py-3">
                         <input
                           type="text"
                           value={editName}
@@ -132,6 +150,19 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
                           className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         />
                       </td>
+                      <td className="px-6 py-3">
+                        <select
+                          value={editCategoryId}
+                          onChange={(e) => setEditCategoryId(e.target.value)}
+                          className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        >
+                          <option value="">— None —</option>
+                          {activeCategories.map((c) => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-6 py-3" />
                       <td className="px-6 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
@@ -153,7 +184,7 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
                     </>
                   ) : deleteId === skill.id ? (
                     <>
-                      <td colSpan={2} className="px-6 py-3">
+                      <td colSpan={3} className="px-6 py-3">
                         <p className="text-sm text-slate-800">
                           Delete <span className="font-semibold">{skill.name}</span>?
                           <span className="text-red-600 text-xs ml-2">This will remove all competency records for this skill.</span>
@@ -182,6 +213,15 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
                     <>
                       <td className="px-6 py-3 text-sm text-slate-500">{skill.sort_order}</td>
                       <td className="px-6 py-3 text-sm font-medium text-slate-900">{skill.name}</td>
+                      <td className="px-6 py-3">
+                        {skill.category_id ? (
+                          <span className="inline-flex items-center rounded-full bg-orange-50 px-2.5 py-0.5 text-xs font-medium text-orange-700">
+                            {getCategoryName(skill.category_id)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </td>
                       <td className="px-6 py-3">
                         <button
                           onClick={() => handleToggleActive(skill)}
@@ -223,15 +263,27 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
       {/* Add new skill */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
         <h3 className="text-sm font-semibold text-slate-800 mb-3">Add New Skill</h3>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <input
             type="text"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
             placeholder="e.g. Milling, Turning, CAD…"
-            className="flex-1 max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            className="flex-1 min-w-[200px] max-w-xs rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
           />
+          {activeCategories.length > 0 && (
+            <select
+              value={newCategoryId}
+              onChange={(e) => setNewCategoryId(e.target.value)}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            >
+              <option value="">— Category (optional) —</option>
+              {activeCategories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
           <button
             onClick={handleAdd}
             disabled={addPending || !newName.trim()}
@@ -251,9 +303,279 @@ export function SkillsSettingsClient({ skills: initial }: Props) {
           </button>
         </div>
         <p className="text-xs text-slate-400 mt-2">
-          Skills are sorted by the Order number. New skills are added at the end — edit the order to rearrange.
+          Skills are sorted by the Order number. Set a category to group skills in the matrix view.
         </p>
       </div>
+    </div>
+  )
+}
+
+// ── Categories tab ───────────────────────────────────────────────────────────
+
+function CategoriesTab({ categories: initial }: { categories: Category[] }) {
+  const [categories, setCategories] = useState(initial)
+  const [newName, setNewName] = useState('')
+  const [addPending, startAdd] = useTransition()
+
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editOrder, setEditOrder] = useState(0)
+  const [editPending, startEdit] = useTransition()
+
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deletePending, startDelete] = useTransition()
+  const [togglePending, startToggle] = useTransition()
+
+  function handleAdd() {
+    if (!newName.trim()) return
+    const name = newName.trim()
+    startAdd(async () => {
+      await addCategory(name)
+      setNewName('')
+      const nextOrder = (Math.max(0, ...categories.map((c) => c.sort_order)) + 10)
+      setCategories((prev) => [
+        ...prev,
+        { id: crypto.randomUUID(), name, sort_order: nextOrder, is_active: true },
+      ])
+    })
+  }
+
+  function startEditing(cat: Category) {
+    setEditId(cat.id)
+    setEditName(cat.name)
+    setEditOrder(cat.sort_order)
+  }
+
+  function handleSaveEdit() {
+    if (!editId || !editName.trim()) return
+    const id = editId
+    const name = editName.trim()
+    const order = editOrder
+    startEdit(async () => {
+      await updateCategory(id, name, order)
+      setCategories((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, name, sort_order: order } : c))
+            .sort((a, b) => a.sort_order - b.sort_order)
+      )
+      setEditId(null)
+    })
+  }
+
+  function handleToggleActive(cat: Category) {
+    startToggle(async () => {
+      await toggleCategoryActive(cat.id, cat.is_active)
+      setCategories((prev) =>
+        prev.map((c) => (c.id === cat.id ? { ...c, is_active: !c.is_active } : c))
+      )
+    })
+  }
+
+  function handleDeleteConfirm() {
+    if (!deleteId) return
+    const id = deleteId
+    startDelete(async () => {
+      await deleteCategory(id)
+      setCategories((prev) => prev.filter((c) => c.id !== id))
+      setDeleteId(null)
+    })
+  }
+
+  const sorted = [...categories].sort((a, b) => a.sort_order - b.sort_order)
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        {sorted.length === 0 ? (
+          <div className="py-12 text-center text-sm text-slate-500">No categories defined yet. Add your first category below.</div>
+        ) : (
+          <table className="min-w-full divide-y divide-slate-100">
+            <thead className="bg-slate-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Order</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Category Name</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {sorted.map((cat) => (
+                <tr key={cat.id} className="hover:bg-slate-50">
+                  {editId === cat.id ? (
+                    <>
+                      <td className="px-6 py-3">
+                        <input
+                          type="number"
+                          value={editOrder}
+                          onChange={(e) => setEditOrder(parseInt(e.target.value) || 0)}
+                          className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        />
+                      </td>
+                      <td className="px-6 py-3" colSpan={2}>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit()}
+                          autoFocus
+                          className="w-full max-w-xs rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-900 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+                        />
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={handleSaveEdit}
+                            disabled={editPending || !editName.trim()}
+                            className="rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-orange-600 disabled:opacity-50 transition-colors"
+                          >
+                            {editPending ? 'Saving…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setEditId(null)}
+                            disabled={editPending}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : deleteId === cat.id ? (
+                    <>
+                      <td colSpan={2} className="px-6 py-3">
+                        <p className="text-sm text-slate-800">
+                          Delete <span className="font-semibold">{cat.name}</span>?
+                          <span className="text-red-600 text-xs ml-2">Skills in this category will become uncategorised.</span>
+                        </p>
+                      </td>
+                      <td colSpan={2} className="px-6 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={handleDeleteConfirm}
+                            disabled={deletePending}
+                            className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                          >
+                            {deletePending ? 'Deleting…' : 'Confirm Delete'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(null)}
+                            disabled={deletePending}
+                            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition-colors"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="px-6 py-3 text-sm text-slate-500">{cat.sort_order}</td>
+                      <td className="px-6 py-3 text-sm font-medium text-slate-900">{cat.name}</td>
+                      <td className="px-6 py-3">
+                        <button
+                          onClick={() => handleToggleActive(cat)}
+                          disabled={togglePending}
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors ${
+                            cat.is_active
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
+                        >
+                          {cat.is_active ? 'Active' : 'Inactive'}
+                        </button>
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            onClick={() => startEditing(cat)}
+                            className="text-xs font-medium text-orange-600 hover:text-orange-700 transition-colors"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(cat.id)}
+                            className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Add new category */}
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-5">
+        <h3 className="text-sm font-semibold text-slate-800 mb-3">Add New Category</h3>
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            placeholder="e.g. Year 1 Technical Centre, Year 2 Workshop…"
+            className="flex-1 max-w-sm rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+          />
+          <button
+            onClick={handleAdd}
+            disabled={addPending || !newName.trim()}
+            className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            {addPending ? (
+              <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            )}
+            Add Category
+          </button>
+        </div>
+        <p className="text-xs text-slate-400 mt-2">
+          Categories group related skills together in the matrix view and on staff profiles.
+        </p>
+      </div>
+    </div>
+  )
+}
+
+// ── Main tabbed component ────────────────────────────────────────────────────
+
+export function SkillsSettingsClient({ skills, categories }: Props) {
+  const [activeTab, setActiveTab] = useState<'skills' | 'categories'>('skills')
+
+  return (
+    <div className="space-y-6">
+      {/* Tabs */}
+      <div className="flex gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 w-fit">
+        {(['skills', 'categories'] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={[
+              'rounded-md px-4 py-1.5 text-sm font-medium transition-colors capitalize',
+              activeTab === tab
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700',
+            ].join(' ')}
+          >
+            {tab === 'skills' ? 'Skills Management' : 'Skill Categories'}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === 'skills' ? (
+        <SkillsTab skills={skills} categories={categories} />
+      ) : (
+        <CategoriesTab categories={categories} />
+      )}
     </div>
   )
 }

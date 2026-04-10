@@ -17,7 +17,7 @@ export default async function SkillsMatrixPage() {
   const role = (profile?.roles as unknown as { name: string } | null)?.name ?? ''
 
   // Only System Admin, H&S Manager, and Read-Only see the full matrix
-  // Site Manager and TDA/Staff see their own row on their profile page
+  // Site Manager and Staff see their own row on their profile page
   if (role !== 'System Admin' && role !== 'H&S Manager' && role !== 'Read-Only') {
     redirect(`/profile/${user.id}`)
   }
@@ -26,9 +26,14 @@ export default async function SkillsMatrixPage() {
 
   const admin = createAdminClient()
 
-  const [skillsRes, membersRes] = await Promise.all([
+  const [skillsRes, categoriesRes, membersRes] = await Promise.all([
     admin
       .from('skill_definitions')
+      .select('id, name, sort_order, category_id')
+      .eq('is_active', true)
+      .order('sort_order'),
+    admin
+      .from('skill_categories')
       .select('id, name, sort_order')
       .eq('is_active', true)
       .order('sort_order'),
@@ -47,6 +52,12 @@ export default async function SkillsMatrixPage() {
   const skills = (skillsRes.data ?? []).map((s) => ({
     id: s.id as string,
     name: s.name as string,
+    categoryId: (s.category_id as string | null),
+  }))
+
+  const categories = (categoriesRes.data ?? []).map((c) => ({
+    id: c.id as string,
+    name: c.name as string,
   }))
 
   const members = (membersRes.data ?? []).map((m) => {
@@ -91,6 +102,7 @@ export default async function SkillsMatrixPage() {
 
       <SkillsMatrixGrid
         skills={skills}
+        categories={categories}
         members={members}
         competencies={competencies}
         canEdit={canEdit}

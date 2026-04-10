@@ -19,10 +19,10 @@ export default async function SkillsSettingsPage() {
   if (role !== 'System Admin') redirect('/dashboard')
 
   const admin = createAdminClient()
-  const { data: skills } = await admin
-    .from('skill_definitions')
-    .select('id, name, sort_order, is_active')
-    .order('sort_order')
+  const [skillsRes, categoriesRes] = await Promise.all([
+    admin.from('skill_definitions').select('id, name, sort_order, is_active, category_id').order('sort_order'),
+    admin.from('skill_categories').select('id, name, sort_order, is_active').order('sort_order'),
+  ])
 
   return (
     <div className="space-y-6">
@@ -42,7 +42,7 @@ export default async function SkillsSettingsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Skills Management</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Define the skill columns shown in the Skills Matrix. Add, rename, reorder or deactivate skills here.
+            Define skill categories and the skill columns shown in the Skills Matrix.
           </p>
         </div>
         <Link
@@ -56,7 +56,10 @@ export default async function SkillsSettingsPage() {
         </Link>
       </div>
 
-      <SkillsSettingsClient skills={(skills ?? []) as { id: string; name: string; sort_order: number; is_active: boolean }[]} />
+      <SkillsSettingsClient
+        skills={(skillsRes.data ?? []) as { id: string; name: string; sort_order: number; is_active: boolean; category_id: string | null }[]}
+        categories={(categoriesRes.data ?? []) as { id: string; name: string; sort_order: number; is_active: boolean }[]}
+      />
     </div>
   )
 }

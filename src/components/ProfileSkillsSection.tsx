@@ -2,19 +2,34 @@
 
 import { useState, useTransition } from 'react'
 
-interface Skill {
+interface Category {
   id: string
   name: string
 }
 
+interface Skill {
+  id: string
+  name: string
+  categoryId: string | null
+}
+
 interface Props {
   skills: Skill[]
+  categories: Category[]
+  userCategoryIds: string[]
   competencies: Record<string, boolean>
   canEdit: boolean
   toggleAction: (skillId: string, current: boolean) => Promise<void>
 }
 
-export function ProfileSkillsSection({ skills, competencies: initial, canEdit, toggleAction }: Props) {
+export function ProfileSkillsSection({
+  skills,
+  categories,
+  userCategoryIds,
+  competencies: initial,
+  canEdit,
+  toggleAction,
+}: Props) {
   const [comps, setComps] = useState(initial)
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [editMode, setEditMode] = useState(false)
@@ -41,10 +56,47 @@ export function ProfileSkillsSection({ skills, competencies: initial, canEdit, t
     })
   }
 
-  const competentCount = skills.filter((s) => comps[s.id]).length
-  const pct = skills.length > 0 ? Math.round((competentCount / skills.length) * 100) : 0
+  const hasCategories = categories.length > 0
+  const hasAssignedCategories = userCategoryIds.length > 0
 
-  if (skills.length === 0) {
+  // Filter and group skills by assigned categories
+  // If no categories defined yet: show all skills ungrouped (backwards compat)
+  // If categories exist but none assigned: show empty state
+  let groupedSkills: Array<{ category: Category | null; skills: Skill[] }> = []
+
+  if (!hasCategories) {
+    // No categories yet — show all skills in a single group
+    groupedSkills = [{ category: null, skills }]
+  } else if (hasAssignedCategories) {
+    // Show skills from assigned categories only, in category order
+    for (const cat of categories) {
+      if (!userCategoryIds.includes(cat.id)) continue
+      const catSkills = skills.filter((s) => s.categoryId === cat.id)
+      if (catSkills.length > 0) groupedSkills.push({ category: cat, skills: catSkills })
+    }
+    // Also include uncategorised skills if the user has any assigned competencies for them
+    const uncategorised = skills.filter(
+      (s) => s.categoryId === null || !categories.find((c) => c.id === s.categoryId)
+    )
+    if (uncategorised.length > 0) groupedSkills.push({ category: null, skills: uncategorised })
+  }
+
+  const visibleSkills = groupedSkills.flatMap((g) => g.skills)
+  const competentCount = visibleSkills.filter((s) => comps[s.id]).length
+  const pct = visibleSkills.length > 0 ? Math.round((competentCount / visibleSkills.length) * 100) : 0
+
+  if (hasCategories && !hasAssignedCategories) {
+    return (
+      <div className="px-6 py-8 text-center">
+        <p className="text-sm text-slate-500">No skill categories assigned yet.</p>
+        {canEdit && (
+          <p className="text-xs text-slate-400 mt-1">Use the &ldquo;Assigned Skill Categories&rdquo; section above to assign categories.</p>
+        )}
+      </div>
+    )
+  }
+
+  if (visibleSkills.length === 0) {
     return (
       <div className="px-6 py-8 text-center">
         <p className="text-sm text-slate-500">No skills have been defined yet.</p>
@@ -67,7 +119,7 @@ export function ProfileSkillsSection({ skills, competencies: initial, canEdit, t
           <span className={`text-sm font-bold ${pct === 100 ? 'text-green-600' : pct >= 70 ? 'text-amber-600' : 'text-slate-700'}`}>
             {pct}%
           </span>
-          <span className="text-xs text-slate-400">{competentCount}/{skills.length} skills</span>
+          <span className="text-xs text-slate-400">{competentCount}/{visibleSkills.length} skills</span>
           {editMode && (
             <span className="flex items-center gap-1 text-xs font-medium text-orange-600">
               <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
@@ -105,52 +157,62 @@ export function ProfileSkillsSection({ skills, competencies: initial, canEdit, t
         )}
       </div>
 
-      {/* Skills grid */}
-      <div className="px-6 py-5">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
-          {skills.map((skill) => {
-            const isComp = comps[skill.id] ?? false
-            const isPend = pending.has(skill.id)
-            return (
-              <button
-                key={skill.id}
-                onClick={() => handleToggle(skill.id)}
-                disabled={!editMode || isPend}
-                title={isComp ? 'Competent' : 'Not competent'}
-                className={[
-                  'flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-center transition-all',
-                  isComp ? 'border-green-200 bg-green-50 text-green-700' : 'border-slate-100 bg-slate-50 text-slate-400',
-                  editMode && !isPend
-                    ? isComp
-                      ? 'cursor-pointer hover:border-red-300 hover:bg-red-50'
-                      : 'cursor-pointer hover:border-green-300 hover:bg-green-50 hover:text-green-600'
-                    : 'cursor-default',
-                  isPend ? 'opacity-60' : '',
-                ].join(' ')}
-              >
-                <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                  isComp ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400'
-                }`}>
-                  {isPend ? (
-                    <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                  ) : isComp ? (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  ) : (
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-xs font-medium leading-tight">{skill.name}</span>
-              </button>
-            )
-          })}
-        </div>
+      {/* Skills grouped by category */}
+      <div className="px-6 py-5 space-y-6">
+        {groupedSkills.map((group) => (
+          <div key={group.category?.id ?? '__uncategorised'}>
+            {/* Category header — only show if categories are defined */}
+            {hasCategories && (
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3 pb-1.5 border-b border-slate-100">
+                {group.category?.name ?? 'Uncategorised'}
+              </h3>
+            )}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-2">
+              {group.skills.map((skill) => {
+                const isComp = comps[skill.id] ?? false
+                const isPend = pending.has(skill.id)
+                return (
+                  <button
+                    key={skill.id}
+                    onClick={() => handleToggle(skill.id)}
+                    disabled={!editMode || isPend}
+                    title={isComp ? 'Competent' : 'Not competent'}
+                    className={[
+                      'flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-center transition-all',
+                      isComp ? 'border-green-200 bg-green-50 text-green-700' : 'border-slate-100 bg-slate-50 text-slate-400',
+                      editMode && !isPend
+                        ? isComp
+                          ? 'cursor-pointer hover:border-red-300 hover:bg-red-50'
+                          : 'cursor-pointer hover:border-green-300 hover:bg-green-50 hover:text-green-600'
+                        : 'cursor-default',
+                      isPend ? 'opacity-60' : '',
+                    ].join(' ')}
+                  >
+                    <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                      isComp ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400'
+                    }`}>
+                      {isPend ? (
+                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                        </svg>
+                      ) : isComp ? (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-xs font-medium leading-tight">{skill.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

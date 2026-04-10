@@ -3,9 +3,15 @@
 import { useState, useTransition } from 'react'
 import { toggleCompetency } from './actions'
 
+interface Category {
+  id: string
+  name: string
+}
+
 interface Skill {
   id: string
   name: string
+  categoryId: string | null
 }
 
 interface Member {
@@ -17,12 +23,13 @@ interface Member {
 
 interface Props {
   skills: Skill[]
+  categories: Category[]
   members: Member[]
   competencies: Record<string, boolean>
   canEdit: boolean
 }
 
-export function SkillsMatrixGrid({ skills, members, competencies: initial, canEdit }: Props) {
+export function SkillsMatrixGrid({ skills, categories, members, competencies: initial, canEdit }: Props) {
   const [comps, setComps] = useState(initial)
   const [pending, setPending] = useState<Set<string>>(new Set())
   const [editMode, setEditMode] = useState(false)
@@ -51,11 +58,26 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
     })
   }
 
-  const totalCells = members.length * skills.length
+  // Build grouped skill list matching the category order
+  // Categorised skills appear in category order; uncategorised skills go last
+  const grouped: Array<{ category: Category | null; skills: Skill[] }> = []
+  for (const cat of categories) {
+    const catSkills = skills.filter((s) => s.categoryId === cat.id)
+    if (catSkills.length > 0) grouped.push({ category: cat, skills: catSkills })
+  }
+  const uncategorised = skills.filter((s) => s.categoryId === null || !categories.find((c) => c.id === s.categoryId))
+  if (uncategorised.length > 0) grouped.push({ category: null, skills: uncategorised })
+
+  // Flattened ordered skills for body rendering
+  const orderedSkills = grouped.flatMap((g) => g.skills)
+
+  const hasCategories = categories.length > 0 && grouped.some((g) => g.category !== null)
+
+  const totalCells = members.length * orderedSkills.length
   const competentCount = Object.values(comps).filter(Boolean).length
   const overallPct = totalCells > 0 ? Math.round((competentCount / totalCells) * 100) : 0
 
-  if (skills.length === 0) {
+  if (orderedSkills.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-12 text-center">
         <svg className="mx-auto h-10 w-10 text-slate-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +111,7 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
         </div>
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-5 py-4">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Skills Tracked</p>
-          <p className="text-2xl font-bold text-slate-900 mt-1">{skills.length}</p>
+          <p className="text-2xl font-bold text-slate-900 mt-1">{orderedSkills.length}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-5 py-4">
           <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Overall Competency</p>
@@ -145,36 +167,74 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
 
         {/* Scrollable table */}
         <div className="overflow-auto max-h-[calc(100vh-22rem)]">
-          <table className="border-collapse" style={{ minWidth: `${220 + skills.length * 80 + 70}px` }}>
+          <table className="border-collapse" style={{ minWidth: `${220 + orderedSkills.length * 80 + 70}px` }}>
             <thead>
+              {/* Row 1: category group headers (only when categories exist) */}
+              {hasCategories && (
+                <tr style={{ height: '36px' }}>
+                  {/* Staff Member cell spans both header rows */}
+                  <th
+                    rowSpan={2}
+                    className="sticky left-0 top-0 z-40 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-200 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    style={{ minWidth: 220 }}
+                  >
+                    Staff Member
+                  </th>
+                  {grouped.map((g) => (
+                    <th
+                      key={g.category?.id ?? '__uncategorised'}
+                      colSpan={g.skills.length}
+                      className="sticky top-0 z-20 bg-slate-100 border-b border-r border-b-slate-200 border-r-slate-200 px-3 text-center text-xs font-bold text-slate-600 uppercase tracking-wider"
+                    >
+                      {g.category?.name ?? 'Uncategorised'}
+                    </th>
+                  ))}
+                  {/* Score cell spans both header rows */}
+                  <th
+                    rowSpan={2}
+                    className="sticky top-0 z-20 bg-slate-50 border-b-2 border-b-slate-200 px-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    style={{ minWidth: 70 }}
+                  >
+                    Score
+                  </th>
+                </tr>
+              )}
+              {/* Row 2 (or row 1 when no categories): individual skill names */}
               <tr>
-                <th
-                  className="sticky left-0 top-0 z-30 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-200 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
-                  style={{ minWidth: 220 }}
-                >
-                  Staff Member
-                </th>
-                {skills.map((skill) => (
+                {!hasCategories && (
+                  <th
+                    className="sticky left-0 top-0 z-30 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-200 px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    style={{ minWidth: 220 }}
+                  >
+                    Staff Member
+                  </th>
+                )}
+                {orderedSkills.map((skill) => (
                   <th
                     key={skill.id}
-                    className="sticky top-0 z-20 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-100 px-2 py-3 text-center"
-                    style={{ minWidth: 80 }}
+                    className="sticky z-20 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-100 px-2 py-2 text-center"
+                    style={{
+                      minWidth: 80,
+                      top: hasCategories ? '36px' : undefined,
+                    }}
                   >
                     <span className="block text-xs font-semibold text-slate-600 leading-tight">{skill.name}</span>
                   </th>
                 ))}
-                <th
-                  className="sticky top-0 z-20 bg-slate-50 border-b-2 border-b-slate-200 px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider"
-                  style={{ minWidth: 70 }}
-                >
-                  Score
-                </th>
+                {!hasCategories && (
+                  <th
+                    className="sticky top-0 z-20 bg-slate-50 border-b-2 border-b-slate-200 px-3 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                    style={{ minWidth: 70 }}
+                  >
+                    Score
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
               {members.map((member, idx) => {
-                const memberScore = skills.filter((s) => comps[`${member.userId}_${s.id}`]).length
-                const pct = skills.length > 0 ? Math.round((memberScore / skills.length) * 100) : 0
+                const memberScore = orderedSkills.filter((s) => comps[`${member.userId}_${s.id}`]).length
+                const pct = orderedSkills.length > 0 ? Math.round((memberScore / orderedSkills.length) * 100) : 0
                 return (
                   <tr key={member.userId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
                     <td className={`sticky left-0 z-10 border-b border-r border-slate-100 px-4 py-3 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
@@ -182,7 +242,7 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                       {member.siteName && <p className="text-xs text-slate-400 mt-0.5">{member.siteName}</p>}
                     </td>
 
-                    {skills.map((skill) => {
+                    {orderedSkills.map((skill) => {
                       const key = `${member.userId}_${skill.id}`
                       const isComp = comps[key] ?? false
                       const isPend = pending.has(key)
@@ -223,7 +283,7 @@ export function SkillsMatrixGrid({ skills, members, competencies: initial, canEd
                     <td className="border-b border-slate-100 px-3 py-3 text-center">
                       <div className="flex flex-col items-center gap-1">
                         <span className={`text-sm font-bold ${pct === 100 ? 'text-green-600' : pct >= 70 ? 'text-amber-600' : 'text-slate-500'}`}>
-                          {memberScore}/{skills.length}
+                          {memberScore}/{orderedSkills.length}
                         </span>
                         <div className="w-10 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                           <div

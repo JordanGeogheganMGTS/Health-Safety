@@ -8,6 +8,7 @@ import ChangePasswordForm from './ChangePasswordForm'
 import { ResetAcknowledgementButton } from '@/components/ResetAcknowledgementButton'
 import { MatrixMembershipButton } from '@/components/MatrixMembershipButton'
 import { ProfileSkillsSection } from '@/components/ProfileSkillsSection'
+import { UserCategoryAssignment } from '@/components/UserCategoryAssignment'
 import { toggleCompetency } from '@/app/(app)/skills-matrix/actions'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -170,18 +171,29 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const isSuperAdmin = currentRole === 'System Admin'
 
   // ── Skills Matrix ──
-  const [skillsRes, membershipRes, skillCompsRes] = await Promise.all([
-    admin.from('skill_definitions').select('id, name, sort_order').eq('is_active', true).order('sort_order'),
+  const [skillsRes, categoriesRes, membershipRes, skillCompsRes, userCatsRes] = await Promise.all([
+    admin.from('skill_definitions').select('id, name, sort_order, category_id').eq('is_active', true).order('sort_order'),
+    admin.from('skill_categories').select('id, name, sort_order').eq('is_active', true).order('sort_order'),
     admin.from('skill_matrix_members').select('user_id').eq('user_id', id).maybeSingle(),
     admin.from('skill_competencies').select('skill_id, is_competent').eq('user_id', id),
+    admin.from('skill_matrix_user_categories').select('category_id').eq('user_id', id),
   ])
 
-  const skills = (skillsRes.data ?? []).map((s) => ({ id: s.id as string, name: s.name as string }))
+  const skills = (skillsRes.data ?? []).map((s) => ({
+    id: s.id as string,
+    name: s.name as string,
+    categoryId: s.category_id as string | null,
+  }))
+  const skillCategories = (categoriesRes.data ?? []).map((c) => ({
+    id: c.id as string,
+    name: c.name as string,
+  }))
   const isMember = membershipRes.data !== null
   const skillCompsMap: Record<string, boolean> = {}
   for (const row of skillCompsRes.data ?? []) {
     skillCompsMap[row.skill_id as string] = row.is_competent as boolean
   }
+  const userCategoryIds = (userCatsRes.data ?? []).map((r) => r.category_id as string)
 
   // Bound server action for toggling this user's competencies
   const toggleSkillForUser = toggleCompetency.bind(null, id)
@@ -258,12 +270,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
       {(isMember || isAdmin) && (
         <SectionCard title="Skills Matrix">
           {isMember ? (
-            <ProfileSkillsSection
-              skills={skills}
-              competencies={skillCompsMap}
-              canEdit={isAdmin}
-              toggleAction={toggleSkillForUser}
-            />
+            <>
+              {isAdmin && (
+                <UserCategoryAssignment
+                  userId={id}
+                  allCategories={skillCategories}
+                  initialAssignedIds={userCategoryIds}
+                />
+              )}
+              <ProfileSkillsSection
+                skills={skills}
+                categories={skillCategories}
+                userCategoryIds={userCategoryIds}
+                competencies={skillCompsMap}
+                canEdit={isAdmin}
+                toggleAction={toggleSkillForUser}
+              />
+            </>
           ) : (
             <div className="px-6 py-8 text-center">
               <p className="text-sm text-slate-500">This staff member is not on the skills matrix.</p>
