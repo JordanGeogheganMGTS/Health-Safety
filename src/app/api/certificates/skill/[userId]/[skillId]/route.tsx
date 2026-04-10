@@ -73,13 +73,13 @@ export async function GET(
   const certRef = `SKL-${(comp.id as string).slice(-8).toUpperCase()}`
 
   const buffer = await renderToBuffer(
-    React.createElement(SkillCertificatePdf, {
-      skillName,
-      userName,
-      signedOffBy,
-      signedOffAt,
-      certRef,
-    })
+    <SkillCertificatePdf
+      skillName={skillName}
+      userName={userName}
+      signedOffBy={signedOffBy}
+      signedOffAt={signedOffAt}
+      certRef={certRef}
+    />
   )
 
   const safeSkill = skillName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)
