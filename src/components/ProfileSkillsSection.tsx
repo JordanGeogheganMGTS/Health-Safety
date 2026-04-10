@@ -14,19 +14,23 @@ interface Skill {
 }
 
 interface Props {
+  userId: string
   skills: Skill[]
   categories: Category[]
   userCategoryIds: string[]
   competencies: Record<string, boolean>
+  certificates: Record<string, boolean>  // skillId → has cert
   canEdit: boolean
   toggleAction: (skillId: string, current: boolean) => Promise<void>
 }
 
 export function ProfileSkillsSection({
+  userId,
   skills,
   categories,
   userCategoryIds,
   competencies: initial,
+  certificates,
   canEdit,
   toggleAction,
 }: Props) {
@@ -171,43 +175,64 @@ export function ProfileSkillsSection({
               {group.skills.map((skill) => {
                 const isComp = comps[skill.id] ?? false
                 const isPend = pending.has(skill.id)
+                const hasCert = certificates[skill.id] ?? false
                 return (
-                  <button
-                    key={skill.id}
-                    onClick={() => handleToggle(skill.id)}
-                    disabled={!editMode || isPend}
-                    title={isComp ? 'Competent' : 'Not competent'}
-                    className={[
-                      'flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-center transition-all',
-                      isComp ? 'border-green-200 bg-green-50 text-green-700' : 'border-slate-100 bg-slate-50 text-slate-400',
-                      editMode && !isPend
-                        ? isComp
-                          ? 'cursor-pointer hover:border-red-300 hover:bg-red-50'
-                          : 'cursor-pointer hover:border-green-300 hover:bg-green-50 hover:text-green-600'
-                        : 'cursor-default',
-                      isPend ? 'opacity-60' : '',
-                    ].join(' ')}
-                  >
-                    <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
-                      isComp ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400'
-                    }`}>
-                      {isPend ? (
-                        <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  <div key={skill.id} className="relative">
+                    <button
+                      onClick={() => handleToggle(skill.id)}
+                      disabled={!editMode || isPend}
+                      title={isComp ? 'Competent' : 'Not competent'}
+                      className={[
+                        'w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 px-3 py-3 text-center transition-all',
+                        isComp
+                          ? hasCert
+                            ? 'border-orange-300 bg-green-50 text-green-700'
+                            : 'border-green-200 bg-green-50 text-green-700'
+                          : 'border-slate-100 bg-slate-50 text-slate-400',
+                        editMode && !isPend
+                          ? isComp
+                            ? 'cursor-pointer hover:border-red-300 hover:bg-red-50'
+                            : 'cursor-pointer hover:border-green-300 hover:bg-green-50 hover:text-green-600'
+                          : 'cursor-default',
+                        isPend ? 'opacity-60' : '',
+                      ].join(' ')}
+                    >
+                      <div className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+                        isComp ? 'bg-green-500 text-white' : 'bg-slate-200 text-slate-400'
+                      }`}>
+                        {isPend ? (
+                          <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                          </svg>
+                        ) : isComp ? (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-xs font-medium leading-tight">{skill.name}</span>
+                    </button>
+                    {/* Certificate link badge */}
+                    {isComp && hasCert && (
+                      <a
+                        href={`/api/certificates/skill/${userId}/${skill.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="View sign-off certificate"
+                        className="absolute top-1 right-1 inline-flex items-center rounded-full bg-orange-500 p-0.5 text-white hover:bg-orange-600 transition-colors shadow-sm"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                      ) : isComp ? (
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : (
-                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium leading-tight">{skill.name}</span>
-                  </button>
+                      </a>
+                    )}
+                  </div>
                 )
               })}
             </div>

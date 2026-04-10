@@ -171,12 +171,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const isSuperAdmin = currentRole === 'System Admin'
 
   // ── Skills Matrix ──
-  const [skillsRes, categoriesRes, membershipRes, skillCompsRes, userCatsRes] = await Promise.all([
+  const [skillsRes, categoriesRes, membershipRes, skillCompsRes, userCatsRes, revokedRes] = await Promise.all([
     admin.from('skill_definitions').select('id, name, sort_order, category_id').eq('is_active', true).order('sort_order'),
     admin.from('skill_categories').select('id, name, sort_order').eq('is_active', true).order('sort_order'),
     admin.from('skill_matrix_members').select('user_id').eq('user_id', id).maybeSingle(),
-    admin.from('skill_competencies').select('skill_id, is_competent').eq('user_id', id),
+    admin.from('skill_competencies').select('skill_id, is_competent, certificate_path').eq('user_id', id),
     admin.from('skill_matrix_user_categories').select('category_id').eq('user_id', id),
+    admin.from('skill_competencies')
+      .select(`
+        skill_id,
+        revoked_at,
+        revocation_reason,
+        revoker:users!skill_competencies_revoked_by_fkey(first_name, last_name),
+        skill:skill_definitions!skill_competencies_skill_id_fkey(name)
+      `)
+      .eq('user_id', id)
+      .not('revocation_reason', 'is', null)
+      .order('revoked_at', { ascending: false }),
   ])
 
   const skills = (skillsRes.data ?? []).map((s) => ({
@@ -190,10 +201,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   }))
   const isMember = membershipRes.data !== null
   const skillCompsMap: Record<string, boolean> = {}
+  const skillCertsMap: Record<string, boolean> = {}
   for (const row of skillCompsRes.data ?? []) {
     skillCompsMap[row.skill_id as string] = row.is_competent as boolean
+    if (row.certificate_path && row.is_competent) skillCertsMap[row.skill_id as string] = true
   }
   const userCategoryIds = (userCatsRes.data ?? []).map((r) => r.category_id as string)
+
+  const revokedSkills = (revokedRes.data ?? []).map((r) => {
+    const revoker = r.revoker as unknown as { first_name: string; last_name: string } | null
+    const skill = r.skill as unknown as { name: string } | null
+    return {
+      skillName: skill?.name ?? '—',
+      revokedAt: r.revoked_at as string,
+      reason: r.revocation_reason as string,
+      revokedBy: revoker ? `${revoker.first_name} ${revoker.last_name}` : '—',
+    }
+  })
 
   // Bound server action for toggling this user's competencies
   const toggleSkillForUser = toggleCompetency.bind(null, id)
@@ -279,10 +303,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                 />
               )}
               <ProfileSkillsSection
+                userId={id}
                 skills={skills}
                 categories={skillCategories}
                 userCategoryIds={userCategoryIds}
                 competencies={skillCompsMap}
+                certificates={skillCertsMap}
                 canEdit={isAdmin}
                 toggleAction={toggleSkillForUser}
               />
@@ -293,6 +319,34 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <p className="text-xs text-slate-400 mt-1">Use the &ldquo;Add to Skills Matrix&rdquo; button above to include them.</p>
             </div>
           )}
+        </SectionCard>
+      )}
+
+      {/* Revoked Skills */}
+      {revokedSkills.length > 0 && (
+        <SectionCard title={`Revoked Sign-Offs (${revokedSkills.length})`}>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-50">
+              <thead className="bg-slate-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Skill</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Revoked On</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Revoked By</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Reason</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {revokedSkills.map((r, i) => (
+                  <tr key={i} className="hover:bg-slate-50">
+                    <td className="px-4 py-3 text-sm font-medium text-slate-800">{r.skillName}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.revokedAt)}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{r.revokedBy}</td>
+                    <td className="px-4 py-3 text-sm text-slate-500 italic">{r.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </SectionCard>
       )}
 

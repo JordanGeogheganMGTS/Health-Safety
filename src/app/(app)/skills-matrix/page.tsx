@@ -75,18 +75,21 @@ export default async function SkillsMatrixPage() {
     }
   }).sort((a, b) => a.lastName.localeCompare(b.lastName))
 
-  // Fetch all competencies for these members
+  // Fetch all competencies + certificate data for these members
   const memberIds = members.map((m) => m.userId)
   let competencies: Record<string, boolean> = {}
+  let certificates: Record<string, boolean> = {}
 
   if (memberIds.length > 0) {
     const { data: compRows } = await admin
       .from('skill_competencies')
-      .select('user_id, skill_id, is_competent')
+      .select('user_id, skill_id, is_competent, certificate_path')
       .in('user_id', memberIds)
 
     for (const row of compRows ?? []) {
-      competencies[`${row.user_id}_${row.skill_id}`] = row.is_competent as boolean
+      const key = `${row.user_id}_${row.skill_id}`
+      competencies[key] = row.is_competent as boolean
+      if (row.certificate_path && row.is_competent) certificates[key] = true
     }
   }
 
@@ -105,6 +108,7 @@ export default async function SkillsMatrixPage() {
         categories={categories}
         members={members}
         competencies={competencies}
+        certificates={certificates}
         canEdit={canEdit}
       />
     </div>

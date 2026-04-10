@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { toggleCompetency } from './actions'
+import { toggleCompetency, signOffSkill, revokeSkill } from './actions'
 
 interface Category {
   id: string
@@ -26,20 +26,48 @@ interface Props {
   categories: Category[]
   members: Member[]
   competencies: Record<string, boolean>
+  certificates: Record<string, boolean>   // key = userId_skillId
   canEdit: boolean
 }
 
-export function SkillsMatrixGrid({ skills, categories, members, competencies: initial, canEdit }: Props) {
+export function SkillsMatrixGrid({
+  skills, categories, members,
+  competencies: initial, certificates: initialCerts,
+  canEdit,
+}: Props) {
   const [comps, setComps] = useState(initial)
+  const [certs, setCerts] = useState(initialCerts)
   const [pending, setPending] = useState<Set<string>>(new Set())
+  const [signOffPending, setSignOffPending] = useState<Set<string>>(new Set())
   const [editMode, setEditMode] = useState(false)
   const [, startTransition] = useTransition()
+
+  // Revoke modal state
+  const [revokeTarget, setRevokeTarget] = useState<{ userId: string; skillId: string; skillName: string; memberName: string } | null>(null)
+  const [revokeReason, setRevokeReason] = useState('')
+  const [revokePending, startRevoke] = useTransition()
 
   function handleToggle(userId: string, skillId: string) {
     if (!editMode) return
     const key = `${userId}_${skillId}`
     const current = comps[key] ?? false
+    const hasCert = certs[key] ?? false
 
+    // If skill has a certificate, must go through revocation flow
+    if (current && hasCert) {
+      const member = members.find((m) => m.userId === userId)
+      const skill = skills.find((s) => s.id === skillId)
+      setRevokeTarget({
+        userId,
+        skillId,
+        skillName: skill?.name ?? 'this skill',
+        memberName: member ? `${member.firstName} ${member.lastName}` : 'this staff member',
+      })
+      setRevokeReason('')
+      return
+    }
+
+    // Normal toggle (no certificate involved)
     setComps((prev) => ({ ...prev, [key]: !current }))
     setPending((prev) => new Set([...Array.from(prev), key]))
 
@@ -58,8 +86,43 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
     })
   }
 
-  // Build grouped skill list matching the category order
-  // Categorised skills appear in category order; uncategorised skills go last
+  function handleSignOff(userId: string, skillId: string) {
+    const key = `${userId}_${skillId}`
+    setSignOffPending((prev) => new Set([...Array.from(prev), key]))
+
+    startTransition(async () => {
+      try {
+        await signOffSkill(userId, skillId)
+        setComps((prev) => ({ ...prev, [key]: true }))
+        setCerts((prev) => ({ ...prev, [key]: true }))
+      } finally {
+        setSignOffPending((prev) => {
+          const next = new Set(Array.from(prev))
+          next.delete(key)
+          return next
+        })
+      }
+    })
+  }
+
+  function handleRevokeConfirm() {
+    if (!revokeTarget || !revokeReason.trim()) return
+    const { userId, skillId } = revokeTarget
+    const key = `${userId}_${skillId}`
+    startRevoke(async () => {
+      await revokeSkill(userId, skillId, revokeReason)
+      setComps((prev) => ({ ...prev, [key]: false }))
+      setCerts((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      setRevokeTarget(null)
+      setRevokeReason('')
+    })
+  }
+
+  // Build grouped skill list
   const grouped: Array<{ category: Category | null; skills: Skill[] }> = []
   for (const cat of categories) {
     const catSkills = skills.filter((s) => s.categoryId === cat.id)
@@ -68,9 +131,7 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
   const uncategorised = skills.filter((s) => s.categoryId === null || !categories.find((c) => c.id === s.categoryId))
   if (uncategorised.length > 0) grouped.push({ category: null, skills: uncategorised })
 
-  // Flattened ordered skills for body rendering
   const orderedSkills = grouped.flatMap((g) => g.skills)
-
   const hasCategories = categories.length > 0 && grouped.some((g) => g.category !== null)
 
   const totalCells = members.length * orderedSkills.length
@@ -131,10 +192,10 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
           {editMode ? (
             <div className="flex items-center gap-2">
               <span className="flex h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-              <p className="text-xs font-medium text-orange-700">Editing — click any cell to toggle competency</p>
+              <p className="text-xs font-medium text-orange-700">Editing — toggle cells or use the certificate icon to sign off</p>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">Read-only view</p>
+            <p className="text-xs text-slate-400">Read-only — click <span className="font-medium text-slate-500">📋</span> on a signed-off cell to view certificate</p>
           )}
           {canEdit && (
             <button
@@ -167,12 +228,10 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
 
         {/* Scrollable table */}
         <div className="overflow-auto max-h-[calc(100vh-22rem)]">
-          <table className="border-collapse" style={{ minWidth: `${220 + orderedSkills.length * 80 + 70}px` }}>
+          <table className="border-collapse" style={{ minWidth: `${220 + orderedSkills.length * 90 + 70}px` }}>
             <thead>
-              {/* Row 1: category group headers (only when categories exist) */}
               {hasCategories && (
                 <tr style={{ height: '36px' }}>
-                  {/* Staff Member cell spans both header rows */}
                   <th
                     rowSpan={2}
                     className="sticky left-0 top-0 z-40 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-200 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider"
@@ -189,7 +248,6 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
                       {g.category?.name ?? 'Uncategorised'}
                     </th>
                   ))}
-                  {/* Score cell spans both header rows */}
                   <th
                     rowSpan={2}
                     className="sticky top-0 z-20 bg-slate-50 border-b-2 border-b-slate-200 px-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider"
@@ -199,7 +257,6 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
                   </th>
                 </tr>
               )}
-              {/* Row 2 (or row 1 when no categories): individual skill names */}
               <tr>
                 {!hasCategories && (
                   <th
@@ -213,10 +270,7 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
                   <th
                     key={skill.id}
                     className="sticky z-20 bg-slate-50 border-b-2 border-r border-b-slate-200 border-r-slate-100 px-2 py-2 text-center"
-                    style={{
-                      minWidth: 80,
-                      top: hasCategories ? '36px' : undefined,
-                    }}
+                    style={{ minWidth: 90, top: hasCategories ? '36px' : undefined }}
                   >
                     <span className="block text-xs font-semibold text-slate-600 leading-tight">{skill.name}</span>
                   </th>
@@ -246,36 +300,99 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
                       const key = `${member.userId}_${skill.id}`
                       const isComp = comps[key] ?? false
                       const isPend = pending.has(key)
+                      const isSignOff = signOffPending.has(key)
+                      const hasCert = certs[key] ?? false
+
                       return (
                         <td key={skill.id} className="border-b border-r border-slate-100 p-1.5 text-center">
-                          <button
-                            onClick={() => handleToggle(member.userId, skill.id)}
-                            disabled={!editMode || isPend}
-                            title={isComp ? 'Competent' : 'Not competent'}
-                            className={[
-                              'inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
-                              isComp ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-100 text-slate-300',
-                              editMode && !isPend
-                                ? isComp ? 'hover:bg-red-400 hover:shadow-md cursor-pointer' : 'hover:bg-green-400 hover:text-white hover:shadow-md cursor-pointer'
-                                : 'cursor-default',
-                              isPend ? 'opacity-60' : '',
-                            ].join(' ')}
-                          >
-                            {isPend ? (
-                              <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                              </svg>
-                            ) : isComp ? (
-                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                              </svg>
-                            ) : (
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                              </svg>
+                          <div className="flex flex-col items-center gap-0.5">
+                            {/* Main competency button */}
+                            <button
+                              onClick={() => handleToggle(member.userId, skill.id)}
+                              disabled={!editMode || isPend || isSignOff}
+                              title={
+                                hasCert && isComp
+                                  ? 'Click to revoke certificate'
+                                  : isComp ? 'Competent — click to remove' : 'Not competent — click to mark competent'
+                              }
+                              className={[
+                                'inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
+                                isComp
+                                  ? hasCert
+                                    ? 'bg-green-500 text-white shadow-sm ring-2 ring-orange-300'
+                                    : 'bg-green-500 text-white shadow-sm'
+                                  : 'bg-slate-100 text-slate-300',
+                                editMode && !isPend && !isSignOff
+                                  ? isComp
+                                    ? 'hover:bg-red-400 hover:ring-0 hover:shadow-md cursor-pointer'
+                                    : 'hover:bg-green-400 hover:text-white hover:shadow-md cursor-pointer'
+                                  : 'cursor-default',
+                                isPend || isSignOff ? 'opacity-60' : '',
+                              ].join(' ')}
+                            >
+                              {isPend || isSignOff ? (
+                                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                </svg>
+                              ) : isComp ? (
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                </svg>
+                              ) : (
+                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
+
+                            {/* Certificate icon row */}
+                            {isComp && (
+                              <>
+                                {/* Edit mode: sign-off button (when no cert) */}
+                                {editMode && !hasCert && (
+                                  <button
+                                    onClick={() => handleSignOff(member.userId, skill.id)}
+                                    disabled={isSignOff || isPend}
+                                    title="Generate sign-off certificate"
+                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                                  >
+                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="text-[9px] font-medium">Sign Off</span>
+                                  </button>
+                                )}
+                                {/* Read-only: view certificate link */}
+                                {!editMode && hasCert && (
+                                  <a
+                                    href={`/api/certificates/skill/${member.userId}/${skill.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="View sign-off certificate"
+                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 hover:bg-orange-100 transition-colors"
+                                  >
+                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="text-[9px] font-medium">📋</span>
+                                  </a>
+                                )}
+                                {/* Edit mode: show cert badge when certified */}
+                                {editMode && hasCert && (
+                                  <span
+                                    title="Has sign-off certificate — click tick to revoke"
+                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600"
+                                  >
+                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    </svg>
+                                    <span className="text-[9px] font-medium">Cert</span>
+                                  </span>
+                                )}
+                              </>
                             )}
-                          </button>
+                          </div>
                         </td>
                       )
                     })}
@@ -300,6 +417,59 @@ export function SkillsMatrixGrid({ skills, categories, members, competencies: in
           </table>
         </div>
       </div>
+
+      {/* Revocation modal */}
+      {revokeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <svg className="h-5 w-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-slate-900">Revoke Sign-Off Certificate</h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Revoke <span className="font-medium text-slate-700">{revokeTarget.skillName}</span> for{' '}
+                  <span className="font-medium text-slate-700">{revokeTarget.memberName}</span>.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-sm text-slate-600 mb-3">
+              The sign-off certificate will be permanently deleted and the training record removed.
+              Please provide a reason for revocation:
+            </p>
+
+            <textarea
+              value={revokeReason}
+              onChange={(e) => setRevokeReason(e.target.value)}
+              placeholder="e.g. Staff member has not maintained competency following a re-assessment…"
+              rows={3}
+              autoFocus
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500"
+            />
+
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setRevokeTarget(null)}
+                disabled={revokePending}
+                className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRevokeConfirm}
+                disabled={revokePending || !revokeReason.trim()}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {revokePending ? 'Revoking…' : 'Confirm Revoke'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
