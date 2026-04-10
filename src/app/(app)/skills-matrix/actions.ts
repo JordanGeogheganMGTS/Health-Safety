@@ -38,61 +38,24 @@ export async function toggleCompetency(userId: string, skillId: string, currentV
   revalidatePath(`/profile/${userId}`)
 }
 
-// ── Sign-off certificate ──────────────────────────────────────────────────────
+// ── Sign-off (DB only — PDF generated on-demand by the API route) ─────────────
 
 export async function signOffSkill(userId: string, skillId: string) {
   const { userId: editorId, admin } = await requireEditor()
 
-  // Fetch all data needed for certificate
-  const [userRes, skillRes, editorRes] = await Promise.all([
+  const now = new Date()
+
+  // Fetch user + skill for training record metadata
+  const [userRes, skillRes] = await Promise.all([
     admin.from('users').select('first_name, last_name, site_id').eq('id', userId).single(),
     admin.from('skill_definitions').select('name').eq('id', skillId).single(),
-    admin.from('users').select('first_name, last_name').eq('id', editorId).single(),
   ])
 
   const user = userRes.data
   const skill = skillRes.data
-  const editor = editorRes.data
-  if (!user || !skill || !editor) throw new Error('Data not found')
+  if (!user || !skill) throw new Error('Data not found')
 
-  const userName = `${user.first_name} ${user.last_name}`
-  const signedOffBy = `${editor.first_name} ${editor.last_name}`
-  const skillName = skill.name
-  const now = new Date()
-  const signedOffAt = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
-
-  // Ensure a competency row exists and get its ID for the cert ref
-  await admin.from('skill_competencies').upsert(
-    { user_id: userId, skill_id: skillId, is_competent: true, updated_at: now.toISOString(), updated_by: editorId },
-    { onConflict: 'user_id,skill_id' }
-  )
-  const { data: compRow } = await admin
-    .from('skill_competencies')
-    .select('id, training_record_id')
-    .eq('user_id', userId)
-    .eq('skill_id', skillId)
-    .single()
-
-  const certRef = (compRow?.id as string ?? '').slice(0, 8).toUpperCase()
-
-  // Generate PDF
-  const { renderToBuffer } = await import('@react-pdf/renderer')
-  const React = (await import('react')).default
-  const { SkillCertificatePdf } = await import('@/app/api/certificates/skill/SkillCertificatePdf')
-  const buffer = await renderToBuffer(
-    React.createElement(SkillCertificatePdf, { skillName, userName, signedOffBy, signedOffAt, certRef })
-  )
-
-  // Upload to Supabase Storage
-  const storagePath = `certificates/skills/${userId}/${skillId}.pdf`
-  await admin.storage
-    .from('health-safety-files')
-    .upload(storagePath, new Uint8Array(buffer), {
-      contentType: 'application/pdf',
-      upsert: true,
-    })
-
-  // Resolve site_id for the training record (required field)
+  // Resolve site_id (required on training_records)
   let siteId = user.site_id as string | null
   if (!siteId) {
     const { data: allSite } = await admin.from('sites').select('id').eq('is_all_sites', true).limit(1).maybeSingle()
@@ -127,16 +90,24 @@ export async function signOffSkill(userId: string, skillId: string) {
     trainingType = newType
   }
 
-  // Delete previous training record for this competency if it exists
+  // Upsert competency and get row for training_record_id cleanup
+  await admin.from('skill_competencies').upsert(
+    { user_id: userId, skill_id: skillId, is_competent: true, updated_at: now.toISOString(), updated_by: editorId },
+    { onConflict: 'user_id,skill_id' }
+  )
+  const { data: compRow } = await admin
+    .from('skill_competencies')
+    .select('id, training_record_id')
+    .eq('user_id', userId)
+    .eq('skill_id', skillId)
+    .single()
+
+  // Delete previous training record if exists
   if (compRow?.training_record_id) {
     await admin.from('training_records').delete().eq('id', compRow.training_record_id)
   }
 
-  // Create new training record
-  const safeSkillName = skillName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const safeUserName = userName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const fileName = `sign-off-${safeSkillName}-${safeUserName}.pdf`
-
+  // Create training record — no file path; certificate is generated on-demand via API route
   const { data: trainingRecord } = await admin
     .from('training_records')
     .insert({
@@ -145,22 +116,19 @@ export async function signOffSkill(userId: string, skillId: string) {
       training_type_id: trainingType!.id,
       completion_date: now.toISOString().split('T')[0],
       provider: 'MGTS',
-      trainer_name: signedOffBy,
       result: 'Pass',
-      certificate_file_path: storagePath,
-      certificate_file_name: fileName,
-      notes: `Skills Matrix sign-off for: ${skillName}`,
+      notes: `Skills Matrix sign-off for: ${skill.name}`,
       recorded_by: editorId,
     })
     .select('id')
     .single()
 
-  // Update competency row with all certificate info, clearing any revocation
+  // Update competency row with sign-off metadata, clearing any revocation
   await admin
     .from('skill_competencies')
     .update({
       is_competent: true,
-      certificate_path: storagePath,
+      certificate_path: null,
       certificate_signed_by: editorId,
       certificate_signed_at: now.toISOString(),
       training_record_id: trainingRecord?.id ?? null,
@@ -195,7 +163,7 @@ export async function revokeSkill(userId: string, skillId: string, reason: strin
     await admin.from('training_records').delete().eq('id', comp.training_record_id)
   }
 
-  // Delete certificate from storage
+  // Delete certificate from storage if it was ever stored
   if (comp?.certificate_path) {
     await admin.storage.from('health-safety-files').remove([comp.certificate_path as string])
   }
@@ -296,7 +264,6 @@ export async function toggleSkillActive(id: string, current: boolean) {
 export async function deleteSkill(id: string) {
   const { admin } = await requireEditor()
 
-  // Competencies cascade-delete due to FK ON DELETE CASCADE
   await admin.from('skill_definitions').delete().eq('id', id)
 
   revalidatePath('/settings/skills')
@@ -349,7 +316,6 @@ export async function toggleCategoryActive(id: string, current: boolean) {
 export async function deleteCategory(id: string) {
   const { admin } = await requireEditor()
 
-  // skill_definitions.category_id SET NULL on delete (migration FK)
   await admin.from('skill_categories').delete().eq('id', id)
 
   revalidatePath('/settings/skills')

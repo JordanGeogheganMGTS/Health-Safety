@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
+import React from 'react'
+import { renderToBuffer } from '@react-pdf/renderer'
+import { SkillCertificatePdf } from '../../SkillCertificatePdf'
 
 export async function GET(
   _req: NextRequest,
@@ -13,7 +16,7 @@ export async function GET(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Users can view their own certificates; admins/managers can view any
+  // Users can view their own certificates; admins/managers/read-only/site manager can view any
   const { data: profile } = await supabase
     .from('users')
     .select('roles(name)')
@@ -29,27 +32,63 @@ export async function GET(
 
   if (!canView) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Fetch certificate path — only serve if competent and not revoked
   const admin = createAdminClient()
+
+  // Fetch competency + sign-off metadata — only serve if competent and not revoked
   const { data: comp } = await admin
     .from('skill_competencies')
-    .select('certificate_path, is_competent, revocation_reason')
+    .select('is_competent, revocation_reason, certificate_signed_by, certificate_signed_at, id')
     .eq('user_id', userId)
     .eq('skill_id', skillId)
     .maybeSingle()
 
-  if (!comp || !comp.certificate_path || !comp.is_competent || comp.revocation_reason) {
+  if (!comp || !comp.is_competent || comp.revocation_reason || !comp.certificate_signed_at) {
     return NextResponse.json({ error: 'Certificate not available' }, { status: 404 })
   }
 
-  // Generate a 1-hour signed URL and redirect to it
-  const { data: signed } = await admin.storage
-    .from('health-safety-files')
-    .createSignedUrl(comp.certificate_path as string, 60 * 60)
+  // Fetch user name, skill name, and signer name in parallel
+  const [userRes, skillRes, signerRes] = await Promise.all([
+    admin.from('users').select('first_name, last_name').eq('id', userId).single(),
+    admin.from('skill_definitions').select('name').eq('id', skillId).single(),
+    admin.from('users').select('first_name, last_name').eq('id', comp.certificate_signed_by as string).single(),
+  ])
 
-  if (!signed?.signedUrl) {
-    return NextResponse.json({ error: 'Could not generate URL' }, { status: 500 })
+  if (!userRes.data || !skillRes.data) {
+    return NextResponse.json({ error: 'Data not found' }, { status: 404 })
   }
 
-  return NextResponse.redirect(signed.signedUrl)
+  const userName = `${userRes.data.first_name} ${userRes.data.last_name}`
+  const skillName = skillRes.data.name as string
+  const signedOffBy = signerRes.data
+    ? `${signerRes.data.first_name} ${signerRes.data.last_name}`
+    : 'MGTS'
+
+  const signedOffAt = new Date(comp.certificate_signed_at as string).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+
+  // Short cert ref: last 8 chars of competency row id
+  const certRef = `SKL-${(comp.id as string).slice(-8).toUpperCase()}`
+
+  const buffer = await renderToBuffer(
+    React.createElement(SkillCertificatePdf, {
+      skillName,
+      userName,
+      signedOffBy,
+      signedOffAt,
+      certRef,
+    })
+  )
+
+  const safeSkill = skillName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)
+  const safeName = userName.replace(/[^a-z0-9]+/gi, '-').toLowerCase().slice(0, 40)
+
+  return new Response(new Uint8Array(buffer), {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `inline; filename="skill-certificate-${safeSkill}-${safeName}.pdf"`,
+    },
+  })
 }
