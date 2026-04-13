@@ -68,7 +68,7 @@ export default async function DueSoonPage({
     withSite(supabase.from('corrective_actions')
       .select('id, title, due_date, status, sites(name), priority:lookup_values!priority_id(label)')
       .gte('due_date', today).lte('due_date', in30)
-      .not('status', 'in', '(Completed,Verified,Cancelled)')
+      .not('status', 'in', '(Completed,Verified,Cancelled,Closed)')
       .order('due_date')),
     withSite(supabase.from('documents')
       .select('id, title, review_due_date, status, sites(name)')
