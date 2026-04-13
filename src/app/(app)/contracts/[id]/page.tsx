@@ -48,9 +48,9 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     .select(`
       id, name, supplier, signed_date, renewal_date, contract_value,
       notice_period_days, notes, file_path, file_name, created_at, updated_at,
-      owner:users!contracts_owner_id_fkey(first_name, last_name),
-      created_by_user:users!contracts_created_by_fkey(first_name, last_name),
-      updated_by_user:users!contracts_updated_by_fkey(first_name, last_name)
+      owner:users!owner_id(first_name, last_name),
+      created_by_user:users!created_by(first_name, last_name),
+      updated_by_user:users!updated_by(first_name, last_name)
     `)
     .eq('id', id)
     .single()
