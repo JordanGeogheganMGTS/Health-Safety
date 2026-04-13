@@ -4,6 +4,7 @@ import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getAuthUser } from '@/lib/permissions'
 import { updateContract } from '../../actions'
+import RemoveFileButton from '../../RemoveFileButton'
 
 export default async function EditContractPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -171,17 +172,7 @@ export default async function EditContractPage({ params }: { params: Promise<{ i
                   </svg>
                   <span className="text-sm text-slate-700">{c.file_name}</span>
                 </div>
-                <button
-                  type="submit"
-                  name="remove_file"
-                  value="true"
-                  className="text-xs font-medium text-red-500 hover:text-red-700 transition-colors"
-                  onClick={(e) => {
-                    if (!confirm('Remove the current document?')) e.preventDefault()
-                  }}
-                >
-                  Remove
-                </button>
+                <RemoveFileButton />
               </div>
             ) : null}
             <input
