@@ -23,6 +23,7 @@ import {
   LogOut,
   BookOpen,
   TableProperties,
+  FileSignature,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -44,23 +45,24 @@ interface SidebarProps {
 }
 
 const NAV_ITEMS = [
-  { label: 'Dashboard',          href: '/dashboard',          icon: LayoutDashboard, roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Documents',          href: '/documents',          icon: FileText,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'Risk Assessments',   href: '/risk-assessments',   icon: AlertTriangle,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'Method Statements',  href: '/method-statements',  icon: ClipboardList,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'COSHH',              href: '/coshh',              icon: FlaskConical,    roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'Contractors',        href: '/contractors',        icon: HardHat,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Equipment',          href: '/equipment',          icon: Wrench,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'Fire Safety',        href: '/fire-safety',        icon: Flame,           roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Inspections',        href: '/inspections',        icon: Search,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Incidents',          href: '/incidents',          icon: Siren,           roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Corrective Actions', href: '/corrective-actions', icon: CheckSquare,     roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'Training',           href: '/training',           icon: GraduationCap,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'PPE',                href: '/ppe',                icon: Shield,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'DSE Assessments',    href: '/dse',                icon: Monitor,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
-  { label: 'Skills Matrix',       href: '/skills-matrix',      icon: TableProperties, roles: ['System Admin', 'H&S Manager', 'Read-Only'] },
-  { label: 'Reports',            href: '/reports',            icon: BarChart3,       roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only'] },
-  { label: 'My Reading',         href: '/acknowledgements',   icon: BookOpen,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only'] },
+  { label: 'Dashboard',          href: '/dashboard',          icon: LayoutDashboard, roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Documents',          href: '/documents',          icon: FileText,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Risk Assessments',   href: '/risk-assessments',   icon: AlertTriangle,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Method Statements',  href: '/method-statements',  icon: ClipboardList,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'COSHH',              href: '/coshh',              icon: FlaskConical,    roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Contractors',        href: '/contractors',        icon: HardHat,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Equipment',          href: '/equipment',          icon: Wrench,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Fire Safety',        href: '/fire-safety',        icon: Flame,           roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Inspections',        href: '/inspections',        icon: Search,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Incidents',          href: '/incidents',          icon: Siren,           roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Corrective Actions', href: '/corrective-actions', icon: CheckSquare,     roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Training',           href: '/training',           icon: GraduationCap,   roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'PPE',                href: '/ppe',                icon: Shield,          roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'DSE Assessments',    href: '/dse',                icon: Monitor,         roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Contracts',          href: '/contracts',          icon: FileSignature,   roles: ['System Admin', 'H&S Manager', 'Senior Leadership'] },
+  { label: 'Skills Matrix',      href: '/skills-matrix',      icon: TableProperties, roles: ['System Admin', 'H&S Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'Reports',            href: '/reports',            icon: BarChart3,       roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Read-Only', 'Senior Leadership'] },
+  { label: 'My Reading',         href: '/acknowledgements',   icon: BookOpen,        roles: ['System Admin', 'H&S Manager', 'Site Manager', 'Staff', 'Read-Only', 'Senior Leadership'] },
   { label: 'System Settings',    href: '/settings',           icon: Settings,        roles: ['System Admin'] },
 ]
 

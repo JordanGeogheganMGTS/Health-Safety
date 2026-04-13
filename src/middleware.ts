@@ -83,7 +83,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // ── Read-only roles: block all write routes ─────────────────────────────────
-    const READ_ONLY_ROLES = ['Read-Only', 'Site Manager', 'Staff']
+    const READ_ONLY_ROLES = ['Read-Only', 'Site Manager', 'Staff', 'Senior Leadership']
     if (READ_ONLY_ROLES.includes(role)) {
       const isWriteRoute =
         pathname.endsWith('/new') ||

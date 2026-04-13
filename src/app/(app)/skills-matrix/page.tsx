@@ -18,7 +18,7 @@ export default async function SkillsMatrixPage() {
 
   // Only System Admin, H&S Manager, and Read-Only see the full matrix
   // Site Manager and Staff see their own row on their profile page
-  if (role !== 'System Admin' && role !== 'H&S Manager' && role !== 'Read-Only') {
+  if (role !== 'System Admin' && role !== 'H&S Manager' && role !== 'Read-Only' && role !== 'Senior Leadership') {
     redirect(`/profile/${user.id}`)
   }
 

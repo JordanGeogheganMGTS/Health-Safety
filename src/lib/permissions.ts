@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 
-export type RoleName = 'System Admin' | 'H&S Manager' | 'Site Manager' | 'Staff' | 'Read-Only'
+export type RoleName = 'System Admin' | 'H&S Manager' | 'Site Manager' | 'Staff' | 'Read-Only' | 'Senior Leadership'
 export type AccessLevel = 'full' | 'site' | 'limited' | 'view' | 'none'
 
 export interface ResolvedUser {
@@ -37,6 +37,7 @@ const PERMISSIONS: Record<RoleName, Record<string, string[]>> = {
     training: ['view', 'create', 'edit'],
     ppe: ['view', 'create', 'edit'],
     dse: ['view', 'create', 'edit'],
+    contracts: ['view', 'create', 'edit', 'delete'],
     reports: ['view'],
     audit_log: ['view'],
     dashboard: ['view'],
@@ -85,6 +86,24 @@ const PERMISSIONS: Record<RoleName, Record<string, string[]>> = {
     training: ['view'],
     ppe: ['view'],
     dse: ['view'],
+    reports: ['view'],
+    dashboard: ['view'],
+  },
+  'Senior Leadership': {
+    documents: ['view'],
+    risk_assessments: ['view'],
+    method_statements: ['view'],
+    coshh_assessments: ['view'],
+    contractors: ['view'],
+    equipment: ['view'],
+    fire_safety: ['view'],
+    inspections: ['view'],
+    incidents: ['view'],
+    corrective_actions: ['view'],
+    training: ['view'],
+    ppe: ['view'],
+    dse: ['view'],
+    contracts: ['view'],
     reports: ['view'],
     dashboard: ['view'],
   },
