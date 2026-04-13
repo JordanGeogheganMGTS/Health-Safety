@@ -80,7 +80,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const { data: trainingRaw } = await supabase
     .from('training_records')
     .select(`
-      id, completion_date, expiry_date, provider, certificate_file_path, certificate_file_name,
+      id, completion_date, expiry_date, provider, notes, certificate_file_path, certificate_file_name,
       training_type:training_types!training_records_training_type_id_fkey(name, is_mandatory)
     `)
     .eq('user_id', id)
@@ -175,7 +175,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     admin.from('skill_definitions').select('id, name, sort_order, category_id').eq('is_active', true).order('sort_order'),
     admin.from('skill_categories').select('id, name, sort_order').eq('is_active', true).order('sort_order'),
     admin.from('skill_matrix_members').select('user_id').eq('user_id', id).maybeSingle(),
-    admin.from('skill_competencies').select('skill_id, is_competent, certificate_path').eq('user_id', id),
+    admin.from('skill_competencies').select('skill_id, is_competent, certificate_signed_at, training_record_id').eq('user_id', id),
     admin.from('skill_matrix_user_categories').select('category_id').eq('user_id', id),
     admin.from('skill_competencies')
       .select(`
@@ -202,9 +202,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
   const isMember = membershipRes.data !== null
   const skillCompsMap: Record<string, boolean> = {}
   const skillCertsMap: Record<string, boolean> = {}
+  // trainingRecordId → skillId (for certificate links on training table)
+  const trainingRecordToSkillId: Record<string, string> = {}
   for (const row of skillCompsRes.data ?? []) {
     skillCompsMap[row.skill_id as string] = row.is_competent as boolean
-    if (row.certificate_path && row.is_competent) skillCertsMap[row.skill_id as string] = true
+    if (row.certificate_signed_at && row.is_competent) skillCertsMap[row.skill_id as string] = true
+    if (row.training_record_id) trainingRecordToSkillId[row.training_record_id as string] = row.skill_id as string
   }
   const userCategoryIds = (userCatsRes.data ?? []).map((r) => r.category_id as string)
 
@@ -360,6 +363,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
               <thead className="bg-slate-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Training Type</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Skill</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Completed</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">Provider</th>
@@ -372,10 +376,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                   completion_date: string
                   expiry_date: string | null
                   provider: string | null
+                  notes: string | null
                   certificate_file_name: string | null
                   certUrl: string | null
                   training_type: { name: string; is_mandatory: boolean } | null
-                }>).map((r) => (
+                }>).map((r) => {
+                  const isSkillSignOff = r.training_type?.name === 'Skills Sign-Off'
+                  const skillName = isSkillSignOff && r.notes
+                    ? r.notes.replace('Skills Matrix sign-off for: ', '')
+                    : null
+                  const skillId = trainingRecordToSkillId[r.id] ?? null
+                  const skillCertHref = isSkillSignOff && skillId
+                    ? `/api/certificates/skill/${id}/${skillId}`
+                    : null
+                  return (
                   <tr key={r.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <p className="text-sm font-medium text-slate-800">{r.training_type?.name ?? '—'}</p>
@@ -383,14 +397,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                         <span className="text-xs text-red-600 font-medium">Required</span>
                       )}
                     </td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{skillName ?? <span className="text-slate-300">—</span>}</td>
                     <td className="px-4 py-3 text-sm text-slate-600">{formatDate(r.completion_date)}</td>
                     <td className="px-4 py-3"><ExpiryBadge date={r.expiry_date} /></td>
                     <td className="px-4 py-3 text-sm text-slate-500">{r.provider ?? '—'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
-                        {r.certUrl && (
+                        {(r.certUrl || skillCertHref) && (
                           <a
-                            href={r.certUrl}
+                            href={(r.certUrl ?? skillCertHref)!}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs font-medium text-orange-600 hover:underline"
@@ -404,7 +419,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                       </div>
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>

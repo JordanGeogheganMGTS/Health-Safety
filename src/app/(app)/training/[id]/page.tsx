@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { formatDate, isOverdue, isDueWithin } from '@/lib/dates'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -28,6 +29,7 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
     .from('training_records')
     .select(`
       id,
+      user_id,
       completion_date,
       expiry_date,
       provider,
@@ -45,6 +47,7 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
   if (!record) notFound()
 
   const r = record as typeof record & {
+    user_id: string
     user: { first_name: string; last_name: string } | null
     training_type: { name: string; validity_months: number | null; is_mandatory: boolean } | null
     recorded_by_user: { first_name: string; last_name: string } | null
@@ -52,13 +55,27 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
 
   const authUser = await getAuthUser()
 
-  // Generate signed URL for certificate if one exists
+  // Generate signed URL for uploaded certificate if one exists
   let certificateUrl: string | null = null
   if (r.certificate_file_path) {
     const { data } = await supabase.storage
       .from('health-safety-files')
       .createSignedUrl(r.certificate_file_path, 60 * 60)
     certificateUrl = data?.signedUrl ?? null
+  }
+
+  // For Skills Sign-Off records, find the linked skill competency for the generated certificate
+  let skillCertHref: string | null = null
+  if (r.training_type?.name === 'Skills Sign-Off') {
+    const admin = createAdminClient()
+    const { data: comp } = await admin
+      .from('skill_competencies')
+      .select('skill_id')
+      .eq('training_record_id', id)
+      .maybeSingle()
+    if (comp?.skill_id) {
+      skillCertHref = `/api/certificates/skill/${r.user_id}/${comp.skill_id}`
+    }
   }
 
   return (
@@ -140,6 +157,24 @@ export default async function TrainingRecordDetailPage({ params }: { params: Pro
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
                 Download Certificate
+              </a>
+            </div>
+          ) : skillCertHref ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-800">System-generated sign-off certificate</p>
+                <p className="text-xs text-slate-400 mt-0.5">Generated on-demand by MGTS Sentinel — opens in a new tab</p>
+              </div>
+              <a
+                href={skillCertHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium text-white hover:bg-orange-600 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                View Certificate
               </a>
             </div>
           ) : (

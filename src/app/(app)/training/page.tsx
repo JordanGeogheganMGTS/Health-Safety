@@ -55,6 +55,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
         completion_date,
         expiry_date,
         provider,
+        notes,
         certificate_file_path,
         user:users!training_records_user_id_fkey(id, first_name, last_name),
         training_type:training_types!training_records_training_type_id_fkey(id, name, is_mandatory)
@@ -187,6 +188,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Staff Member</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Training Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Skill</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Mandatory</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
                         <SortLink column="completion_date" label="Completed" sort={sortCol} dir={dir} params={baseParams} />
@@ -202,6 +204,10 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
                     {records.map((r) => {
                       const user = r.user as unknown as { id: string; first_name: string; last_name: string } | null
                       const trainingType = r.training_type as unknown as { id: string; name: string; is_mandatory: boolean } | null
+                      const notes = r.notes as unknown as string | null
+                      const skillName = trainingType?.name === 'Skills Sign-Off' && notes
+                        ? notes.replace('Skills Matrix sign-off for: ', '')
+                        : null
 
                       return (
                         <tr key={r.id} className="hover:bg-slate-50 transition-colors">
@@ -209,6 +215,7 @@ export default async function TrainingPage({ searchParams: spPromise }: { search
                             {user ? `${user.first_name} ${user.last_name}` : '—'}
                           </td>
                           <td className="px-4 py-3 text-sm text-slate-700">{trainingType?.name ?? '—'}</td>
+                          <td className="px-4 py-3 text-sm text-slate-600">{skillName ?? <span className="text-slate-300">—</span>}</td>
                           <td className="px-4 py-3">
                             {trainingType?.is_mandatory ? (
                               <span className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-700">Required</span>

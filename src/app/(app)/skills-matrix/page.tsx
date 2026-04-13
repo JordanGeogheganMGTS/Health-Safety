@@ -83,13 +83,13 @@ export default async function SkillsMatrixPage() {
   if (memberIds.length > 0) {
     const { data: compRows } = await admin
       .from('skill_competencies')
-      .select('user_id, skill_id, is_competent, certificate_path')
+      .select('user_id, skill_id, is_competent, certificate_signed_at')
       .in('user_id', memberIds)
 
     for (const row of compRows ?? []) {
       const key = `${row.user_id}_${row.skill_id}`
       competencies[key] = row.is_competent as boolean
-      if (row.certificate_path && row.is_competent) certificates[key] = true
+      if (row.certificate_signed_at && row.is_competent) certificates[key] = true
     }
   }
 
