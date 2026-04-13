@@ -57,11 +57,13 @@ export async function createContract(formData: FormData) {
   if (file && file.size > 0) {
     const filePath = `contracts/${contract.id}/${file.name}`
     const buffer = await file.arrayBuffer()
-    await admin.storage.from('health-safety-files').upload(filePath, buffer, {
+    const { error: uploadError } = await admin.storage.from('health-safety-files').upload(filePath, buffer, {
       contentType: file.type,
       upsert: true,
     })
-    await admin.from('contracts').update({ file_path: filePath, file_name: file.name }).eq('id', contract.id)
+    if (!uploadError) {
+      await admin.from('contracts').update({ file_path: filePath, file_name: file.name }).eq('id', contract.id)
+    }
   }
 
   revalidatePath('/contracts')
@@ -82,11 +84,12 @@ export async function updateContract(id: string, formData: FormData) {
   const file = formData.get('file') as File | null
   const removeFile = formData.get('remove_file') === 'true'
 
-  const { data: existing } = await admin.from('contracts').select('file_path').eq('id', id).single()
-  const existingPath = existing?.file_path as string | null
+  const { data: existing } = await admin.from('contracts').select('file_path, file_name').eq('id', id).single()
+  const existingPath = (existing as unknown as { file_path: string | null } | null)?.file_path ?? null
+  const existingFileName = (existing as unknown as { file_name: string | null } | null)?.file_name ?? null
 
   let newFilePath: string | null = existingPath
-  let newFileName: string | null = (existing as unknown as { file_name: string | null } | null)?.file_name ?? null
+  let newFileName: string | null = existingFileName
 
   if (file && file.size > 0) {
     // Delete old file and upload new one
