@@ -55,7 +55,7 @@ export default async function ContractsPage() {
   const contracts = (rows ?? []) as unknown as Row[]
 
   // Fetch owner names separately
-  const ownerIds = [...new Set(contracts.map((c) => c.owner_id).filter(Boolean))] as string[]
+  const ownerIds = Array.from(new Set(contracts.map((c) => c.owner_id).filter(Boolean))) as string[]
   const ownerMap: Record<string, string> = {}
   if (ownerIds.length > 0) {
     const { data: ownersData } = await admin

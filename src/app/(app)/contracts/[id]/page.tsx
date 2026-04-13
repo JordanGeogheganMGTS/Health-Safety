@@ -74,7 +74,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const c = row as unknown as ContractRow
 
   // Fetch user names for owner / created_by / updated_by
-  const userIds = [...new Set([c.owner_id, c.updated_by].filter(Boolean))] as string[]
+  const userIds = Array.from(new Set([c.owner_id, c.updated_by].filter(Boolean))) as string[]
   const usersMap: Record<string, string> = {}
   if (userIds.length > 0) {
     const { data: usersData } = await admin
