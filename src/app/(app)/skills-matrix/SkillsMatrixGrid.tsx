@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { toggleCompetency, signOffSkill, revokeSkill } from './actions'
 
 interface Category {
@@ -195,7 +196,7 @@ export function SkillsMatrixGrid({
               <p className="text-xs font-medium text-orange-700">Editing — toggle cells or use the certificate icon to sign off</p>
             </div>
           ) : (
-            <p className="text-xs text-slate-400">Read-only — click <span className="font-medium text-slate-500">📋</span> on a signed-off cell to view certificate</p>
+            <p className="text-xs text-slate-400">Read-only — click a <span className="font-medium text-slate-500">green tick</span> with an orange ring to view the sign-off certificate</p>
           )}
           {canEdit && (
             <button
@@ -292,7 +293,9 @@ export function SkillsMatrixGrid({
                 return (
                   <tr key={member.userId} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
                     <td className={`sticky left-0 z-10 border-b border-r border-slate-100 px-4 py-3 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}`}>
-                      <p className="text-sm font-semibold text-slate-900">{member.firstName} {member.lastName}</p>
+                      <Link href={`/profile/${member.userId}`} className="text-sm font-semibold text-slate-900 hover:text-orange-600 transition-colors">
+                        {member.firstName} {member.lastName}
+                      </Link>
                       {member.siteName && <p className="text-xs text-slate-400 mt-0.5">{member.siteName}</p>}
                     </td>
 
@@ -306,91 +309,73 @@ export function SkillsMatrixGrid({
                       return (
                         <td key={skill.id} className="border-b border-r border-slate-100 p-1.5 text-center">
                           <div className="flex flex-col items-center gap-0.5">
-                            {/* Main competency button */}
-                            <button
-                              onClick={() => handleToggle(member.userId, skill.id)}
-                              disabled={!editMode || isPend || isSignOff}
-                              title={
-                                hasCert && isComp
-                                  ? 'Click to revoke certificate'
-                                  : isComp ? 'Competent — click to remove' : 'Not competent — click to mark competent'
-                              }
-                              className={[
-                                'inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
-                                isComp
-                                  ? hasCert
-                                    ? 'bg-green-500 text-white shadow-sm ring-2 ring-orange-300'
-                                    : 'bg-green-500 text-white shadow-sm'
-                                  : 'bg-slate-100 text-slate-300',
-                                editMode && !isPend && !isSignOff
-                                  ? isComp
-                                    ? 'hover:bg-red-400 hover:ring-0 hover:shadow-md cursor-pointer'
-                                    : 'hover:bg-green-400 hover:text-white hover:shadow-md cursor-pointer'
-                                  : 'cursor-default',
-                                isPend || isSignOff ? 'opacity-60' : '',
-                              ].join(' ')}
-                            >
-                              {isPend || isSignOff ? (
-                                <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                                </svg>
-                              ) : isComp ? (
+                            {/* Green tick — link to certificate in read-only mode, button in edit mode */}
+                            {!editMode && hasCert && isComp ? (
+                              <a
+                                href={`/api/certificates/skill/${member.userId}/${skill.id}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="View sign-off certificate"
+                                className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-green-500 text-white shadow-sm ring-2 ring-orange-300 hover:ring-orange-500 hover:shadow-md transition-all duration-150 cursor-pointer"
+                              >
                                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
-                              ) : (
-                                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-                                </svg>
-                              )}
-                            </button>
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => handleToggle(member.userId, skill.id)}
+                                disabled={!editMode || isPend || isSignOff}
+                                title={
+                                  hasCert && isComp
+                                    ? 'Click to revoke certificate'
+                                    : isComp ? 'Competent — click to remove' : 'Not competent — click to mark competent'
+                                }
+                                className={[
+                                  'inline-flex items-center justify-center w-9 h-9 rounded-full transition-all duration-150',
+                                  isComp
+                                    ? hasCert
+                                      ? 'bg-green-500 text-white shadow-sm ring-2 ring-orange-300'
+                                      : 'bg-green-500 text-white shadow-sm'
+                                    : 'bg-slate-100 text-slate-300',
+                                  editMode && !isPend && !isSignOff
+                                    ? isComp
+                                      ? 'hover:bg-red-400 hover:ring-0 hover:shadow-md cursor-pointer'
+                                      : 'hover:bg-green-400 hover:text-white hover:shadow-md cursor-pointer'
+                                    : 'cursor-default',
+                                  isPend || isSignOff ? 'opacity-60' : '',
+                                ].join(' ')}
+                              >
+                                {isPend || isSignOff ? (
+                                  <svg className="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                  </svg>
+                                ) : isComp ? (
+                                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                  </svg>
+                                )}
+                              </button>
+                            )}
 
-                            {/* Certificate icon row */}
-                            {isComp && (
-                              <>
-                                {/* Edit mode: sign-off button (when no cert) */}
-                                {editMode && !hasCert && (
-                                  <button
-                                    onClick={() => handleSignOff(member.userId, skill.id)}
-                                    disabled={isSignOff || isPend}
-                                    title="Generate sign-off certificate"
-                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-50"
-                                  >
-                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span className="text-[9px] font-medium">Sign Off</span>
-                                  </button>
-                                )}
-                                {/* Read-only: view certificate link */}
-                                {!editMode && hasCert && (
-                                  <a
-                                    href={`/api/certificates/skill/${member.userId}/${skill.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    title="View sign-off certificate"
-                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 hover:bg-orange-100 transition-colors"
-                                  >
-                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span className="text-[9px] font-medium">📋</span>
-                                  </a>
-                                )}
-                                {/* Edit mode: show cert badge when certified */}
-                                {editMode && hasCert && (
-                                  <span
-                                    title="Has sign-off certificate — click tick to revoke"
-                                    className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600"
-                                  >
-                                    <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                    </svg>
-                                    <span className="text-[9px] font-medium">Cert</span>
-                                  </span>
-                                )}
-                              </>
+                            {/* Edit mode: sign-off button when competent but no certificate yet */}
+                            {editMode && isComp && !hasCert && (
+                              <button
+                                onClick={() => handleSignOff(member.userId, skill.id)}
+                                disabled={isSignOff || isPend}
+                                title="Generate sign-off certificate"
+                                className="inline-flex items-center gap-0.5 rounded-full bg-orange-50 border border-orange-200 px-1.5 py-0.5 text-orange-600 hover:bg-orange-100 transition-colors disabled:opacity-50"
+                              >
+                                <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span className="text-[9px] font-medium">Sign Off</span>
+                              </button>
                             )}
                           </div>
                         </td>
