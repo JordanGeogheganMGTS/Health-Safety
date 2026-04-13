@@ -3,7 +3,8 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect, notFound } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate } from '@/lib/dates'
-import { computeContractStatus, deleteContract, type ContractStatus } from '../actions'
+import { deleteContract } from '../actions'
+import { computeContractStatus, type ContractStatus } from '../utils'
 import { getAuthUser } from '@/lib/permissions'
 
 function StatusBadge({ status }: { status: ContractStatus }) {
