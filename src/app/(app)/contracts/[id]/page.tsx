@@ -43,19 +43,15 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
   const canDelete = authUser.can('contracts', 'delete')
 
   const admin = createAdminClient()
-  const { data: row } = await admin
+
+  // Fetch contract without join — avoids FK constraint name dependency
+  const { data: row, error: rowError } = await admin
     .from('contracts')
-    .select(`
-      id, name, supplier, signed_date, renewal_date, contract_value,
-      notice_period_days, notes, file_path, file_name, created_at, updated_at,
-      owner:users!owner_id(first_name, last_name),
-      created_by_user:users!created_by(first_name, last_name),
-      updated_by_user:users!updated_by(first_name, last_name)
-    `)
+    .select('id, name, supplier, signed_date, renewal_date, contract_value, notice_period_days, notes, file_path, file_name, created_at, updated_at, owner_id, created_by, updated_by')
     .eq('id', id)
     .single()
 
-  if (!row) notFound()
+  if (rowError || !row) notFound()
 
   type ContractRow = {
     id: string
@@ -64,18 +60,35 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
     signed_date: string | null
     renewal_date: string | null
     contract_value: number | null
-    notice_period_days: number
+    notice_period_days: number | null
     notes: string | null
     file_path: string | null
     file_name: string | null
     created_at: string
     updated_at: string
-    owner: { first_name: string; last_name: string } | null
-    created_by_user: { first_name: string; last_name: string } | null
-    updated_by_user: { first_name: string; last_name: string } | null
+    owner_id: string | null
+    created_by: string | null
+    updated_by: string | null
   }
 
   const c = row as unknown as ContractRow
+
+  // Fetch user names for owner / created_by / updated_by
+  const userIds = [...new Set([c.owner_id, c.updated_by].filter(Boolean))] as string[]
+  const usersMap: Record<string, string> = {}
+  if (userIds.length > 0) {
+    const { data: usersData } = await admin
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', userIds)
+    for (const u of usersData ?? []) {
+      usersMap[u.id] = `${u.first_name} ${u.last_name}`
+    }
+  }
+
+  const ownerName = c.owner_id ? (usersMap[c.owner_id] ?? null) : null
+  const updatedByName = c.updated_by ? (usersMap[c.updated_by] ?? null) : null
+
   const status = computeContractStatus(c.renewal_date, c.notice_period_days)
 
   // Generate signed URL for contract document
@@ -134,10 +147,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
         <dl className="px-6 py-2">
           <InfoRow label="Contract Name" value={c.name} />
           <InfoRow label="Supplier / Provider" value={c.supplier} />
-          <InfoRow
-            label="Contract Owner"
-            value={c.owner ? `${c.owner.first_name} ${c.owner.last_name}` : null}
-          />
+          <InfoRow label="Contract Owner" value={ownerName} />
           <InfoRow label="Signed Date" value={c.signed_date ? formatDate(c.signed_date) : null} />
           <InfoRow label="Renewal Date" value={c.renewal_date ? formatDate(c.renewal_date) : null} />
           <InfoRow
@@ -146,7 +156,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
               ? new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(c.contract_value)
               : null}
           />
-          <InfoRow label="Notice Period" value={`${c.notice_period_days} days`} />
+          <InfoRow label="Notice Period" value={c.notice_period_days != null ? `${c.notice_period_days} days` : null} />
           <InfoRow label="Status" value={<StatusBadge status={status} />} />
           {c.notes && (
             <InfoRow label="Notes" value={<span className="whitespace-pre-wrap">{c.notes}</span>} />
@@ -154,8 +164,8 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
           <InfoRow
             label="Last Updated"
             value={
-              c.updated_by_user
-                ? `${c.updated_by_user.first_name} ${c.updated_by_user.last_name} on ${formatDate(c.updated_at)}`
+              updatedByName
+                ? `${updatedByName} on ${formatDate(c.updated_at)}`
                 : formatDate(c.updated_at)
             }
           />

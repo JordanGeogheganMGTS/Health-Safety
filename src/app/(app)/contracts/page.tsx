@@ -35,12 +35,11 @@ export default async function ContractsPage() {
   const canEdit = authUser.can('contracts', 'edit')
 
   const admin = createAdminClient()
+
+  // Fetch contracts without join to avoid FK constraint name dependency
   const { data: rows } = await admin
     .from('contracts')
-    .select(`
-      id, name, supplier, renewal_date, contract_value, notice_period_days,
-      owner:users!contracts_owner_id_fkey(first_name, last_name)
-    `)
+    .select('id, name, supplier, renewal_date, contract_value, notice_period_days, owner_id')
     .order('renewal_date', { ascending: true, nullsFirst: false })
 
   type Row = {
@@ -49,11 +48,24 @@ export default async function ContractsPage() {
     supplier: string | null
     renewal_date: string | null
     contract_value: number | null
-    notice_period_days: number
-    owner: { first_name: string; last_name: string } | null
+    notice_period_days: number | null
+    owner_id: string | null
   }
 
   const contracts = (rows ?? []) as unknown as Row[]
+
+  // Fetch owner names separately
+  const ownerIds = [...new Set(contracts.map((c) => c.owner_id).filter(Boolean))] as string[]
+  const ownerMap: Record<string, string> = {}
+  if (ownerIds.length > 0) {
+    const { data: ownersData } = await admin
+      .from('users')
+      .select('id, first_name, last_name')
+      .in('id', ownerIds)
+    for (const u of ownersData ?? []) {
+      ownerMap[u.id] = `${u.first_name} ${u.last_name}`
+    }
+  }
 
   // Compute status for summary counts
   const statuses = contracts.map((c) =>
@@ -128,13 +140,13 @@ export default async function ContractsPage() {
               <tbody className="divide-y divide-slate-50 bg-white">
                 {contracts.map((c, i) => {
                   const status = statuses[i]
-                  const owner = c.owner
+                  const ownerName = c.owner_id ? (ownerMap[c.owner_id] ?? null) : null
                   return (
                     <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-4 py-3 text-sm font-medium text-slate-900">{c.name}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">{c.supplier ?? <span className="text-slate-300">—</span>}</td>
                       <td className="px-4 py-3 text-sm text-slate-600">
-                        {owner ? `${owner.first_name} ${owner.last_name}` : <span className="text-slate-300">—</span>}
+                        {ownerName ?? <span className="text-slate-300">—</span>}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-600">
                         {c.renewal_date ? formatDate(c.renewal_date) : <span className="text-slate-300">—</span>}
