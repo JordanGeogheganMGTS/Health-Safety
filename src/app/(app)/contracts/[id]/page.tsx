@@ -6,6 +6,7 @@ import { formatDate } from '@/lib/dates'
 import { deleteContract } from '../actions'
 import { computeContractStatus, type ContractStatus } from '../utils'
 import { getAuthUser } from '@/lib/permissions'
+import DeleteContractButton from '../DeleteContractButton'
 
 function StatusBadge({ status }: { status: ContractStatus }) {
   const styles: Record<ContractStatus, string> = {
@@ -129,17 +130,7 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
               </Link>
             )}
             {canDelete && (
-              <form action={deleteWithId}>
-                <button
-                  type="submit"
-                  onClick={(e) => {
-                    if (!confirm(`Delete "${c.name}"? This cannot be undone.`)) e.preventDefault()
-                  }}
-                  className="rounded-lg border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  Delete
-                </button>
-              </form>
+              <DeleteContractButton name={c.name} deleteAction={deleteWithId} />
             )}
           </div>
         </div>
