@@ -58,12 +58,15 @@ export async function createContract(formData: FormData) {
     const filePath = `contracts/${contract.id}/${file.name}`
     const buffer = await file.arrayBuffer()
     const { error: uploadError } = await admin.storage.from('health-safety-files').upload(filePath, buffer, {
-      contentType: file.type,
+      contentType: file.type || 'application/octet-stream',
       upsert: true,
     })
-    if (!uploadError) {
-      await admin.from('contracts').update({ file_path: filePath, file_name: file.name }).eq('id', contract.id)
-    }
+    if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`)
+    const { error: fileUpdateError } = await admin
+      .from('contracts')
+      .update({ file_path: filePath, file_name: file.name })
+      .eq('id', contract.id)
+    if (fileUpdateError) throw new Error(`Failed to save file reference: ${fileUpdateError.message}`)
   }
 
   revalidatePath('/contracts')
@@ -99,10 +102,11 @@ export async function updateContract(id: string, formData: FormData) {
     newFilePath = `contracts/${id}/${file.name}`
     newFileName = file.name
     const buffer = await file.arrayBuffer()
-    await admin.storage.from('health-safety-files').upload(newFilePath, buffer, {
-      contentType: file.type,
+    const { error: uploadError } = await admin.storage.from('health-safety-files').upload(newFilePath, buffer, {
+      contentType: file.type || 'application/octet-stream',
       upsert: true,
     })
+    if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`)
   } else if (removeFile && existingPath) {
     await admin.storage.from('health-safety-files').remove([existingPath])
     newFilePath = null
