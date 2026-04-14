@@ -22,6 +22,8 @@ async function requireEditor() {
   return { userId: user.id, admin: createAdminClient() }
 }
 
+// File is uploaded client-side (browser → Supabase storage directly).
+// file_path and file_name arrive as plain strings in formData.
 export async function createContract(formData: FormData) {
   const { userId, admin } = await requireEditor()
 
@@ -33,7 +35,8 @@ export async function createContract(formData: FormData) {
   const contractValue = (formData.get('contract_value') as string) || null
   const noticePeriodDays = parseInt((formData.get('notice_period_days') as string) || '90', 10)
   const notes = (formData.get('notes') as string)?.trim() || null
-  const file = formData.get('file') as File | null
+  const filePath = (formData.get('file_path') as string) || null
+  const fileName = (formData.get('file_name') as string) || null
 
   const { data: contract, error } = await admin
     .from('contracts')
@@ -46,6 +49,8 @@ export async function createContract(formData: FormData) {
       contract_value: contractValue ? parseFloat(contractValue) : null,
       notice_period_days: isNaN(noticePeriodDays) ? 90 : noticePeriodDays,
       notes,
+      file_path: filePath,
+      file_name: fileName,
       created_by: userId,
       updated_by: userId,
     })
@@ -53,21 +58,6 @@ export async function createContract(formData: FormData) {
     .single()
 
   if (error || !contract) throw new Error(error?.message ?? 'Failed to create contract')
-
-  if (file && file.size > 0) {
-    const filePath = `contracts/${contract.id}/${file.name}`
-    const buffer = await file.arrayBuffer()
-    const { error: uploadError } = await admin.storage.from('health-safety-files').upload(filePath, buffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    })
-    if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`)
-    const { error: fileUpdateError } = await admin
-      .from('contracts')
-      .update({ file_path: filePath, file_name: file.name })
-      .eq('id', contract.id)
-    if (fileUpdateError) throw new Error(`Failed to save file reference: ${fileUpdateError.message}`)
-  }
 
   revalidatePath('/contracts')
   redirect(`/contracts/${contract.id}`)
@@ -84,34 +74,24 @@ export async function updateContract(id: string, formData: FormData) {
   const contractValue = (formData.get('contract_value') as string) || null
   const noticePeriodDays = parseInt((formData.get('notice_period_days') as string) || '90', 10)
   const notes = (formData.get('notes') as string)?.trim() || null
-  const file = formData.get('file') as File | null
+
+  // File handled client-side. new_file_path is set if a new file was uploaded.
+  // remove_file is set if the user removed the existing file.
+  // existing_file_path is the current value to preserve if no change.
+  const newFilePath = (formData.get('new_file_path') as string) || null
+  const newFileName = (formData.get('new_file_name') as string) || null
   const removeFile = formData.get('remove_file') === 'true'
+  const existingFilePath = (formData.get('existing_file_path') as string) || null
+  const existingFileName = (formData.get('existing_file_name') as string) || null
 
-  const { data: existing } = await admin.from('contracts').select('file_path, file_name').eq('id', id).single()
-  const existingPath = (existing as unknown as { file_path: string | null } | null)?.file_path ?? null
-  const existingFileName = (existing as unknown as { file_name: string | null } | null)?.file_name ?? null
-
-  let newFilePath: string | null = existingPath
-  let newFileName: string | null = existingFileName
-
-  if (file && file.size > 0) {
-    // Delete old file and upload new one
-    if (existingPath) {
-      await admin.storage.from('health-safety-files').remove([existingPath])
-    }
-    newFilePath = `contracts/${id}/${file.name}`
-    newFileName = file.name
-    const buffer = await file.arrayBuffer()
-    const { error: uploadError } = await admin.storage.from('health-safety-files').upload(newFilePath, buffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    })
-    if (uploadError) throw new Error(`File upload failed: ${uploadError.message}`)
-  } else if (removeFile && existingPath) {
-    await admin.storage.from('health-safety-files').remove([existingPath])
-    newFilePath = null
-    newFileName = null
+  // Delete old storage file when replacing or removing (admin client bypasses bucket policies)
+  const pathToDelete = (newFilePath || removeFile) ? existingFilePath : null
+  if (pathToDelete) {
+    await admin.storage.from('health-safety-files').remove([pathToDelete])
   }
+
+  const finalFilePath = removeFile ? null : (newFilePath ?? existingFilePath)
+  const finalFileName = removeFile ? null : (newFileName ?? existingFileName)
 
   const { error } = await admin
     .from('contracts')
@@ -124,8 +104,8 @@ export async function updateContract(id: string, formData: FormData) {
       contract_value: contractValue ? parseFloat(contractValue) : null,
       notice_period_days: isNaN(noticePeriodDays) ? 90 : noticePeriodDays,
       notes,
-      file_path: newFilePath,
-      file_name: newFileName,
+      file_path: finalFilePath,
+      file_name: finalFileName,
       updated_by: userId,
       updated_at: new Date().toISOString(),
     })
