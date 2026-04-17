@@ -15,7 +15,7 @@ interface EquipmentRow {
   asset_tag: string | null
   serial_number: string | null
   next_inspection_date: string
-  status: { value: EquipmentStatus } | null
+  status: string | null
   sites: { name: string } | null
   responsible: { first_name: string; last_name: string } | null
 }
@@ -53,8 +53,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
   let query = supabase
     .from('equipment')
     .select(
-      `id, name, asset_tag, serial_number, next_inspection_date,
-       status:lookup_values!status_id(value),
+      `id, name, asset_tag, serial_number, next_inspection_date, status,
        sites(name),
        responsible:users!responsible_person(first_name, last_name)`
     )
@@ -170,9 +169,9 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {eq.status?.[0]?.value ? (
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(eq.status[0].value)}`}>
-                          {eq.status[0].value}
+                      {eq.status ? (
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(eq.status as EquipmentStatus)}`}>
+                          {eq.status}
                         </span>
                       ) : <span className="text-slate-400">—</span>}
                     </td>

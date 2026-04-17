@@ -107,9 +107,9 @@ export default function NewEquipmentPage() {
         purchase_date: values.purchase_date || null,
         service_interval_months: values.service_interval_months,
         status: values.status,
-        responsible_person_id: values.responsible_person_id || null,
+        responsible_person: values.responsible_person_id || null,
         notes: values.notes || null,
-        next_service_due: computedNextDue,
+        next_inspection_date: computedNextDue,
       })
       .select('id')
       .single()

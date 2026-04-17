@@ -97,7 +97,7 @@ export default function EditEquipmentPage({ params }: PageProps) {
           purchase_date: eq.purchase_date ?? '',
           service_interval_months: eq.service_interval_months ?? 12,
           status: eq.status ?? 'Operational',
-          responsible_person_id: eq.responsible_person_id ?? '',
+          responsible_person_id: eq.responsible_person ?? '',
           notes: eq.notes ?? '',
         })
       }
@@ -126,9 +126,9 @@ export default function EditEquipmentPage({ params }: PageProps) {
         purchase_date: values.purchase_date || null,
         service_interval_months: values.service_interval_months,
         status: values.status,
-        responsible_person_id: values.responsible_person_id || null,
+        responsible_person: values.responsible_person_id || null,
         notes: values.notes || null,
-        next_service_due: computedNextDue,
+        next_inspection_date: computedNextDue,
       })
       .eq('id', equipmentId)
 

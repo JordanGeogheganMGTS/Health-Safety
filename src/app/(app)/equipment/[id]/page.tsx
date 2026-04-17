@@ -20,7 +20,8 @@ interface EquipmentDetail {
   model: string | null
   purchase_date: string | null
   next_inspection_date: string
-  status: { value: EquipmentStatus } | null
+  service_interval_months: number | null
+  status: string | null
   notes: string | null
   created_at: string
   sites: { name: string } | null
@@ -71,8 +72,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .from('equipment')
     .select(
       `id, name, description, location, serial_number, asset_tag, manufacturer, model,
-       purchase_date, next_inspection_date,
-       status:lookup_values!status_id(value), notes, created_at,
+       purchase_date, next_inspection_date, service_interval_months, status, notes, created_at,
        sites(name),
        responsible:users!responsible_person(first_name, last_name)`
     )
@@ -105,9 +105,9 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold text-slate-900">{eq.name}</h1>
-          {eq.status?.[0]?.value && (
-            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(eq.status[0].value)}`}>
-              {eq.status[0].value}
+          {eq.status && (
+            <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${statusBadgeClass(eq.status as EquipmentStatus)}`}>
+              {eq.status}
             </span>
           )}
         </div>
@@ -191,9 +191,15 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
             <h2 className="text-sm font-semibold text-slate-700">Service Summary</h2>
             <dl className="space-y-3 text-sm">
               <div>
-                <dt className="text-xs font-medium text-slate-500">Next Inspection Date</dt>
+                <dt className="text-xs font-medium text-slate-500">Next Service Due</dt>
                 <dd className="mt-0.5 text-slate-800">{formatDate(eq.next_inspection_date)}</dd>
               </div>
+              {eq.service_interval_months && (
+                <div>
+                  <dt className="text-xs font-medium text-slate-500">Service Interval</dt>
+                  <dd className="mt-0.5 text-slate-800">Every {eq.service_interval_months} month{eq.service_interval_months !== 1 ? 's' : ''}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-xs font-medium text-slate-500">Added</dt>
                 <dd className="mt-0.5 text-slate-800">{formatDateTime(eq.created_at)}</dd>
