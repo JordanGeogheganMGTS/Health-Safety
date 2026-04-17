@@ -66,6 +66,59 @@ export default async function CoshhPage({ searchParams }: { searchParams: Promis
         )}
       </div>
 
+      {/* Colour Code Chart */}
+      <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="border-b border-slate-100 px-5 py-3">
+          <h2 className="text-sm font-semibold text-slate-800">Colour Code Chart — Are you using the right colour?</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-0 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-slate-100">
+          {/* Blue */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-7 w-7 rounded-md bg-blue-500 flex items-center justify-center shrink-0">
+                <span className="text-white text-xs font-bold">B</span>
+              </div>
+              <span className="text-sm font-semibold text-blue-700">Blue — General Areas</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-1"><span className="font-medium text-slate-600">Areas:</span> Classrooms, Corridors, Halls, Restrooms</p>
+            <p className="text-xs text-slate-500"><span className="font-medium text-slate-600">Equipment:</span> Buckets, Cloths, Spray Bottles, Brushes</p>
+          </div>
+          {/* Green */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-7 w-7 rounded-md bg-green-500 flex items-center justify-center shrink-0">
+                <span className="text-white text-xs font-bold">G</span>
+              </div>
+              <span className="text-sm font-semibold text-green-700">Green — Kitchens</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-1"><span className="font-medium text-slate-600">Areas:</span> Food prep areas, Food tech areas</p>
+            <p className="text-xs text-slate-500"><span className="font-medium text-slate-600">Equipment:</span> Buckets, Cloths, Spray Bottles, Brushes</p>
+          </div>
+          {/* Red */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-7 w-7 rounded-md bg-red-500 flex items-center justify-center shrink-0">
+                <span className="text-white text-xs font-bold">R</span>
+              </div>
+              <span className="text-sm font-semibold text-red-700">Red — Toilets &amp; Toilet Floors</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-1"><span className="font-medium text-slate-600">Areas:</span> Toilet Pans, Urinals, Toilet Floors</p>
+            <p className="text-xs text-slate-500"><span className="font-medium text-slate-600">Equipment:</span> Buckets, Cloths, Spray Bottles, Brushes</p>
+          </div>
+          {/* Yellow */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="h-7 w-7 rounded-md bg-yellow-400 flex items-center justify-center shrink-0">
+                <span className="text-white text-xs font-bold">Y</span>
+              </div>
+              <span className="text-sm font-semibold text-yellow-700">Yellow — Washroom Surfaces</span>
+            </div>
+            <p className="text-xs text-slate-500 mb-1"><span className="font-medium text-slate-600">Areas:</span> Sinks, Cubicles, Walls</p>
+            <p className="text-xs text-slate-500"><span className="font-medium text-slate-600">Equipment:</span> Cloths, Spray Bottles, Brushes</p>
+          </div>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="mb-4">
         <Suspense fallback={<div className="h-10" />}>
