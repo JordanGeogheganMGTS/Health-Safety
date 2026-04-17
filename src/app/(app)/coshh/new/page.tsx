@@ -36,6 +36,7 @@ const schema = z.object({
   disposal_method: z.string().optional(),
   first_aid_measures: z.string().optional(),
   spillage_procedure: z.string().optional(),
+  sds_url: z.string().url('Please enter a valid URL (starting with https://)').min(1, 'Safety data sheet URL is required'),
   assessed_by: z.string().min(1, 'Assessor is required'),
   assessment_date: z.string().min(1, 'Assessment date is required'),
   review_due_date: z.string().min(1, 'Review date is required'),
@@ -136,6 +137,7 @@ export default function NewCoshhPage() {
         disposal_method: values.disposal_method || null,
         first_aid_measures: values.first_aid_measures || null,
         spillage_procedure: values.spillage_procedure || null,
+        sds_url: values.sds_url,
         assessed_by: values.assessed_by,
         assessment_date: values.assessment_date,
         review_due_date: values.review_due_date,
@@ -224,6 +226,20 @@ export default function NewCoshhPage() {
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Description of Use</label>
             <textarea {...register('description_of_use')} rows={2} className={textareaCls} placeholder="How the product is used…" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Safety Data Sheet URL <span className="text-red-500">*</span>
+            </label>
+            <input
+              {...register('sds_url')}
+              type="url"
+              className={inputCls}
+              placeholder="https://supplier.com/sds/product.pdf"
+            />
+            {errors.sds_url && <p className="mt-1 text-xs text-red-600">{errors.sds_url.message}</p>}
+            <p className="mt-1 text-xs text-slate-400">Link to the supplier&apos;s online safety data sheet</p>
           </div>
         </div>
 

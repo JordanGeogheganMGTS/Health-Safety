@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import path from 'path'
 import React from 'react'
 import {
-  Document, Page, Text, View, StyleSheet, renderToBuffer, Font, Image,
+  Document, Page, Text, View, StyleSheet, renderToBuffer, Font, Image, Link,
 } from '@react-pdf/renderer'
 
 Font.registerHyphenationCallback((word) => [word])
@@ -58,6 +58,8 @@ const s = StyleSheet.create({
   emergencyBox: { borderWidth: 1, borderColor: C.redBorder, borderRadius: 4, padding: 10, marginBottom: 10, backgroundColor: C.redLight },
   emergencyHeading: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: C.red, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: C.redBorder, paddingBottom: 3 },
   emergencyLabel: { fontSize: 6, fontFamily: 'Helvetica-Bold', color: C.red, textTransform: 'uppercase', marginBottom: 2 },
+  sdsLinkBox: { borderWidth: 1, borderColor: C.orangeBorder, borderRadius: 4, padding: 8, backgroundColor: C.orangeLight, marginBottom: 10 },
+  sdsLink: { fontSize: 8, color: C.orange, textDecoration: 'underline' },
   footer: { position: 'absolute', bottom: 16, left: 24, right: 24, flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: C.slate300, paddingTop: 5 },
   footerText: { fontSize: 6, color: C.slate500 },
   pageNum: { fontSize: 6, color: C.slate500 },
@@ -108,6 +110,7 @@ interface CoshhData {
   // emergency
   first_aid_measures: string | null
   spillage_procedure: string | null
+  sds_url: string | null
 }
 
 function CoshhPdf({ ca, generatedAt }: { ca: CoshhData; generatedAt: string }) {
@@ -171,6 +174,16 @@ function CoshhPdf({ ca, generatedAt }: { ca: CoshhData; generatedAt: string }) {
               </View>
             ))}
           </View>
+
+          {/* SDS Link */}
+          {ca.sds_url && (
+            <View style={s.sdsLinkBox}>
+              <Text style={s.fieldLabel}>Safety Data Sheet</Text>
+              <Link src={ca.sds_url} style={s.sdsLink}>
+                <Text>{ca.sds_url}</Text>
+              </Link>
+            </View>
+          )}
 
           {/* Product use */}
           {(ca.location_of_use || ca.quantity_used || ca.frequency_of_use || ca.description_of_use) && (
@@ -343,7 +356,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       is_harmful, is_carcinogenic, is_sensitiser, other_hazards,
       exposure_inhalation, exposure_skin, exposure_ingestion, exposure_eyes,
       engineering_controls, ppe_required, storage_requirements, disposal_method,
-      first_aid_measures, spillage_procedure,
+      first_aid_measures, spillage_procedure, sds_url,
       sites(name),
       assessor:users!coshh_assessments_assessed_by_fkey(first_name, last_name),
       approver:users!coshh_assessments_approved_by_fkey(first_name, last_name)
@@ -393,6 +406,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     disposal_method: ca.disposal_method,
     first_aid_measures: ca.first_aid_measures,
     spillage_procedure: ca.spillage_procedure,
+    sds_url: ca.sds_url,
   }
 
   const generatedAt = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })

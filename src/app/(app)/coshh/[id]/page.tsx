@@ -62,7 +62,7 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
       is_harmful, is_carcinogenic, is_sensitiser, other_hazards,
       exposure_inhalation, exposure_skin, exposure_ingestion, exposure_eyes,
       engineering_controls, ppe_required, storage_requirements, disposal_method,
-      first_aid_measures, spillage_procedure, sds_file_path, sds_file_name, sds_issue_date,
+      first_aid_measures, spillage_procedure, sds_url, sds_file_path, sds_file_name, sds_issue_date,
       status, version, assessment_date, review_due_date, approved_at, created_at,
       sites(name),
       assessor:users!coshh_assessments_assessed_by_fkey(first_name, last_name),
@@ -190,6 +190,24 @@ export default async function CoshhDetailPage({ params }: { params: { id: string
           <div>
             <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Frequency of Use</dt>
             <dd className="text-slate-900">{ca.frequency_of_use ?? '—'}</dd>
+          </div>
+          <div className="col-span-2 md:col-span-4">
+            <dt className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">Safety Data Sheet</dt>
+            <dd>
+              {ca.sds_url ? (
+                <a
+                  href={ca.sds_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-orange-600 hover:text-orange-700 underline underline-offset-2 break-all"
+                >
+                  <svg className="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  {ca.sds_url}
+                </a>
+              ) : <span className="text-sm text-slate-400">—</span>}
+            </dd>
           </div>
         </dl>
         {ca.description_of_use && (
