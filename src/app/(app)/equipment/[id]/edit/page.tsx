@@ -55,6 +55,10 @@ export default function EditEquipmentPage({ params }: PageProps) {
   const [users, setUsers] = useState<UserOption[]>([])
   const [loading, setLoading] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [existingPhotoPath, setExistingPhotoPath] = useState<string | null>(null)
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
 
   const {
     register,
@@ -85,6 +89,13 @@ export default function EditEquipmentPage({ params }: PageProps) {
       setUsers(usersData ?? [])
 
       if (eq) {
+        if (eq.photo_path) {
+          setExistingPhotoPath(eq.photo_path)
+          const { data: urlData } = await supabase.storage
+            .from('health-safety-files')
+            .createSignedUrl(eq.photo_path, 3600)
+          if (urlData?.signedUrl) setExistingPhotoUrl(urlData.signedUrl)
+        }
         reset({
           name: eq.name ?? '',
           description: eq.description ?? '',
@@ -112,6 +123,16 @@ export default function EditEquipmentPage({ params }: PageProps) {
     if (!equipmentId) return
     setServerError(null)
 
+    let photoPath = existingPhotoPath
+    if (photoFile) {
+      const { key, error: uploadError } = await uploadFile('equipment/photos', photoFile)
+      if (uploadError) {
+        setServerError(`Photo upload failed: ${uploadError}`)
+        return
+      }
+      photoPath = key
+    }
+
     const { error } = await supabase
       .from('equipment')
       .update({
@@ -129,6 +150,7 @@ export default function EditEquipmentPage({ params }: PageProps) {
         responsible_person: values.responsible_person_id || null,
         notes: values.notes || null,
         next_inspection_date: computedNextDue,
+        photo_path: photoPath,
       })
       .eq('id', equipmentId)
 
@@ -294,6 +316,33 @@ export default function EditEquipmentPage({ params }: PageProps) {
           <div className="space-y-1">
             <label htmlFor="notes" className={labelClass}>Notes</label>
             <textarea id="notes" {...register('notes')} rows={3} className={inputClass} />
+          </div>
+
+          {/* Photo */}
+          <div className="space-y-2">
+            <label className={labelClass}>Equipment Photo</label>
+            {existingPhotoUrl && !photoPreview && (
+              <div className="flex items-start gap-3">
+                <img src={existingPhotoUrl} alt="Current equipment photo" className="h-40 w-40 object-cover rounded-lg border border-slate-200 shadow-sm" />
+                <p className="text-xs text-slate-400 mt-1">Select a new photo below to replace this one.</p>
+              </div>
+            )}
+            {photoPreview && (
+              <img src={photoPreview} alt="New photo preview" className="h-40 w-40 object-cover rounded-lg border border-orange-200 shadow-sm" />
+            )}
+            <p className="text-xs text-slate-400">On mobile, this will open your camera directly. On desktop, select an image file.</p>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setPhotoFile(file)
+                if (file) setPhotoPreview(URL.createObjectURL(file))
+                else setPhotoPreview(null)
+              }}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+            />
           </div>
 
           {/* Actions */}

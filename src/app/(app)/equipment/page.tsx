@@ -155,7 +155,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
-                      {eq.sites?.[0]?.name ?? <span className="text-slate-400">—</span>}
+                      {(eq.sites as { name: string } | null)?.name ?? <span className="text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {eq.asset_tag ?? <span className="text-slate-400">—</span>}
@@ -177,7 +177,7 @@ export default async function EquipmentPage({ searchParams }: PageProps) {
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-600">
                       {(() => {
-                        const r = (eq.responsible as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                        const r = eq.responsible as { first_name: string; last_name: string } | null
                         return r ? `${r.first_name} ${r.last_name}` : <span className="text-slate-400">—</span>
                       })()}
                     </td>

@@ -22,6 +22,7 @@ interface EquipmentDetail {
   next_inspection_date: string
   service_interval_months: number | null
   status: string | null
+  photo_path: string | null
   notes: string | null
   created_at: string
   sites: { name: string } | null
@@ -72,7 +73,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
     .from('equipment')
     .select(
       `id, name, description, location, serial_number, asset_tag, manufacturer, model,
-       purchase_date, next_inspection_date, service_interval_months, status, notes, created_at,
+       purchase_date, next_inspection_date, service_interval_months, status, photo_path, notes, created_at,
        sites(name),
        responsible:users!responsible_person(first_name, last_name)`
     )
@@ -91,6 +92,14 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
 
   const records = (serviceRows ?? []) as unknown as ServiceRecord[]
   const authUser = await getAuthUser()
+
+  let photoUrl: string | null = null
+  if (eq.photo_path) {
+    const { data: urlData } = await supabase.storage
+      .from('health-safety-files')
+      .createSignedUrl(eq.photo_path, 60 * 60)
+    photoUrl = urlData?.signedUrl ?? null
+  }
 
   return (
     <div className="space-y-6">
@@ -132,7 +141,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
             <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
               <div>
                 <dt className="text-xs font-medium text-slate-500">Site</dt>
-                <dd className="mt-0.5 text-slate-800">{eq.sites?.[0]?.name ?? '—'}</dd>
+                <dd className="mt-0.5 text-slate-800">{(eq.sites as { name: string } | null)?.name ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-slate-500">Location</dt>
@@ -162,7 +171,7 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
                 <dt className="text-xs font-medium text-slate-500">Responsible Person</dt>
                 <dd className="mt-0.5 text-slate-800">
                   {(() => {
-                    const r = (eq.responsible as unknown as { first_name: string; last_name: string }[] | null)?.[0]
+                    const r = eq.responsible as { first_name: string; last_name: string } | null
                     return r ? `${r.first_name} ${r.last_name}` : '—'
                   })()}
                 </dd>
@@ -180,6 +189,17 @@ export default async function EquipmentDetailPage({ params }: PageProps) {
               <div>
                 <dt className="text-xs font-medium text-slate-500">Notes</dt>
                 <dd className="mt-0.5 text-sm text-slate-700 whitespace-pre-wrap">{eq.notes}</dd>
+              </div>
+            )}
+
+            {photoUrl && (
+              <div>
+                <p className="text-xs font-medium text-slate-500 mb-2">Equipment Photo</p>
+                <img
+                  src={photoUrl}
+                  alt={`Photo of ${eq.name}`}
+                  className="rounded-lg border border-slate-200 shadow-sm max-h-64 object-cover"
+                />
               </div>
             )}
           </div>

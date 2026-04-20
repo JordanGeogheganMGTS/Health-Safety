@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import { uploadFile } from '@/lib/storage'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -58,6 +59,8 @@ export default function NewEquipmentPage() {
   const [users, setUsers] = useState<UserOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(true)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [photoFile, setPhotoFile] = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
 
   const {
     register,
@@ -93,6 +96,16 @@ export default function NewEquipmentPage() {
   async function onSubmit(values: FormValues) {
     setServerError(null)
 
+    let photoPath: string | null = null
+    if (photoFile) {
+      const { key, error: uploadError } = await uploadFile('equipment/photos', photoFile)
+      if (uploadError) {
+        setServerError(`Photo upload failed: ${uploadError}`)
+        return
+      }
+      photoPath = key
+    }
+
     const { data, error } = await supabase
       .from('equipment')
       .insert({
@@ -110,6 +123,7 @@ export default function NewEquipmentPage() {
         responsible_person: values.responsible_person_id || null,
         notes: values.notes || null,
         next_inspection_date: computedNextDue,
+        photo_path: photoPath,
       })
       .select('id')
       .single()
@@ -268,6 +282,27 @@ export default function NewEquipmentPage() {
           <div className="space-y-1">
             <label htmlFor="notes" className={labelClass}>Notes</label>
             <textarea id="notes" {...register('notes')} rows={3} className={inputClass} placeholder="Any additional notes…" />
+          </div>
+
+          {/* Photo */}
+          <div className="space-y-1">
+            <label className={labelClass}>Equipment Photo</label>
+            <p className="text-xs text-slate-400">On mobile, this will open your camera directly. On desktop, select an image file.</p>
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const file = e.target.files?.[0] ?? null
+                setPhotoFile(file)
+                if (file) setPhotoPreview(URL.createObjectURL(file))
+                else setPhotoPreview(null)
+              }}
+              className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-orange-700 hover:file:bg-orange-100"
+            />
+            {photoPreview && (
+              <img src={photoPreview} alt="Preview" className="mt-2 h-40 w-40 object-cover rounded-lg border border-slate-200 shadow-sm" />
+            )}
           </div>
 
           {/* Actions */}
