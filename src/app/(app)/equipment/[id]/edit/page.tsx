@@ -161,6 +161,7 @@ export default function EditEquipmentPage({ params }: PageProps) {
     }
 
     router.push(`/equipment/${equipmentId}`)
+    router.refresh()
   }
 
   const inputClass =
