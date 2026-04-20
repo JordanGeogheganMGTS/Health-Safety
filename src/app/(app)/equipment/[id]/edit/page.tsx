@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
+import { uploadFile } from '@/lib/storage'
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
